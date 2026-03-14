@@ -1,0 +1,120 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             x:Class="ReScene.NET.Views.SampleRestorerView">
+
+  <DockPanel Margin="{DynamicResource PageMargin}">
+
+    <!-- ── Tab description ─────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="Restore media files using SRS data embedded in an SRR file. Select a directory containing the media files to restore — metadata and structure will be reconstructed and CRC-verified."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,0,0,6" />
+
+    <!-- ── SRR File ──────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="SRR File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseSrrCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding SrrFilePath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Media Directory ───────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Media Directory" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseMediaDirectoryCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding MediaDirectoryPath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Output Directory ──────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Output Directory" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseOutputDirectoryCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding OutputDirectoryPath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── SRS Entries DataGrid ──────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Embedded SRS Files" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DataGrid DockPanel.Dock="Top"
+              ItemsSource="{Binding SrsEntries}"
+              IsReadOnly="False"
+              AutoGenerateColumns="False"
+              CanUserReorderColumns="False"
+              CanUserSortColumns="False"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              SelectionMode="Single"
+              BorderThickness="0"
+              MinHeight="100"
+              MaxHeight="250">
+      <DataGrid.Columns>
+        <DataGridCheckBoxColumn Header="" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="30" />
+        <DataGridTextColumn Header="SRS File" Binding="{Binding SrsFileName}" Width="200" IsReadOnly="True" />
+        <DataGridTextColumn Header="Sample Name" Binding="{Binding SampleFileName}" Width="200" IsReadOnly="True" />
+        <DataGridTextColumn Header="Media File" Binding="{Binding MediaFilePath}" Width="*" />
+        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="200" IsReadOnly="True" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Action row ────────────────────────────────────────── -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="Restore All"
+                Command="{Binding RestoreCommand}"
+                Style="{StaticResource PrimaryButton}"
+                Padding="16,4" Margin="0,0,4,0" />
+        <Button Content="Cancel"
+                Command="{Binding CancelRestoreCommand}"
+                Style="{StaticResource CancelButton}"
+                Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVisibility}}"
+                Padding="16,4" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock Text="{Binding OverallProgressText}" Margin="0,0,8,0" />
+        <TextBlock Text="{Binding ProgressMessage}"
+                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Progress bar -->
+    <ProgressBar DockPanel.Dock="Top"
+                 Value="{Binding ProgressPercent}"
+                 Maximum="100" Height="18"
+                 Margin="0,0,0,4"
+                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Log (fills remaining space) ───────────────────────── -->
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Top" Text="Log" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <ListBox ItemsSource="{Binding LogEntries}"
+               Style="{StaticResource CompactLogListBox}"
+               FontFamily="{DynamicResource MonoFontFamily}"
+               FontSize="{DynamicResource MonoFontSize}" />
+    </DockPanel>
+
+  </DockPanel>
+
+</UserControl>

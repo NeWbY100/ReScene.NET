@@ -1,0 +1,91 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             x:Class="ReScene.NET.Views.SrsCreatorView">
+
+  <DockPanel Margin="{DynamicResource PageMargin}">
+
+    <!-- ── Tab description ─────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="Create an SRS (Sample Rescue Storage) file from a sample video file. The SRS stores enough data to reconstruct the exact sample from any copy of the same video."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,0,0,6" />
+
+    <!-- ── Sample File ───────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Sample File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseInputCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding InputPath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Output ────────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseOutputCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding OutputPath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Options ───────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Options" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+      <TextBlock Text="App name:" VerticalAlignment="Center"
+                 Margin="0,0,8,0" />
+      <TextBox Text="{Binding AppName}" Width="200"
+               HorizontalAlignment="Left" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Action row ────────────────────────────────────────── -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="Create SRS"
+                Command="{Binding CreateSrsCommand}"
+                Style="{StaticResource PrimaryButton}"
+                Padding="16,4" Margin="0,0,4,0" />
+        <Button Content="Cancel"
+                Command="{Binding CancelCreationCommand}"
+                Style="{StaticResource CancelButton}"
+                Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}"
+                Padding="16,4" />
+      </StackPanel>
+      <TextBlock Text="{Binding ProgressMessage}"
+                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
+                 VerticalAlignment="Center" />
+    </DockPanel>
+
+    <!-- Progress bar -->
+    <ProgressBar DockPanel.Dock="Top"
+                 Value="{Binding ProgressPercent}"
+                 Maximum="100" Height="18"
+                 Margin="0,0,0,4"
+                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Log (fills remaining space) ───────────────────────── -->
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Top" Text="Log" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <ListBox ItemsSource="{Binding LogEntries}"
+               Style="{StaticResource CompactLogListBox}"
+               FontFamily="{DynamicResource MonoFontFamily}"
+               FontSize="{DynamicResource MonoFontSize}" />
+    </DockPanel>
+
+  </DockPanel>
+
+</UserControl>

@@ -1,0 +1,109 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             x:Class="ReScene.NET.Views.SrsReconstructorView">
+
+  <DockPanel Margin="{DynamicResource PageMargin}">
+
+    <!-- ── Tab description ─────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="Reconstruct a sample file from an SRS file and the original full media file. The reconstructed sample will be CRC-verified against the expected checksum."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,0,0,6" />
+
+    <!-- ── SRS File ────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="SRS File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseSrsCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding SrsFilePath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Media File ──────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Media File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseMediaCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding MediaFilePath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Output ──────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseOutputCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding OutputPath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Action row ──────────────────────────────────────── -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="Rebuild Sample"
+                Command="{Binding RebuildCommand}"
+                Style="{StaticResource PrimaryButton}"
+                Padding="16,4" Margin="0,0,4,0" />
+        <Button Content="Cancel"
+                Command="{Binding CancelRebuildCommand}"
+                Style="{StaticResource CancelButton}"
+                Visibility="{Binding IsRebuilding, Converter={StaticResource BoolToVisibility}}"
+                Padding="16,4" />
+      </StackPanel>
+      <TextBlock Text="{Binding ProgressMessage}"
+                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
+                 VerticalAlignment="Center" />
+    </DockPanel>
+
+    <!-- Progress bar -->
+    <ProgressBar DockPanel.Dock="Top"
+                 Value="{Binding ProgressPercent}"
+                 Maximum="100" Height="18"
+                 Margin="0,0,0,4"
+                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+
+    <!-- ── Result ──────────────────────────────────────────── -->
+    <Border DockPanel.Dock="Top"
+            Visibility="{Binding ShowResult, Converter={StaticResource BoolToVisibility}}"
+            Padding="8,6" Margin="0,0,0,4" CornerRadius="4">
+      <Border.Style>
+        <Style TargetType="Border">
+          <Setter Property="Background" Value="#30FF4444" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding ResultSuccess}" Value="True">
+              <Setter Property="Background" Value="#304EC9B0" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Border.Style>
+      <TextBlock Text="{Binding ResultSummary}" FontWeight="SemiBold" />
+    </Border>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Log (fills remaining space) ─────────────────────── -->
+    <DockPanel>
+      <TextBlock DockPanel.Dock="Top" Text="Log" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <ListBox ItemsSource="{Binding LogEntries}"
+               Style="{StaticResource CompactLogListBox}"
+               FontFamily="{DynamicResource MonoFontFamily}"
+               FontSize="{DynamicResource MonoFontSize}" />
+    </DockPanel>
+
+  </DockPanel>
+
+</UserControl>

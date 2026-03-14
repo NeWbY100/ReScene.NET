@@ -1,0 +1,149 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             x:Class="ReScene.NET.Views.CreatorView">
+
+  <Grid Margin="{DynamicResource PageMargin}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />  <!-- Description -->
+      <RowDefinition Height="Auto" />  <!-- Input section -->
+      <RowDefinition Height="Auto" />  <!-- separator -->
+      <RowDefinition Height="Auto" />  <!-- Stored Files header + buttons -->
+      <RowDefinition Height="80" MinHeight="40" />  <!-- Stored Files list (resizable) -->
+      <RowDefinition Height="Auto" />  <!-- GridSplitter -->
+      <RowDefinition Height="*" MinHeight="100" />  <!-- Bottom half (Output + Options + Action + Log) -->
+    </Grid.RowDefinitions>
+
+    <!-- ── Tab description ─────────────────────────────────── -->
+    <TextBlock Grid.Row="0"
+               Text="Create an SRR (Scene Release Rescue) file from a RAR archive set. The SRR captures RAR headers and metadata needed to reconstruct the original archives later."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,0,0,6" />
+
+    <!-- ── Input ─────────────────────────────────────────────── -->
+    <StackPanel Grid.Row="1">
+      <TextBlock Text="Input" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse"
+                Command="{Binding BrowseInputCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding InputPath}" />
+      </DockPanel>
+    </StackPanel>
+
+    <!-- separator -->
+    <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+    <!-- ── Stored Files header + buttons ─────────────────────── -->
+    <StackPanel Grid.Row="3">
+      <TextBlock Text="Stored Files" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+        <Button Content="Add..." Command="{Binding AddStoredFileCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
+        <Button Content="Remove" Command="{Binding RemoveStoredFileCommand}" Style="{StaticResource GhostButton}" />
+      </StackPanel>
+    </StackPanel>
+
+    <!-- ── Stored Files list (resizable) ─────────────────────── -->
+    <ListBox Grid.Row="4"
+             ItemsSource="{Binding StoredFiles}"
+             SelectedItem="{Binding SelectedStoredFile}" />
+
+    <!-- GridSplitter between Stored Files and bottom half -->
+    <GridSplitter Grid.Row="5" Height="5" HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center" ResizeDirection="Rows"
+                  ResizeBehavior="PreviousAndNext"
+                  Background="Transparent" />
+
+    <!-- ── Bottom half: Output + Options + Action + Log ──────── -->
+    <Grid Grid.Row="6">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />  <!-- Output section -->
+        <RowDefinition Height="Auto" />  <!-- separator -->
+        <RowDefinition Height="Auto" />  <!-- Options section -->
+        <RowDefinition Height="Auto" />  <!-- separator -->
+        <RowDefinition Height="Auto" />  <!-- Action row + progress -->
+        <RowDefinition Height="Auto" />  <!-- separator -->
+        <RowDefinition Height="Auto" />  <!-- Log header -->
+        <RowDefinition Height="*" MinHeight="40" />  <!-- Log list (resizable, fills remaining) -->
+      </Grid.RowDefinitions>
+
+      <!-- ── Output ────────────────────────────────────────────── -->
+      <StackPanel Grid.Row="0">
+        <TextBlock Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Browse"
+                  Command="{Binding BrowseOutputCommand}"
+                  Style="{StaticResource GhostButton}"
+                  Margin="4,0,0,0" MinWidth="75" />
+          <TextBox Text="{Binding OutputPath}" />
+        </DockPanel>
+      </StackPanel>
+
+      <!-- separator -->
+      <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+      <!-- ── Options ───────────────────────────────────────────── -->
+      <StackPanel Grid.Row="2">
+        <TextBlock Text="Options" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <CheckBox Content="Allow compressed — Accept RAR volumes that use compression (method != Store)."
+                  IsChecked="{Binding AllowCompressed}" Margin="0,1" />
+        <CheckBox Content="Store paths — Preserve directory paths in stored file names."
+                  IsChecked="{Binding StorePaths}" Margin="0,1" />
+        <CheckBox Content="OSO hashes — Compute and store OpenSubtitles OSO hashes for archived files."
+                  IsChecked="{Binding ComputeOsoHashes}" Margin="0,1,0,4" />
+        <DockPanel Margin="0,0,0,2">
+          <TextBlock Text="App name:" VerticalAlignment="Center"
+                     Margin="0,0,8,0" />
+          <TextBox Text="{Binding AppName}" Width="400"
+                   HorizontalAlignment="Left" />
+          <TextBlock Text="Embedded in the SRR header to identify the creating application."
+                     VerticalAlignment="Center" Margin="8,0,0,0"
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+        </DockPanel>
+      </StackPanel>
+
+      <!-- separator -->
+      <Border Grid.Row="3" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+      <!-- ── Action row + progress ── -->
+      <StackPanel Grid.Row="4">
+        <DockPanel Margin="0,0,0,2">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <Button Content="Create SRR"
+                    Command="{Binding CreateSrrCommand}"
+                    Style="{StaticResource PrimaryButton}"
+                    Padding="16,4" Margin="0,0,4,0" />
+            <Button Content="Cancel"
+                    Command="{Binding CancelCreationCommand}"
+                    Style="{StaticResource CancelButton}"
+                    Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}"
+                    Padding="16,4" />
+          </StackPanel>
+          <TextBlock Text="{Binding ProgressMessage}"
+                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
+                     VerticalAlignment="Center" />
+        </DockPanel>
+        <ProgressBar Value="{Binding ProgressPercent}"
+                     Maximum="100" Height="18"
+                     Margin="0,0,0,4"
+                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+      </StackPanel>
+
+      <!-- separator -->
+      <Border Grid.Row="5" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+      <!-- ── Log header ── -->
+      <TextBlock Grid.Row="6" Text="Log" FontWeight="SemiBold" Margin="0,0,0,2" />
+
+      <!-- ── Log list (fills remaining space) ───────────────── -->
+      <ListBox Grid.Row="7"
+               ItemsSource="{Binding LogEntries}"
+               Style="{StaticResource CompactLogListBox}"
+               FontFamily="{DynamicResource MonoFontFamily}"
+               FontSize="{DynamicResource MonoFontSize}" />
+    </Grid>
+
+  </Grid>
+
+</UserControl>

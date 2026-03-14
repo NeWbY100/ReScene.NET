@@ -1,0 +1,128 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             xmlns:m="clr-namespace:ReScene.NET.Models"
+             x:Class="ReScene.NET.Views.HomeView">
+
+  <DockPanel Margin="{DynamicResource PageMargin}">
+
+    <!-- ── Tab description ─────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="Open SRR or SRS files to inspect, create new rescue files, or pick up where you left off from recent files."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,0,0,6" />
+
+    <!-- ── Top toolbar row ──────────────────────────────────── -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+      <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+        <Button Content="Open File..."
+                Command="{Binding OpenInspectCommand}"
+                Style="{StaticResource PrimaryButton}"
+                Padding="10,3" Margin="0,0,4,0" />
+        <Button Content="Create SRR..."
+                Command="{Binding SwitchToCreatorCommand}"
+                Style="{StaticResource PrimaryButton}"
+                Padding="10,3" />
+      </StackPanel>
+      <TextBlock Text="Open an SRR/SRS file to inspect, or drag and drop files onto this window."
+                 VerticalAlignment="Center"
+                 Margin="8,0,0,0"
+                 Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </DockPanel>
+
+    <!-- ── Resources ────────────────────────────────────────── -->
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+      <TextBlock Text="Resources" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <Border BorderBrush="{DynamicResource PanelBorderBrush}"
+              BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+              Padding="8,6">
+        <StackPanel>
+          <TextBlock Margin="0,0,0,2">
+            <Hyperlink Command="{Binding OpenUrlCommand}"
+                       CommandParameter="http://rescene.wikidot.com/">pyReScene / ReSample wiki</Hyperlink>
+            <Run Text=" — documentation for the original rescene and resample tools" Foreground="{DynamicResource ForegroundSecondary}" />
+          </TextBlock>
+          <TextBlock Margin="0,0,0,4">
+            <Run Text="WinRAR versions" FontWeight="SemiBold" />
+            <Run Text=" — needed to reconstruct original RAR archives" Foreground="{DynamicResource ForegroundSecondary}" />
+          </TextBlock>
+          <TextBlock Margin="0,0,0,2">
+            <Hyperlink Command="{Binding OpenUrlCommand}"
+                       CommandParameter="https://drive.google.com/file/d/1of053kS2Wxk-foHN_ALRu-u6Tcck58yn/view?usp=drive_link">Extracted files (ready to use)</Hyperlink>
+          </TextBlock>
+          <TextBlock>
+            <Hyperlink Command="{Binding OpenUrlCommand}"
+                       CommandParameter="https://drive.google.com/file/d/1hvgzSY6YH_ZS3cpy7bHcw2zpjiwuP_Xi/view?usp=drive_link">Original files from RAR FTP</Hyperlink>
+          </TextBlock>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <!-- ── Recent files (fills remaining space) ─────────────── -->
+    <DockPanel Visibility="{Binding HasRecentFiles, Converter={StaticResource BoolToVisibility}}">
+
+      <!-- Header row -->
+      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right"
+                Content="Clear"
+                Command="{Binding ClearRecentFilesCommand}"
+                Style="{StaticResource GhostButton}"
+                Padding="8,2"
+                FontSize="{DynamicResource FontSizeCaption}" />
+        <TextBlock Text="Recent Files"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center" />
+      </DockPanel>
+
+      <!-- Bordered file list -->
+      <Border BorderBrush="{DynamicResource PanelBorderBrush}"
+              BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding RecentFiles}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type m:RecentFileEntry}">
+                <Button Command="{Binding DataContext.OpenRecentFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        CommandParameter="{Binding}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="4,3"
+                        Cursor="Hand"
+                        Style="{StaticResource RecentFileItemButton}">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                      <TextBlock Text="{Binding FileName}"
+                                 FontWeight="SemiBold"
+                                 FontSize="{DynamicResource FontSizeBody}" />
+                      <TextBlock Text="{Binding FilePath}"
+                                 FontSize="{DynamicResource FontSizeCaption}"
+                                 Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding LastOpened, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                               FontSize="{DynamicResource FontSizeCaption}"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                               Margin="8,0,0,0" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Border>
+
+    </DockPanel>
+
+  </DockPanel>
+
+</UserControl>

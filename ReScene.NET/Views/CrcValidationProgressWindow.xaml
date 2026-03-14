@@ -1,0 +1,93 @@
+<Window x:Class="ReScene.NET.Views.CrcValidationProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Verifying Files"
+        Width="480" Height="290"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource ForegroundPrimary}">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Heading -->
+        <TextBlock Grid.Row="0"
+                   Text="{Binding VerifyHeadingText}"
+                   Foreground="{DynamicResource HeaderForeground}"
+                   FontWeight="Bold" FontSize="{DynamicResource FontSizeH2}"
+                   Margin="0,0,0,10" TextTrimming="CharacterEllipsis" />
+
+        <!-- Progress bar + percent -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,8">
+            <TextBlock Text="{Binding VerifyProgressPercentText}"
+                       DockPanel.Dock="Right" Margin="8,0,0,0"
+                       VerticalAlignment="Center" MinWidth="35" TextAlignment="Right" />
+            <ProgressBar Value="{Binding VerifyProgressPercent}"
+                         Maximum="100" Height="20" />
+        </DockPanel>
+
+        <!-- Current file -->
+        <TextBlock Grid.Row="2"
+                   Text="{Binding VerifyCurrentFileText}"
+                   TextTrimming="CharacterEllipsis"
+                   Margin="0,0,0,2" />
+
+        <!-- Items remaining -->
+        <TextBlock Grid.Row="3"
+                   Text="{Binding VerifyRemainingText}"
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   Margin="0,0,0,8" />
+
+        <!-- Timing stats -->
+        <Grid Grid.Row="4" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Elapsed:"
+                       Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,2" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding VerifyElapsedText}" Margin="0,0,0,2" />
+
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="Remaining:"
+                       Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,2" />
+            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding VerifyTimeRemainingText}" Margin="0,0,0,2" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Speed:"
+                       Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,0" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding VerifySpeedText}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="ETA:"
+                       Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,0" />
+            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding VerifyEtaText}" />
+        </Grid>
+
+        <!-- Cancel button -->
+        <DockPanel Grid.Row="6" LastChildFill="False">
+            <Button x:Name="btnCancel"
+                    DockPanel.Dock="Right"
+                    Content="Cancel"
+                    Style="{StaticResource CancelButton}"
+                    Padding="20,6"
+                    MinWidth="90"
+                    Click="OnCancelClick" />
+        </DockPanel>
+
+    </Grid>
+</Window>

@@ -1,0 +1,416 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             xmlns:controls="clr-namespace:ReScene.NET.Controls"
+             x:Class="ReScene.NET.Views.FileCompareView">
+
+  <DockPanel Margin="{DynamicResource PageMargin}">
+
+    <!-- ── Tab description ─────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top"
+               Text="Compare two RAR, SRR, or SRS files side by side. Browse their block structures, view property differences, and inspect hex data to identify what changed between them."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,0,0,6" />
+
+    <!-- Top: File paths and controls -->
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource SurfaceBackground}"
+            Padding="6,4">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="8" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="8" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <!-- Left file -->
+        <TextBox Grid.Column="0"
+                 Text="{Binding LeftFilePath}"
+                 IsReadOnly="True"
+                 FontSize="{DynamicResource FontSizeBody}" />
+        <Button Grid.Column="1"
+                Content="Browse"
+                Command="{Binding BrowseLeftCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0"
+                Padding="8,4" />
+
+        <!-- Right file -->
+        <TextBox Grid.Column="3"
+                 Text="{Binding RightFilePath}"
+                 IsReadOnly="True"
+                 FontSize="{DynamicResource FontSizeBody}" />
+        <Button Grid.Column="4"
+                Content="Browse"
+                Command="{Binding BrowseRightCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0"
+                Padding="8,4" />
+
+        <!-- Swap -->
+        <Button Grid.Column="6"
+                Content="Swap"
+                Command="{Binding SwapCommand}"
+                Style="{StaticResource GhostButton}"
+                ToolTip="Swap left and right files"
+                Padding="8,4" />
+      </Grid>
+    </Border>
+
+    <!-- Bottom: Status bar -->
+    <Border DockPanel.Dock="Bottom"
+            BorderBrush="{DynamicResource StatusSeparatorBrush}"
+            BorderThickness="0,1,0,0"
+            Background="{DynamicResource SurfaceBackground}"
+            Padding="6,3">
+      <TextBlock Text="{Binding StatusMessage}"
+                 FontSize="{DynamicResource StatusBarFontSize}"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </Border>
+
+    <!-- Main content: Two-panel compare -->
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Left Panel -->
+      <Grid Grid.Column="0" Margin="2">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="2*" />
+        </Grid.RowDefinitions>
+
+        <!-- Left Tree -->
+        <Border Style="{StaticResource PanelSection}">
+          <DockPanel>
+            <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+              <TextBlock Style="{StaticResource PanelHeaderText}" Text="Left Structure" />
+            </Border>
+
+            <TreeView ItemsSource="{Binding LeftTreeRoots}"
+                      SelectedItemChanged="LeftTree_SelectedItemChanged"
+                      FontSize="{DynamicResource FontSizeBody}">
+              <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                  <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                  <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                </Style>
+              </TreeView.ItemContainerStyle>
+              <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                  <TextBlock Text="{Binding Text}"
+                             TextTrimming="CharacterEllipsis">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsDifferent}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </HierarchicalDataTemplate>
+              </TreeView.ItemTemplate>
+            </TreeView>
+          </DockPanel>
+        </Border>
+
+        <!-- Splitter -->
+        <GridSplitter Grid.Row="1"
+                      Height="{DynamicResource SplitterHeight}"
+                      HorizontalAlignment="Stretch"
+                      ResizeBehavior="PreviousAndNext" />
+
+        <!-- Left Properties + Hex -->
+        <Grid Grid.Row="2">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+
+          <!-- Left Properties -->
+          <Border Style="{StaticResource PanelSection}">
+            <DockPanel>
+              <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+                <TextBlock Style="{StaticResource PanelHeaderText}" Text="Left Properties" />
+              </Border>
+
+              <DataGrid ItemsSource="{Binding LeftProperties}"
+                        SelectedItem="{Binding SelectedLeftProperty}"
+                        IsReadOnly="True"
+                        CanUserResizeColumns="True"
+                        CanUserReorderColumns="False"
+                        CanUserSortColumns="False"
+                        GridLinesVisibility="Horizontal"
+                        HeadersVisibility="Column"
+                        SelectionMode="Single"
+                        BorderThickness="0"
+                        AutoGenerateColumns="False">
+                <DataGrid.RowStyle>
+                  <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsDifferent}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource DiffRowBackground}" />
+                        <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                  <DataGridTemplateColumn Header="Property" Width="200">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                              <Setter Property="Margin" Value="2,0,0,0" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsIndented}" Value="True">
+                                  <Setter Property="Margin" Value="20,0,0,0" />
+                                  <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTextColumn Header="Value"
+                                      Binding="{Binding Value}"
+                                      Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </Border>
+
+          <!-- Splitter -->
+          <GridSplitter Grid.Row="1"
+                        Height="{DynamicResource SplitterHeight}"
+                        HorizontalAlignment="Stretch"
+                        ResizeBehavior="PreviousAndNext" />
+
+          <!-- Left Hex View -->
+          <Border Grid.Row="2"
+                  Style="{StaticResource PanelSection}">
+            <DockPanel>
+              <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+                <DockPanel>
+                  <TextBlock Style="{StaticResource PanelHeaderText}" Text="Left Hex View" />
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                              Margin="0,0,4,0">
+                    <TextBlock Text="Bytes/Row:" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               FontSize="{DynamicResource FontSizeCaption}"
+                               Margin="0,0,4,0" />
+                    <ComboBox SelectedValue="{Binding HexBytesPerLine}"
+                              SelectedValuePath="Content"
+                              IsEditable="True"
+                              Text="{Binding HexBytesPerLine, UpdateSourceTrigger=LostFocus}"
+                              Width="52" FontSize="{DynamicResource FontSizeCaption}"
+                              VerticalAlignment="Center" Padding="4,1">
+                      <ComboBoxItem Content="8" />
+                      <ComboBoxItem Content="16" />
+                      <ComboBoxItem Content="24" />
+                      <ComboBoxItem Content="32" />
+                      <ComboBoxItem Content="48" />
+                      <ComboBoxItem Content="64" />
+                    </ComboBox>
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+
+              <controls:HexViewControl DataSource="{Binding LeftHexDataSource}"
+                                        BlockOffset="{Binding LeftHexBlockOffset}"
+                                        BlockLength="{Binding LeftHexBlockLength}"
+                                        SelectionOffset="{Binding LeftHexSelectionOffset}"
+                                        SelectionLength="{Binding LeftHexSelectionLength}"
+                                        BytesPerLine="{Binding HexBytesPerLine}" />
+            </DockPanel>
+          </Border>
+
+        </Grid>
+      </Grid>
+
+      <!-- Center Splitter -->
+      <GridSplitter Grid.Column="1"
+                    Width="{DynamicResource SplitterWidth}"
+                    ResizeBehavior="PreviousAndNext" />
+
+      <!-- Right Panel -->
+      <Grid Grid.Column="2" Margin="2">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="2*" />
+        </Grid.RowDefinitions>
+
+        <!-- Right Tree -->
+        <Border Style="{StaticResource PanelSection}">
+          <DockPanel>
+            <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+              <TextBlock Style="{StaticResource PanelHeaderText}" Text="Right Structure" />
+            </Border>
+
+            <TreeView ItemsSource="{Binding RightTreeRoots}"
+                      SelectedItemChanged="RightTree_SelectedItemChanged"
+                      FontSize="{DynamicResource FontSizeBody}">
+              <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                  <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                  <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                </Style>
+              </TreeView.ItemContainerStyle>
+              <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                  <TextBlock Text="{Binding Text}"
+                             TextTrimming="CharacterEllipsis">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsDifferent}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </HierarchicalDataTemplate>
+              </TreeView.ItemTemplate>
+            </TreeView>
+          </DockPanel>
+        </Border>
+
+        <!-- Splitter -->
+        <GridSplitter Grid.Row="1"
+                      Height="{DynamicResource SplitterHeight}"
+                      HorizontalAlignment="Stretch"
+                      ResizeBehavior="PreviousAndNext" />
+
+        <!-- Right Properties + Hex -->
+        <Grid Grid.Row="2">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+
+          <!-- Right Properties -->
+          <Border Style="{StaticResource PanelSection}">
+            <DockPanel>
+              <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+                <TextBlock Style="{StaticResource PanelHeaderText}" Text="Right Properties" />
+              </Border>
+
+              <DataGrid ItemsSource="{Binding RightProperties}"
+                        SelectedItem="{Binding SelectedRightProperty}"
+                        IsReadOnly="True"
+                        CanUserResizeColumns="True"
+                        CanUserReorderColumns="False"
+                        CanUserSortColumns="False"
+                        GridLinesVisibility="Horizontal"
+                        HeadersVisibility="Column"
+                        SelectionMode="Single"
+                        BorderThickness="0"
+                        AutoGenerateColumns="False">
+                <DataGrid.RowStyle>
+                  <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsDifferent}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource DiffRowBackground}" />
+                        <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                  <DataGridTemplateColumn Header="Property" Width="200">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                              <Setter Property="Margin" Value="2,0,0,0" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsIndented}" Value="True">
+                                  <Setter Property="Margin" Value="20,0,0,0" />
+                                  <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTextColumn Header="Value"
+                                      Binding="{Binding Value}"
+                                      Width="*" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </Border>
+
+          <!-- Splitter -->
+          <GridSplitter Grid.Row="1"
+                        Height="{DynamicResource SplitterHeight}"
+                        HorizontalAlignment="Stretch"
+                        ResizeBehavior="PreviousAndNext" />
+
+          <!-- Right Hex View -->
+          <Border Grid.Row="2"
+                  Style="{StaticResource PanelSection}">
+            <DockPanel>
+              <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+                <DockPanel>
+                  <TextBlock Style="{StaticResource PanelHeaderText}" Text="Right Hex View" />
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                              Margin="0,0,4,0">
+                    <TextBlock Text="Bytes/Row:" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               FontSize="{DynamicResource FontSizeCaption}"
+                               Margin="0,0,4,0" />
+                    <ComboBox SelectedValue="{Binding HexBytesPerLine}"
+                              SelectedValuePath="Content"
+                              IsEditable="True"
+                              Text="{Binding HexBytesPerLine, UpdateSourceTrigger=LostFocus}"
+                              Width="52" FontSize="{DynamicResource FontSizeCaption}"
+                              VerticalAlignment="Center" Padding="4,1">
+                      <ComboBoxItem Content="8" />
+                      <ComboBoxItem Content="16" />
+                      <ComboBoxItem Content="24" />
+                      <ComboBoxItem Content="32" />
+                      <ComboBoxItem Content="48" />
+                      <ComboBoxItem Content="64" />
+                    </ComboBox>
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+
+              <controls:HexViewControl DataSource="{Binding RightHexDataSource}"
+                                        BlockOffset="{Binding RightHexBlockOffset}"
+                                        BlockLength="{Binding RightHexBlockLength}"
+                                        SelectionOffset="{Binding RightHexSelectionOffset}"
+                                        SelectionLength="{Binding RightHexSelectionLength}"
+                                        BytesPerLine="{Binding HexBytesPerLine}" />
+            </DockPanel>
+          </Border>
+
+        </Grid>
+      </Grid>
+
+    </Grid>
+
+  </DockPanel>
+
+</UserControl>

@@ -1,0 +1,107 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+        xmlns:v="clr-namespace:ReScene.NET.Views"
+        x:Class="ReScene.NET.Views.MainWindow"
+        Title="{Binding WindowTitle}"
+        Width="1280" Height="900"
+        MinWidth="700" MinHeight="450"
+        WindowState="Maximized"
+        FontSize="{DynamicResource FontSizeBody}"
+        Icon="/Resources/app_icon.png"
+        AllowDrop="True"
+        PreviewKeyDown="OnPreviewKeyDown">
+
+  <Window.InputBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+    <KeyBinding Gesture="Ctrl+E" Command="{Binding ExportStoredFileCommand}" />
+  </Window.InputBindings>
+
+  <DockPanel>
+
+    <!-- ══ Menu Bar ══════════════════════════════════════════════════ -->
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open..."
+                  Command="{Binding OpenFileCommand}"
+                  InputGestureText="Ctrl+O" />
+        <MenuItem Header="_Export Stored File..."
+                  Command="{Binding ExportStoredFileCommand}"
+                  InputGestureText="Ctrl+E" />
+        <Separator />
+        <MenuItem Header="E_xit"
+                  Click="OnExitClick" />
+      </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About"
+                  Click="OnAboutClick" />
+      </MenuItem>
+    </Menu>
+
+    <!-- ══ Status Bar ════════════════════════════════════════════════ -->
+    <Border DockPanel.Dock="Bottom"
+            BorderBrush="{DynamicResource StatusSeparatorBrush}"
+            BorderThickness="0,1,0,0"
+            Background="{DynamicResource SurfaceBackground}">
+      <DockPanel>
+        <ProgressBar DockPanel.Dock="Top"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                     Height="2"
+                     Minimum="0" Maximum="100" />
+
+        <Grid Margin="4,2">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="{Binding StatusMessage}"
+                     FontSize="{DynamicResource StatusBarFontSize}"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+          <TextBlock Grid.Column="1"
+                     FontSize="{DynamicResource FontSizeCaption}"
+                     VerticalAlignment="Center">
+            <Hyperlink NavigateUri="https://github.com/NeWbY100/ReScene.NET"
+                       RequestNavigate="OnHyperlinkRequestNavigate"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                       TextDecorations="None">
+              ReScene.NET
+            </Hyperlink>
+          </TextBlock>
+        </Grid>
+      </DockPanel>
+    </Border>
+
+    <!-- ══ Tab Control ═══════════════════════════════════════════════ -->
+    <TabControl SelectedIndex="{Binding SelectedTabIndex}"
+                Padding="0">
+      <TabItem Header="Home">
+        <v:HomeView DataContext="{Binding Home}" />
+      </TabItem>
+      <TabItem Header="Inspector">
+        <v:InspectorView DataContext="{Binding Inspector}" />
+      </TabItem>
+      <TabItem Header="SRR Creator">
+        <v:CreatorView DataContext="{Binding Creator}" />
+      </TabItem>
+      <TabItem Header="SRS Creator">
+        <v:SrsCreatorView DataContext="{Binding SrsCreator}" />
+      </TabItem>
+      <TabItem Header="RAR Reconstructor">
+        <v:ReconstructorView DataContext="{Binding Reconstructor}" />
+      </TabItem>
+      <TabItem Header="SRS Reconstructor">
+        <v:SrsReconstructorView DataContext="{Binding SrsReconstructor}" />
+      </TabItem>
+      <TabItem Header="SRS Restorer">
+        <v:SampleRestorerView DataContext="{Binding SampleRestorer}" />
+      </TabItem>
+      <TabItem Header="Compare">
+        <v:FileCompareView DataContext="{Binding FileCompare}" />
+      </TabItem>
+    </TabControl>
+
+  </DockPanel>
+
+</Window>

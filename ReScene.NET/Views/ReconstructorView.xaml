@@ -1,0 +1,370 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             x:Class="ReScene.NET.Views.ReconstructorView">
+
+    <Grid Margin="{DynamicResource PageMargin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="550" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="250" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Tab description ─────────────────────────────────── -->
+        <TextBlock Grid.Row="0"
+                   Text="Reconstruct original RAR archives from an SRR file by brute-forcing WinRAR compression settings. Provide the source files and a WinRAR executable, then configure which RAR versions and switches to try."
+                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" Margin="0,0,0,6" />
+
+        <!-- ── Top section: Paths, Settings, Action ─────────────── -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,2">
+
+            <!-- ── Paths ─────────────────────────────────────────────── -->
+            <TextBlock DockPanel.Dock="Top" Text="Paths" FontWeight="SemiBold" Margin="0,0,0,2" />
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <TextBlock DockPanel.Dock="Left" Text="WinRAR:" Width="80" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Content="Browse"
+                Command="{Binding BrowseWinRarCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0" MinWidth="75" />
+                <TextBox Text="{Binding WinRarPath}" />
+            </DockPanel>
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <TextBlock DockPanel.Dock="Left" Text="Release:" Width="80" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Content="Browse"
+                Command="{Binding BrowseReleaseCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0" MinWidth="75" />
+                <TextBox Text="{Binding ReleasePath}" />
+            </DockPanel>
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <TextBlock DockPanel.Dock="Left" Text="Verify:" Width="80" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Content="Browse"
+                Command="{Binding BrowseVerificationCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0" MinWidth="75" />
+                <TextBox Text="{Binding VerificationPath}" />
+            </DockPanel>
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <TextBlock DockPanel.Dock="Left" Text="Output:" Width="80" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Content="Browse"
+                Command="{Binding BrowseOutputCommand}"
+                Style="{StaticResource GhostButton}"
+                Margin="4,0,0,0" MinWidth="75" />
+                <TextBox Text="{Binding OutputPath}" />
+            </DockPanel>
+
+            <!-- separator -->
+            <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+            <!-- ── Import SRR ──────────────────────────────────────── -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <Button DockPanel.Dock="Left" Content="Import SRR"
+                Command="{Binding ImportSrrCommand}"
+                Style="{StaticResource PrimaryButton}"
+                ToolTip="Import settings from an SRR file. Auto-configures compression, dictionary, versions, timestamps, and Host OS."
+                Padding="12,4" />
+            </DockPanel>
+
+            <!-- Custom packer warning -->
+            <Border DockPanel.Dock="Top"
+                    Visibility="{Binding HasCustomPackerWarning, Converter={StaticResource BoolToVisibility}}"
+                    Background="#3DE0A030" BorderBrush="#E0A030" BorderThickness="1"
+                    CornerRadius="3" Margin="0,4,0,0" Padding="8,5">
+              <TextBlock Text="{Binding CustomPackerWarning}"
+                         Foreground="#FFD080"
+                         FontSize="{DynamicResource FontSizeBody}"
+                         TextWrapping="Wrap" />
+            </Border>
+
+            <!-- separator -->
+            <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+            <!-- ── Action row ─────────────────────────────────────────── -->
+            <DockPanel DockPanel.Dock="Bottom" Margin="0,2,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Start"
+                  Command="{Binding StartCommand}"
+                  Style="{StaticResource PrimaryButton}"
+                  Padding="16,4" Margin="0,0,4,0" />
+                    <Button Content="Stop"
+                  Command="{Binding StopCommand}"
+                  Style="{StaticResource CancelButton}"
+                  Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}"
+                  Padding="16,4" />
+                </StackPanel>
+                <TextBlock Text="{Binding ProgressMessage}"
+                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
+                   VerticalAlignment="Center" />
+            </DockPanel>
+
+            <!-- Progress bar -->
+            <ProgressBar DockPanel.Dock="Bottom"
+                   Value="{Binding ProgressPercent}"
+                   Maximum="100" Height="19"
+                   Margin="0,0,0,2"
+                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" RenderTransformOrigin="0.5,-1.109" />
+
+            <!-- separator above action row -->
+            <Border DockPanel.Dock="Bottom" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+            <!-- Settings expanders fill remaining space -->
+            <ScrollViewer Margin="0,2,0,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- RAR Versions -->
+                    <Expander Header="RAR Versions" IsExpanded="False" Padding="4">
+                        <StackPanel>
+                            <TextBlock Text="The RAR version to compress the release files with. Older releases will have been compressed with older versions of WinRAR."
+                         TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4" />
+                            <CheckBox Content="RAR 2.x (versions 2.00–2.90). Oldest supported format." IsChecked="{Binding Version2}" Margin="0,1" />
+                            <CheckBox Content="RAR 3.x (versions 3.00–3.93). Introduced -ts timestamp options at 3.20+." IsChecked="{Binding Version3}" Margin="0,1" />
+                            <CheckBox Content="RAR 4.x (versions 4.00–4.20). Last major version using RAR4 format by default." IsChecked="{Binding Version4}" Margin="0,1" />
+                            <CheckBox Content="RAR 5.x (versions 5.00–5.90). Introduced RAR5 format. 5.50+ defaults to RAR5." IsChecked="{Binding Version5}" Margin="0,1" />
+                            <CheckBox Content="RAR 6.x (versions 6.00+). Always uses RAR5 format unless -ma4 is specified." IsChecked="{Binding Version6}" Margin="0,1" />
+                            <CheckBox Content="RAR 7.x (versions 7.00+). Uses RAR7 format only — cannot create RAR4/RAR5 archives." IsChecked="{Binding Version7}" Margin="0,1" />
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Compression & Dictionary -->
+                    <Expander Header="Compression &amp; Dictionary" IsExpanded="False" Padding="4">
+                        <StackPanel>
+                            <TextBlock Text="Select the switches to pass on to the RAR process. If a switch is not supported by a RAR version, it will not be supplied as argument."
+                         TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4" />
+
+                            <TextBlock Text="Compression Method" FontWeight="SemiBold" Margin="0,0,0,2" />
+                            <CheckBox Content="-m0: Store (no compression). Files are stored as-is." IsChecked="{Binding SwitchM0}" Margin="0,1" />
+                            <CheckBox Content="-m1: Fastest compression. Lowest ratio, fastest speed." IsChecked="{Binding SwitchM1}" Margin="0,1" />
+                            <CheckBox Content="-m2: Fast compression." IsChecked="{Binding SwitchM2}" Margin="0,1" />
+                            <CheckBox Content="-m3: Normal compression (RAR default)." IsChecked="{Binding SwitchM3}" Margin="0,1" />
+                            <CheckBox Content="-m4: Good compression." IsChecked="{Binding SwitchM4}" Margin="0,1" />
+                            <CheckBox Content="-m5: Best compression. Highest ratio, slowest speed." IsChecked="{Binding SwitchM5}" Margin="0,1" />
+
+                            <TextBlock Text="Archive Format" FontWeight="SemiBold" Margin="0,4,0,2" />
+                            <CheckBox Content="-ma4: Force RAR 4.x archive format. Required for RAR 5.50+ to create RAR4 archives." IsChecked="{Binding SwitchMA4}" Margin="0,1" />
+                            <CheckBox Content="-ma5: Force RAR 5.0 archive format. Default for RAR 5.50+." IsChecked="{Binding SwitchMA5}" Margin="0,1" />
+
+                            <TextBlock Text="Dictionary Size" FontWeight="SemiBold" Margin="0,4,0,2" />
+                            <Grid HorizontalAlignment="Left">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- RAR4 & RAR5 compatible -->
+                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock Text="RAR4 &amp; RAR5 compatible" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+                                    <CheckBox Content="md64k - 64 KB" IsChecked="{Binding SwitchMD64K}" Margin="0,1" />
+                                    <CheckBox Content="md128k - 128 KB" IsChecked="{Binding SwitchMD128K}" Margin="0,1" />
+                                    <CheckBox Content="md256k - 256 KB" IsChecked="{Binding SwitchMD256K}" Margin="0,1" />
+                                    <CheckBox Content="md512k - 512 KB" IsChecked="{Binding SwitchMD512K}" Margin="0,1" />
+                                    <CheckBox Content="md1024k - 1024 KB (1 MB)" IsChecked="{Binding SwitchMD1024K}" Margin="0,1" />
+                                    <CheckBox Content="md2048k - 2048 KB (2 MB)" IsChecked="{Binding SwitchMD2048K}" Margin="0,1" />
+                                    <CheckBox Content="md4096k - 4096 KB (4 MB, max RAR4)" IsChecked="{Binding SwitchMD4096K}" Margin="0,1" />
+                                </StackPanel>
+
+                                <!-- RAR5 only -->
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="RAR5 only (8 MB – 1 GB)" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+                                    <CheckBox Content="md8m - 8 MB" IsChecked="{Binding SwitchMD8M}" Margin="0,1" />
+                                    <CheckBox Content="md16m - 16 MB" IsChecked="{Binding SwitchMD16M}" Margin="0,1" />
+                                    <CheckBox Content="md32m - 32 MB" IsChecked="{Binding SwitchMD32M}" Margin="0,1" />
+                                    <CheckBox Content="md64m - 64 MB" IsChecked="{Binding SwitchMD64M}" Margin="0,1" />
+                                    <CheckBox Content="md128m - 128 MB" IsChecked="{Binding SwitchMD128M}" Margin="0,1" />
+                                    <CheckBox Content="md256m - 256 MB" IsChecked="{Binding SwitchMD256M}" Margin="0,1" />
+                                    <CheckBox Content="md512m - 512 MB" IsChecked="{Binding SwitchMD512M}" Margin="0,1" />
+                                    <CheckBox Content="md1g - 1 GB" IsChecked="{Binding SwitchMD1G}" Margin="0,1" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Timestamps -->
+                    <Expander Header="Timestamps" IsExpanded="False" Padding="4">
+                        <Grid HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Modification Time -->
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Modification Time (-tsm)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                                <CheckBox Content="tsm0 - Not saved (3.20+)" IsChecked="{Binding SwitchTSM0}" Margin="0,1" />
+                                <CheckBox Content="tsm1 - 1s precision (DOS)" IsChecked="{Binding SwitchTSM1}" Margin="0,1" />
+                                <CheckBox Content="tsm2 - 0.0065536s precision" IsChecked="{Binding SwitchTSM2}" Margin="0,1" />
+                                <CheckBox Content="tsm3 - 0.0000256s precision" IsChecked="{Binding SwitchTSM3}" Margin="0,1" />
+                                <CheckBox Content="tsm4 - Max NTFS precision" IsChecked="{Binding SwitchTSM4}" Margin="0,1" />
+                            </StackPanel>
+
+                            <!-- Creation Time -->
+                            <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                <TextBlock Text="Creation Time (-tsc)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                                <CheckBox Content="tsc0 - Not saved" IsChecked="{Binding SwitchTSC0}" Margin="0,1" />
+                                <CheckBox Content="tsc1 - 1s precision" IsChecked="{Binding SwitchTSC1}" Margin="0,1" />
+                                <CheckBox Content="tsc2 - 0.0065536s precision" IsChecked="{Binding SwitchTSC2}" Margin="0,1" />
+                                <CheckBox Content="tsc3 - 0.0000256s precision" IsChecked="{Binding SwitchTSC3}" Margin="0,1" />
+                                <CheckBox Content="tsc4 - Max NTFS precision" IsChecked="{Binding SwitchTSC4}" Margin="0,1" />
+                            </StackPanel>
+
+                            <!-- Access Time -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Access Time (-tsa)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                                <CheckBox Content="tsa0 - Not saved" IsChecked="{Binding SwitchTSA0}" Margin="0,1" />
+                                <CheckBox Content="tsa1 - 1s precision" IsChecked="{Binding SwitchTSA1}" Margin="0,1" />
+                                <CheckBox Content="tsa2 - 0.0065536s precision" IsChecked="{Binding SwitchTSA2}" Margin="0,1" />
+                                <CheckBox Content="tsa3 - 0.0000256s precision" IsChecked="{Binding SwitchTSA3}" Margin="0,1" />
+                                <CheckBox Content="tsa4 - Max NTFS precision" IsChecked="{Binding SwitchTSA4}" Margin="0,1" />
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+
+                    <!-- Options -->
+                    <Expander Header="Options" IsExpanded="False" Padding="4">
+                        <StackPanel>
+                            <CheckBox Content="-ai: Ignore file attributes. Mutually exclusive with A/I attribute testing." IsChecked="{Binding SwitchAI}"
+                        IsEnabled="{Binding IsSwitchAIEnabled}" Margin="0,1" />
+                            <CheckBox Content="-r: Recurse subdirectories." IsChecked="{Binding SwitchR}" Margin="0,1" />
+                            <CheckBox Content="-ds: Disable name sort. Files are added in filesystem order." IsChecked="{Binding SwitchDS}" Margin="0,1" />
+                            <CheckBox Content="-s-: Disable solid archiving." IsChecked="{Binding SwitchSDash}" Margin="0,1" />
+
+                            <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+                            <CheckBox IsChecked="{Binding SwitchMT}" Margin="0,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="-mt: Number of CPU threads to use for compression." VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Text="From:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <TextBox Text="{Binding SwitchMTStart}" Width="70" Margin="0,0,8,0"
+                                             IsEnabled="{Binding IsMTRangeEnabled}" />
+                                    <TextBlock Text="To:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <TextBox Text="{Binding SwitchMTEnd}" Width="70" Margin="0,0,4,0"
+                                             IsEnabled="{Binding IsMTRangeEnabled}" />
+                                    <TextBlock Text="(inclusive)" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <TextBlock Text="Changing the thread count slightly affects compression ratio. Archives created with different -mt values will not be identical even if all other settings are equal."
+                         TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+
+                            <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+                            <CheckBox IsChecked="{Binding SwitchV}" Margin="0,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="-v: Create multi-volume archives with specified volume size." VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <TextBox Text="{Binding VolumeSize}" Width="100"
+                                             IsEnabled="{Binding IsVolumeOptionsEnabled}" Margin="0,0,4,0" />
+                                    <ComboBox ItemsSource="{Binding VolumeSizeUnits}"
+                                              SelectedIndex="{Binding VolumeSizeUnitIndex}"
+                                              Width="80"
+                                              IsEnabled="{Binding IsVolumeOptionsEnabled}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox Content="-vn: Use old-style volume naming (.rar, .r00, .r01) instead of (.part1.rar, .part2.rar)."
+                        IsChecked="{Binding UseOldVolumeNaming}"
+                        IsEnabled="{Binding IsVolumeOptionsEnabled}" Margin="0,1" />
+
+                            <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+                            <TextBlock Text="File Attributes" FontWeight="SemiBold" />
+                            <TextBlock Text="Set the given attribute(s) on the files before archiving. This does not affect directories."
+                         TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+                            <CheckBox Content="A - Set archive file attribute (attrib +A)." IsChecked="{Binding FileA}" IsThreeState="True"
+                        IsEnabled="{Binding IsFileAttributesEnabled}" Margin="0,1" />
+                            <CheckBox Content="I - Set not content indexed attribute on each file before compressing." IsChecked="{Binding FileI}" IsThreeState="True"
+                        IsEnabled="{Binding IsFileAttributesEnabled}" Margin="0,1" />
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                    <CheckBox IsEnabled="False" IsChecked="False" Padding="0" MinWidth="0" />
+                                    <TextBlock Text="Option is never set" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0,0,0" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                    <CheckBox IsEnabled="False" IsChecked="True" Padding="0" MinWidth="0" />
+                                    <TextBlock Text="Test with and without this option set" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0,0,0" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsEnabled="False" IsChecked="{x:Null}" IsThreeState="True" Padding="0" MinWidth="0" />
+                                    <TextBlock Text="Option is always set" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Output -->
+                    <Expander Header="Output" IsExpanded="False" Padding="4">
+                        <StackPanel>
+                            <CheckBox Content="Delete non-matching RAR files after testing. Saves disk space during brute force."
+                        IsChecked="{Binding DeleteRARFiles}" Margin="0,1" />
+                            <CheckBox Content="Delete RAR files with duplicate CRC32 values. Only available when not deleting all non-matching files."
+                        IsChecked="{Binding DeleteDuplicateCRCFiles}"
+                        IsEnabled="{Binding IsDeleteDuplicateCRCEnabled}" Margin="0,1" />
+                            <CheckBox Content="Stop brute-forcing after finding the first matching RAR file."
+                        IsChecked="{Binding StopOnFirstMatch}" Margin="0,1" />
+                            <CheckBox Content="When a match is found, let RAR finish creating all volume files instead of only the first volume."
+                        IsChecked="{Binding CompleteAllVolumes}" Margin="0,1" />
+                            <CheckBox Content="Rename matched output files to the original RAR filenames from the SRR. Requires Stop on first match."
+                        IsChecked="{Binding RenameToOriginal}"
+                        IsEnabled="{Binding IsRenameToOriginalEnabled}" Margin="0,1" />
+                            <CheckBox Content="Patch brute-forced RAR headers to match the original archive (Host OS, attributes, LARGE flag)."
+                        IsChecked="{Binding EnableHostOSPatching}" Margin="0,1" />
+                        </StackPanel>
+                    </Expander>
+
+                </StackPanel>
+            </ScrollViewer>
+
+        </DockPanel>
+
+        <!-- ── Resizable splitter ───────────────────────────────── -->
+        <GridSplitter Grid.Row="2"
+                  Height="{DynamicResource SplitterHeight}"
+                  HorizontalAlignment="Stretch"
+                  ResizeBehavior="PreviousAndNext" />
+
+        <!-- ── Log tabs (bottom panel) ──────────────────────────── -->
+        <DockPanel Grid.Row="3">
+            <TextBlock DockPanel.Dock="Top" Text="Log" FontWeight="SemiBold" Margin="0,0,0,2" />
+            <TabControl>
+                <TabItem Header="System">
+                    <TextBox Text="{Binding SystemLog}"
+                   IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource MonoFontSize}"
+                   Background="{DynamicResource WindowBackground}"
+                   Foreground="{DynamicResource LogTerminalForeground}" />
+                </TabItem>
+                <TabItem Header="Phase 1">
+                    <TextBox Text="{Binding Phase1Log}"
+                   IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource MonoFontSize}"
+                   Background="{DynamicResource WindowBackground}"
+                   Foreground="{DynamicResource LogTerminalForeground}" />
+                </TabItem>
+                <TabItem Header="Phase 2">
+                    <TextBox Text="{Binding Phase2Log}"
+                   IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource MonoFontSize}"
+                   Background="{DynamicResource WindowBackground}"
+                   Foreground="{DynamicResource LogTerminalForeground}" />
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+
+    </Grid>
+
+</UserControl>

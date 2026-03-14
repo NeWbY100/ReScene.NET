@@ -1,0 +1,3 @@
+[submodule "ReScene.Lib"]
+	path = ReScene.Lib
+	url = https://github.com/NeWbY100/ReScene.Lib.git
