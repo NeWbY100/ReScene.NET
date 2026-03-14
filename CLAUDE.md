@@ -2,14 +2,13 @@
 
 ## Project Overview
 
-WPF desktop app (.NET 10) for inspecting, creating, and reconstructing ReScene (SRR/SRS) files. Uses MVVM with CommunityToolkit.Mvvm 8.4. The shared library (`ReScene.Lib`) is a Git submodule at `ReScene.Lib/` containing RARLib, SRRLib, and ReScene.Core.
+WPF desktop app (.NET 10) for inspecting, creating, and reconstructing ReScene (SRR/SRS) files. Uses MVVM with CommunityToolkit.Mvvm 8.4. The shared library (`ReScene.Lib`) is a Git submodule at `ReScene.Lib/` containing RAR, SRR, and Core modules in a single project.
 
 ## Build & Test
 
 ```bash
 dotnet build                              # Build entire solution
-dotnet test ReScene.Lib/RARLib.Tests      # Run RARLib tests
-dotnet test ReScene.Lib/SRRLib.Tests      # Run SRRLib tests
+dotnet test ReScene.Lib/ReScene.Lib.Tests  # Run all library tests
 dotnet test                               # Run all tests
 dotnet run --project ReScene.NET          # Run the app
 ```
@@ -28,11 +27,11 @@ ReScene.NET/                    # Solution root
 │   ├── Helpers/                # Static utility classes (e.g., DarkTitleBar)
 │   └── Resources/              # Tokens.xaml (design tokens), icons
 ├── ReScene.Lib/                # Git submodule
-│   ├── RARLib/                 # RAR 4.x/5.x header parsing, patching
-│   ├── SRRLib/                 # SRR/SRS file format reading and writing
-│   ├── ReScene.Core/           # Brute-force orchestration, reconstruction
-│   ├── RARLib.Tests/           # xUnit tests
-│   └── SRRLib.Tests/           # xUnit tests
+│   ├── ReScene.Lib/            # Single library project
+│   │   ├── RAR/                # RAR 4.x/5.x header parsing, patching
+│   │   ├── SRR/                # SRR/SRS file format reading and writing
+│   │   └── Core/               # Brute-force orchestration, reconstruction
+│   └── ReScene.Lib.Tests/      # xUnit tests
 └── docs/resources/             # Screenshots for README
 ```
 
@@ -145,8 +144,8 @@ using System.ComponentModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RARLib;
-using SRRLib;
+using RAR;
+using SRR;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
 ```
