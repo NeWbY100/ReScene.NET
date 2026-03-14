@@ -1,8 +1,5 @@
 <Solution>
-  <Project Path="../ReScene.Lib/RARLib.Tests/RARLib.Tests.csproj" />
-  <Project Path="../ReScene.Lib/RARLib/RARLib.csproj" />
-  <Project Path="../ReScene.Lib/ReScene.Core/ReScene.Core.csproj" />
-  <Project Path="../ReScene.Lib/SRRLib.Tests/SRRLib.Tests.csproj" />
-  <Project Path="../ReScene.Lib/SRRLib/SRRLib.csproj" />
+  <Project Path="ReScene.Lib/ReScene.Lib/ReScene.Lib.csproj" />
+  <Project Path="ReScene.Lib/ReScene.Lib.Tests/ReScene.Lib.Tests.csproj" />
   <Project Path="ReScene.NET/ReScene.NET.csproj" />
 </Solution>
