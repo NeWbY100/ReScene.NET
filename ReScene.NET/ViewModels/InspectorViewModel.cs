@@ -2,10 +2,10 @@ using System.Collections.ObjectModel;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RAR;
+using ReScene.RAR;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
-using SRR;
+using ReScene.SRR;
 
 namespace ReScene.NET.ViewModels;
 

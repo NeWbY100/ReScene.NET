@@ -5,13 +5,13 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RAR;
+using ReScene.RAR;
 using ReScene.NET.Services;
-using SRR;
-using Core;
-using Core.Cryptography;
-using Core.Diagnostics;
-using Core.IO;
+using ReScene.SRR;
+using ReScene.Core;
+using ReScene.Core.Cryptography;
+using ReScene.Core.Diagnostics;
+using ReScene.Core.IO;
 
 namespace ReScene.NET.ViewModels;
 
