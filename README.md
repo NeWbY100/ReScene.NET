@@ -130,24 +130,24 @@ ReScene.NET/
 │   ├── Helpers/            # Utilities (dark title bar, etc.)
 │   └── Resources/          # Themes, design tokens, icons
 └── ReScene.Lib/            # Git submodule — shared library
-    ├── ReScene.Lib/        # Single library project
+    ├── ReScene/            # Library project (net8.0 + net10.0)
     │   ├── RAR/            # RAR 4.x/5.x header parsing, patching, decompression
     │   ├── SRR/            # SRR/SRS file format reading and writing
     │   └── Core/           # Reconstruction, comparison, brute-force orchestration
-    └── ReScene.Lib.Tests/  # xUnit tests
+    └── ReScene.Tests/      # xUnit tests
 ```
 
 ## Libraries
 
-### RAR
+### ReScene.RAR
 
 Low-level RAR archive header parsing and patching. Supports RAR 4.x and RAR 5.x block structures, file metadata extraction (names, sizes, CRCs, timestamps), comment decompression, in-place header patching with CRC recalculation, and custom scene packer detection.
 
-### SRR
+### ReScene.SRR
 
 SRR and SRS file format support. Reads and writes SRR files (scene release reconstruction metadata) and SRS files (sample reconstruction data) across 7 container formats: RIFF (AVI), MKV, MP4, WMV/ASF, FLAC, MP3, and Stream/M2TS. Includes MP3 tag parsing (ID3v2, ID3v1, Lyrics3, APE), FLAC metadata block parsing, and MKV EBML lacing decompression.
 
-### Core
+### ReScene.Core
 
 High-level reconstruction and comparison logic. Orchestrates brute-force WinRAR version discovery, RAR archive reconstruction from SRR metadata, host OS / attribute / LARGE flag patching, SRS sample rebuilding, and file-level comparison between SRR/SRS/RAR archives.
 
@@ -156,9 +156,9 @@ High-level reconstruction and comparison logic. Orchestrates brute-force WinRAR 
 | Package | Version | Project |
 |---|---|---|
 | [CommunityToolkit.Mvvm](https://www.nuget.org/packages/CommunityToolkit.Mvvm) | 8.4.0 | ReScene.NET |
-| [Crc32.NET](https://www.nuget.org/packages/Crc32.NET) | 1.2.0 | ReScene.Lib |
-| [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) | 9.0.4 | ReScene.Lib |
-| [CliWrap](https://www.nuget.org/packages/CliWrap) | 3.10.0 | ReScene.Lib |
+| [Crc32.NET](https://www.nuget.org/packages/Crc32.NET) | 1.2.0 | ReScene |
+| [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) | 9.0.4 | ReScene |
+| [CliWrap](https://www.nuget.org/packages/CliWrap) | 3.10.0 | ReScene |
 | [ReScene.Lib](https://github.com/NeWbY100/ReScene.Lib) | submodule | — |
 
 ## License
