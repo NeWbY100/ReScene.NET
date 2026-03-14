@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="ReScene.Lib/ReScene/ReScene.csproj" />
-  <Project Path="ReScene.Lib/Tests/Tests.csproj" />
+  <Project Path="ReScene.Lib/ReScene.Tests/ReScene.Tests.csproj" />
   <Project Path="ReScene.NET/ReScene.NET.csproj" />
 </Solution>
