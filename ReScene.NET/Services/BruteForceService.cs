@@ -1,9 +1,9 @@
-using ReScene.Core;
+using Core;
 
 namespace ReScene.NET.Services;
 
 /// <summary>
-/// Wraps ReScene.Core.Manager to provide brute-force RAR reconstruction as a service.
+/// Wraps Core.Manager to provide brute-force RAR reconstruction as a service.
 /// </summary>
 public class BruteForceService : IBruteForceService
 {

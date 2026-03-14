@@ -1,5 +1,5 @@
-using RARLib;
-using SRRLib;
+using RAR;
+using SRR;
 
 namespace ReScene.NET.Models;
 

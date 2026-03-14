@@ -1,4 +1,4 @@
-using SRRLib;
+using SRR;
 
 namespace ReScene.NET.Models;
 

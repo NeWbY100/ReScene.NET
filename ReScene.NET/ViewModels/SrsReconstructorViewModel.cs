@@ -4,7 +4,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Services;
-using SRRLib;
+using SRR;
 
 namespace ReScene.NET.ViewModels;
 

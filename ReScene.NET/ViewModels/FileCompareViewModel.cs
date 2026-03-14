@@ -1,11 +1,11 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RARLib;
+using RAR;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
-using SRRLib;
-using ReScene.Core.Comparison;
+using SRR;
+using Core.Comparison;
 
 namespace ReScene.NET.ViewModels;
 
