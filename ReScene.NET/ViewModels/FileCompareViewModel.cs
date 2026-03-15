@@ -5,6 +5,7 @@ using ReScene.RAR;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.SRR;
+using ReScene.SRS;
 using ReScene.Core.Comparison;
 
 namespace ReScene.NET.ViewModels;

@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using ReScene.RAR;
 using ReScene.NET.Services;
 using ReScene.SRR;
+using ReScene.SRS;
 using ReScene.Core;
 using ReScene.Core.Cryptography;
 using ReScene.Core.Diagnostics;
