@@ -132,8 +132,9 @@ ReScene.NET/
 └── ReScene.Lib/            # Git submodule — shared library
     ├── ReScene/            # Library project (net8.0 + net10.0)
     │   ├── RAR/            # RAR 4.x/5.x header parsing, patching, decompression
-    │   ├── SRR/            # SRR/SRS file format reading and writing
-    │   └── Core/           # Reconstruction, comparison, brute-force orchestration
+    │   ├── SRR/            # SRR file format reading and writing
+    │   ├── SRS/            # SRS file format reading, writing, and reconstruction
+    │   └── Core/           # Brute-force orchestration, comparison
     └── ReScene.Tests/      # xUnit tests
 ```
 
@@ -141,15 +142,19 @@ ReScene.NET/
 
 ### ReScene.RAR
 
-Low-level RAR archive header parsing and patching. Supports RAR 4.x and RAR 5.x block structures, file metadata extraction (names, sizes, CRCs, timestamps), comment decompression, in-place header patching with CRC recalculation, and custom scene packer detection.
+Low-level RAR archive header parsing and patching. Supports RAR 4.x and RAR 5.x block structures, file metadata extraction (names, sizes, CRCs, timestamps), comment decompression, in-place header patching with CRC recalculation, SFX archive support, and custom scene packer detection.
 
 ### ReScene.SRR
 
-SRR and SRS file format support. Reads and writes SRR files (scene release reconstruction metadata) and SRS files (sample reconstruction data) across 7 container formats: RIFF (AVI), MKV, MP4, WMV/ASF, FLAC, MP3, and Stream/M2TS. Includes MP3 tag parsing (ID3v2, ID3v1, Lyrics3, APE), FLAC metadata block parsing, and MKV EBML lacing decompression.
+SRR file format support. Reads and writes SRR files (scene release reconstruction metadata) — a RAR-like container that stores only headers (no file data). Supports embedded RAR 4.x/5.0 headers, stored files (NFO, SFV), OSO hash blocks, and volume size metadata.
+
+### ReScene.SRS
+
+SRS file format support. Reads and writes SRS files (sample reconstruction data) across 7 container formats: AVI, MKV, MP4, WMV/ASF, FLAC, MP3, and Stream/M2TS. Reconstructs sample files from SRS metadata and original media files with CRC32 verification. Includes MP3 tag parsing, FLAC metadata block parsing, and MKV EBML lacing decompression.
 
 ### ReScene.Core
 
-High-level reconstruction and comparison logic. Orchestrates brute-force WinRAR version discovery, RAR archive reconstruction from SRR metadata, host OS / attribute / LARGE flag patching, SRS sample rebuilding, and file-level comparison between SRR/SRS/RAR archives.
+High-level reconstruction and comparison logic. Orchestrates brute-force WinRAR version discovery, RAR archive reconstruction from SRR metadata, host OS / attribute / LARGE flag patching, and file-level comparison between SRR/SRS/RAR archives.
 
 ## Dependencies
 
