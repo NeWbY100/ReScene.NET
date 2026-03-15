@@ -2,11 +2,11 @@
 
 A Windows desktop application for inspecting, creating, and reconstructing [ReScene](https://rescene.wikidot.com/) (SRR/SRS) files, built with WPF and .NET 10.
 
-![Home](docs/resources/home.png)
+![Main](docs/resources/main.png)
 
 ## Features
 
-### Home
+### Main
 
 Central hub with quick access to open files, jump to the SRR Creator, and reopen recent files. Includes resource links to pyReScene/ReSample documentation, extracted WinRAR versions, and original WinRAR FTP files. Supports drag & drop of SRR/SRS/RAR files onto the window to open them directly in the Inspector.
 
@@ -73,6 +73,8 @@ Reconstruct RAR archives from SRR metadata using brute-force WinRAR version and 
 - **Three log streams**: System, Phase 1, and Phase 2 with timestamped entries
 
 ### SRS Reconstructor
+
+![RAR Reconstructor](docs/resources/srs_reconstructor.png)
 
 Rebuild media samples from `.srs` metadata and a source media file. Extracts track signatures, reconstructs the sample byte-for-byte, and verifies the result against the expected CRC32 and file size. Supports the same container formats as the SRS Creator.
 
