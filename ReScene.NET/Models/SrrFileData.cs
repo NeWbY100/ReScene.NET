@@ -1,6 +1,5 @@
 using ReScene.RAR;
 using ReScene.SRR;
-using ReScene.SRS;
 
 namespace ReScene.NET.Models;
 
@@ -9,7 +8,9 @@ namespace ReScene.NET.Models;
 /// </summary>
 public class SrrFileData
 {
-    /// <summary>The parsed SRR file.</summary>
+    /// <summary>
+    /// The parsed SRR file.
+    /// </summary>
     public SRRFile SrrFile { get; set; } = null!;
 
     /// <summary>

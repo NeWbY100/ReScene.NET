@@ -1,6 +1,5 @@
 using ReScene.RAR;
 using ReScene.Core.Comparison;
-using ReScene.SRR;
 using ReScene.SRS;
 
 namespace ReScene.NET.Services;
