@@ -676,7 +676,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             {
                 chunksNode.Children.Add(new TreeNodeViewModel
                 {
-                    Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {chunk.BlockSize:N0} bytes)",
+                    Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
                     Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = chunk, IsLeft = isLeft }
                 });
             }
@@ -1350,9 +1350,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "Label", Value = chunk.Label });
         properties.Add(new PropertyItem { Name = "Chunk ID", Value = chunk.ChunkId });
         properties.Add(new PropertyItem { Name = "Position", Value = $"0x{chunk.BlockPosition:X8}" });
-        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{chunk.HeaderSize} bytes" });
-        properties.Add(new PropertyItem { Name = "Payload Size", Value = $"{chunk.PayloadSize:N0} bytes" });
-        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes" });
+        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{chunk.HeaderSize:N0} bytes ({FormatSize(chunk.HeaderSize)})" });
+        properties.Add(new PropertyItem { Name = "Payload Size", Value = $"{chunk.PayloadSize:N0} bytes ({FormatSize(chunk.PayloadSize)})" });
+        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes ({FormatSize(chunk.BlockSize)})" });
     }
 
     private static byte[]? ReadFileSlice(string? filePath, long offset, int length)
@@ -1396,6 +1396,19 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     }
 
     #endregion
+
+    private static string FormatSize(long bytes)
+    {
+        string[] suffixes = ["B", "KB", "MB", "GB", "TB"];
+        int i = 0;
+        double size = bytes;
+        while (size >= 1024 && i < suffixes.Length - 1)
+        {
+            size /= 1024;
+            i++;
+        }
+        return $"{size:0.##} {suffixes[i]}";
+    }
 
     public void Dispose()
     {

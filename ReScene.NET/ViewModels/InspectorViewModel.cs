@@ -579,7 +579,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 chunksNode.Children.Add(new TreeNodeViewModel
                 {
-                    Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {chunk.BlockSize:N0} B)",
+                    Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
                     Tag = chunk
                 });
             }
@@ -670,9 +670,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         AddProperty("Chunk ID", chunk.ChunkId);
         AddProperty("Position", $"0x{chunk.BlockPosition:X8}",
             new ByteRange { Offset = chunk.BlockPosition, Length = chunk.HeaderSize });
-        AddProperty("Total Size", $"{chunk.BlockSize:N0} bytes");
-        AddProperty("Header Size", $"{chunk.HeaderSize} bytes");
-        AddProperty("Payload Size", $"{chunk.PayloadSize:N0} bytes");
+        AddProperty("Total Size", $"{chunk.BlockSize:N0} bytes ({FormatSize(chunk.BlockSize)})");
+        AddProperty("Header Size", $"{chunk.HeaderSize:N0} bytes ({FormatSize(chunk.HeaderSize)})");
+        AddProperty("Payload Size", $"{chunk.PayloadSize:N0} bytes ({FormatSize(chunk.PayloadSize)})");
     }
 
     private void SetHexBlock(long offset, long size)
