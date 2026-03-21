@@ -55,6 +55,7 @@
     <DataGrid DockPanel.Dock="Top"
               ItemsSource="{Binding SrsEntries}"
               IsReadOnly="False"
+              CanUserAddRows="False"
               AutoGenerateColumns="False"
               CanUserReorderColumns="False"
               CanUserSortColumns="False"
