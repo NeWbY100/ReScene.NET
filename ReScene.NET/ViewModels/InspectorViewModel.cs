@@ -575,14 +575,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 Text = $"Container Chunks ({srs.ContainerChunks.Count})",
                 Tag = "container"
             };
-            foreach (var chunk in srs.ContainerChunks)
-            {
-                chunksNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
-                    Tag = chunk
-                });
-            }
+            BuildChunkHierarchy(chunksNode, srs.ContainerChunks);
             root.Children.Add(chunksNode);
         }
 
@@ -988,6 +981,35 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     private static string FormatBool(bool? value) =>
         value.HasValue ? (value.Value ? "Yes" : "No") : "Unknown";
+
+    private void BuildChunkHierarchy(TreeNodeViewModel root, List<SrsContainerChunk> chunks)
+    {
+        var nodeStack = new Stack<TreeNodeViewModel>();
+        var endStack = new Stack<long>();
+        nodeStack.Push(root);
+        endStack.Push(long.MaxValue);
+
+        foreach (var chunk in chunks)
+        {
+            long chunkEnd = chunk.BlockPosition + chunk.BlockSize;
+
+            while (endStack.Count > 1 && chunk.BlockPosition >= endStack.Peek())
+            {
+                nodeStack.Pop();
+                endStack.Pop();
+            }
+
+            var node = new TreeNodeViewModel
+            {
+                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
+                Tag = chunk
+            };
+            nodeStack.Peek().Children.Add(node);
+
+            nodeStack.Push(node);
+            endStack.Push(chunkEnd);
+        }
+    }
 
     private static string FormatSize(long bytes)
     {

@@ -671,16 +671,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 Text = $"Container Structure ({srs.ContainerChunks.Count})",
                 Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = srs.ContainerChunks, IsLeft = isLeft }
             };
-
-            foreach (var chunk in srs.ContainerChunks)
-            {
-                chunksNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = chunk, IsLeft = isLeft }
-                });
-            }
-
+            BuildChunkHierarchy(chunksNode, srs.ContainerChunks, isLeft);
             rootNode.Children.Add(chunksNode);
         }
 
@@ -1396,6 +1387,35 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     }
 
     #endregion
+
+    private static void BuildChunkHierarchy(TreeNodeViewModel root, List<SrsContainerChunk> chunks, bool isLeft)
+    {
+        var nodeStack = new Stack<TreeNodeViewModel>();
+        var endStack = new Stack<long>();
+        nodeStack.Push(root);
+        endStack.Push(long.MaxValue);
+
+        foreach (var chunk in chunks)
+        {
+            long chunkEnd = chunk.BlockPosition + chunk.BlockSize;
+
+            while (endStack.Count > 1 && chunk.BlockPosition >= endStack.Peek())
+            {
+                nodeStack.Pop();
+                endStack.Pop();
+            }
+
+            var node = new TreeNodeViewModel
+            {
+                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
+                Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = chunk, IsLeft = isLeft }
+            };
+            nodeStack.Peek().Children.Add(node);
+
+            nodeStack.Push(node);
+            endStack.Push(chunkEnd);
+        }
+    }
 
     private static string FormatSize(long bytes)
     {
