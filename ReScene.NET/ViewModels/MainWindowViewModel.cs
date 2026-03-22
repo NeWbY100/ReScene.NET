@@ -58,31 +58,37 @@ public partial class MainWindowViewModel : ViewModelBase
             if (e.PropertyName == nameof(InspectorViewModel.StatusMessage))
                 StatusMessage = Inspector.StatusMessage;
             else if (e.PropertyName == nameof(InspectorViewModel.IsExporting))
-                IsBusy = Inspector.IsExporting || Creator.IsCreating;
+                UpdateIsBusy();
         };
 
         Creator.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(CreatorViewModel.IsCreating))
-                IsBusy = Inspector.IsExporting || Creator.IsCreating || SrsCreator.IsCreating;
+                UpdateIsBusy();
         };
 
         SrsCreator.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SrsCreatorViewModel.IsCreating))
-                IsBusy = Inspector.IsExporting || Creator.IsCreating || SrsCreator.IsCreating || Reconstructor.IsRunning;
+                UpdateIsBusy();
         };
 
         Reconstructor.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ReconstructorViewModel.IsRunning))
-                IsBusy = Inspector.IsExporting || Creator.IsCreating || SrsCreator.IsCreating || Reconstructor.IsRunning || SampleRestorer.IsRestoring;
+                UpdateIsBusy();
+        };
+
+        SrsReconstructor.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SrsReconstructorViewModel.IsRebuilding))
+                UpdateIsBusy();
         };
 
         SampleRestorer.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SampleRestorerViewModel.IsRestoring))
-                IsBusy = Inspector.IsExporting || Creator.IsCreating || SrsCreator.IsCreating || Reconstructor.IsRunning || SampleRestorer.IsRestoring;
+                UpdateIsBusy();
         };
     }
 
@@ -108,6 +114,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _recentFiles.AddEntry(filePath);
         Home.LoadRecentFiles();
+    }
+
+    private void UpdateIsBusy()
+    {
+        IsBusy = Inspector.IsExporting
+            || Creator.IsCreating
+            || SrsCreator.IsCreating
+            || Reconstructor.IsRunning
+            || SrsReconstructor.IsRebuilding
+            || SampleRestorer.IsRestoring;
     }
 
     public void Cleanup()

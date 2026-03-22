@@ -15,7 +15,7 @@ public class BruteForceService : IBruteForceService
 
     private Manager? _manager;
 
-    public async Task<bool> RunAsync(BruteForceOptions options, CancellationToken ct)
+    public async Task<bool> RunAsync(BruteForceOptions options)
     {
         var logger = new ReSceneLogger();
         logger.Logged += (s, e) => LogMessage?.Invoke(s, e);

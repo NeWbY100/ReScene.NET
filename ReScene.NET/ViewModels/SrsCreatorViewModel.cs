@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Services;
@@ -151,8 +152,11 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     private void OnProgress(object? _, SrsCreationProgressEventArgs e)
     {
-        ProgressMessage = e.Message;
-        Log(e.Message);
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            ProgressMessage = e.Message;
+            Log(e.Message);
+        });
     }
 
     private void Log(string message)

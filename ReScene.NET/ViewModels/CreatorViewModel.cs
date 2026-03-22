@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Services;
@@ -214,9 +215,12 @@ public partial class CreatorViewModel : ViewModelBase
 
     private void OnProgress(object? _, SrrCreationProgressEventArgs e)
     {
-        ProgressPercent = e.ProgressPercent;
-        ProgressMessage = e.Message;
-        Log(e.Message);
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            ProgressPercent = e.ProgressPercent;
+            ProgressMessage = e.Message;
+            Log(e.Message);
+        });
     }
 
     private void Log(string message)

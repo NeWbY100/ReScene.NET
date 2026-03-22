@@ -757,7 +757,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
             // Run entirely on a background thread so the UI stays responsive
             // during setup (directory enumeration, input validation, etc.)
-            bool success = await Task.Run(() => _bruteForceService.RunAsync(options, _cts.Token));
+            bool success = await Task.Run(() => _bruteForceService.RunAsync(options));
 
             // Mark final version entry
             if (_activeVersionIndex >= 0 && _activeVersionIndex < VersionEntries.Count)

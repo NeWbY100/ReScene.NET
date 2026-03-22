@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -203,6 +204,8 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
     private void LoadSrsEntries()
     {
+        foreach (var old in SrsEntries)
+            old.PropertyChanged -= OnEntryPropertyChanged;
         SrsEntries.Clear();
 
         try
@@ -217,7 +220,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
                     SampleFileName = info.SampleFileName,
                     IsSelected = true
                 };
-                entry.PropertyChanged += (_, _) => RestoreCommand.NotifyCanExecuteChanged();
+                entry.PropertyChanged += OnEntryPropertyChanged;
                 SrsEntries.Add(entry);
             }
 
@@ -266,6 +269,11 @@ public partial class SampleRestorerViewModel : ViewModelBase
     {
         if (!string.IsNullOrWhiteSpace(value) && SrsEntries.Count > 0)
             MatchMediaFiles();
+    }
+
+    private void OnEntryPropertyChanged(object? _, PropertyChangedEventArgs e)
+    {
+        RestoreCommand.NotifyCanExecuteChanged();
     }
 
     private void OnProgress(object? _, SrsReconstructionProgressEventArgs e)

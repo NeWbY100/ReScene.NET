@@ -4,7 +4,7 @@ namespace ReScene.NET.Services;
 
 public interface IBruteForceService
 {
-    Task<bool> RunAsync(BruteForceOptions options, CancellationToken ct);
+    Task<bool> RunAsync(BruteForceOptions options);
     void Stop();
     event EventHandler<BruteForceProgressEventArgs>? Progress;
     event EventHandler<BruteForceStatusChangedEventArgs>? StatusChanged;
