@@ -61,12 +61,13 @@
                      Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
           <TextBlock Grid.Column="1"
                      FontSize="{DynamicResource FontSizeCaption}"
-                     VerticalAlignment="Center">
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}">
             <Hyperlink NavigateUri="https://github.com/NeWbY100/ReScene.NET"
                        RequestNavigate="OnHyperlinkRequestNavigate"
                        Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                        TextDecorations="None">
-              ReScene.NET
+              <Run Text="ReScene.NET v" /><Run Text="{Binding AppVersion, Mode=OneTime}" />
             </Hyperlink>
           </TextBlock>
         </Grid>

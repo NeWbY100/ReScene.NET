@@ -1,3 +1,4 @@
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Services;
@@ -29,6 +30,21 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isBusy;
+
+    public string AppVersion { get; } = GetAppVersion();
+
+    private static string GetAppVersion()
+    {
+        string? version = Assembly.GetEntryAssembly()?
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (version is null)
+            return "0.0.0";
+
+        // InformationalVersion is "1.0.0+abcdef1" — extract hash after '+'
+        int plus = version.IndexOf('+');
+        return plus >= 0 ? version[..plus] + " (" + version[(plus + 1)..] + ")" : version;
+    }
 
     public MainWindowViewModel()
         : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService())
