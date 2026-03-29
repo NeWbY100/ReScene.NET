@@ -5,6 +5,9 @@ using ReScene.NET.Services;
 
 namespace ReScene.NET.ViewModels;
 
+/// <summary>
+/// Root ViewModel that owns all child ViewModels and coordinates tab navigation and status aggregation.
+/// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly IFileDialogService _fileDialog;
@@ -121,6 +124,10 @@ public partial class MainWindowViewModel : ViewModelBase
             OpenSceneFile(path);
     }
 
+    /// <summary>
+    /// Opens a scene file (SRR/SRS) in the Inspector tab and updates the window title.
+    /// </summary>
+    /// <param name="filePath">Absolute path to the scene file.</param>
     public void OpenSceneFile(string filePath)
     {
         Inspector.LoadFile(filePath);
@@ -142,6 +149,9 @@ public partial class MainWindowViewModel : ViewModelBase
             || SampleRestorer.IsRestoring;
     }
 
+    /// <summary>
+    /// Disposes child ViewModels that hold unmanaged resources.
+    /// </summary>
     public void Cleanup()
     {
         Inspector.Dispose();

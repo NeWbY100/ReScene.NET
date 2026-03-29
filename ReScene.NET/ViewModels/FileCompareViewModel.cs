@@ -11,6 +11,9 @@ using ReScene.Core.Comparison;
 
 namespace ReScene.NET.ViewModels;
 
+/// <summary>
+/// Identifies the kind of node in the file comparison tree view.
+/// </summary>
 public enum CompareNodeType
 {
     Root,
@@ -29,14 +32,27 @@ public enum CompareNodeType
     SrsContainerChunks
 }
 
+/// <summary>
+/// Data attached to each tree node in the comparison view, identifying its type and associated block data.
+/// </summary>
 public class CompareNodeData
 {
+    /// <summary>Gets or sets the type of tree node this data represents.</summary>
     public CompareNodeType NodeType { get; set; }
+
+    /// <summary>Gets or sets the underlying block or file data associated with this node.</summary>
     public object? Data { get; set; }
+
+    /// <summary>Gets or sets the file name associated with this node, if applicable.</summary>
     public string? FileName { get; set; }
+
+    /// <summary>Gets or sets whether this node belongs to the left comparison pane.</summary>
     public bool IsLeft { get; set; }
 }
 
+/// <summary>
+/// ViewModel for the file comparison tab, supporting side-by-side diff of SRR, SRS, and RAR files.
+/// </summary>
 public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog) : ViewModelBase, IDisposable
 {
     private readonly IFileCompareService _compareService = compareService;
@@ -204,6 +220,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     #region File Loading
 
+    /// <summary>
+    /// Loads and parses a file into the left comparison pane.
+    /// </summary>
+    /// <param name="filePath">Absolute path to the file.</param>
     public void LoadLeftFile(string filePath)
     {
         try
@@ -233,6 +253,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
     }
 
+    /// <summary>
+    /// Loads and parses a file into the right comparison pane.
+    /// </summary>
+    /// <param name="filePath">Absolute path to the file.</param>
     public void LoadRightFile(string filePath)
     {
         try

@@ -4,8 +4,12 @@ using ReScene.SRS;
 
 namespace ReScene.NET.Services;
 
+/// <summary>
+/// Default implementation of <see cref="IFileCompareService"/> for loading and comparing scene files.
+/// </summary>
 public class FileCompareService : IFileCompareService
 {
+    /// <inheritdoc />
     public object? LoadFileData(string filePath)
     {
         string ext = Path.GetExtension(filePath).ToLowerInvariant();
@@ -17,6 +21,7 @@ public class FileCompareService : IFileCompareService
         };
     }
 
+    /// <inheritdoc />
     public List<RARDetailedBlock>? ParseDetailedBlocks(string filePath)
     {
         string ext = Path.GetExtension(filePath).ToLowerInvariant();
@@ -32,6 +37,7 @@ public class FileCompareService : IFileCompareService
         }
     }
 
+    /// <inheritdoc />
     public CompareResult Compare(object? leftData, object? rightData,
         List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null)
     {

@@ -10,6 +10,9 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
+/// <summary>
+/// ViewModel for the SRR Creator tab, handling SRR file creation from SFV or RAR inputs.
+/// </summary>
 public partial class CreatorViewModel : ViewModelBase
 {
     private readonly ISrrCreationService _srrService;
@@ -534,9 +537,15 @@ public partial class CreatorViewModel : ViewModelBase
         return volumes;
     }
 
+    /// <summary>
+    /// Represents a file to be stored inside the SRR, with its full path and relative stored name.
+    /// </summary>
     public class StoredFileItem
     {
+        /// <summary>Gets or sets the absolute path to the file on disk.</summary>
         public string FullPath { get; set; } = string.Empty;
+
+        /// <summary>Gets or sets the relative name used when storing the file in the SRR.</summary>
         public string StoredName { get; set; } = string.Empty;
     }
 }
