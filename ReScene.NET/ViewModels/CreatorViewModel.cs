@@ -1,21 +1,26 @@
 using System.Collections.ObjectModel;
+using System.Reflection;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.NET.Helpers;
 using ReScene.NET.Services;
 using ReScene.SRR;
+using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
 public partial class CreatorViewModel : ViewModelBase
 {
     private readonly ISrrCreationService _srrService;
+    private readonly ISrsCreationService _srsService;
     private readonly IFileDialogService _fileDialog;
     private CancellationTokenSource? _cts;
 
-    public CreatorViewModel(ISrrCreationService srrService, IFileDialogService fileDialog)
+    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog)
     {
         _srrService = srrService;
+        _srsService = srsService;
         _fileDialog = fileDialog;
 
         _srrService.Progress += OnProgress;
@@ -30,10 +35,10 @@ public partial class CreatorViewModel : ViewModelBase
     private bool _isSfvInput = true;
 
     // Stored Files
-    public ObservableCollection<string> StoredFiles { get; } = [];
+    public ObservableCollection<StoredFileItem> StoredFiles { get; } = [];
 
     [ObservableProperty]
-    private string? _selectedStoredFile;
+    private StoredFileItem? _selectedStoredFile;
 
     // Output
     [ObservableProperty]
@@ -45,13 +50,39 @@ public partial class CreatorViewModel : ViewModelBase
     private bool _allowCompressed = true;
 
     [ObservableProperty]
-    private bool _storePaths = true;
+    private bool _autoIncludeFiles = true;
+
+    [ObservableProperty]
+    private bool _autoCreateSrs = true;
+
+    [ObservableProperty]
+    private bool _createVobsubSrr = true;
+
+    [ObservableProperty]
+    private bool _storeFixRar = true;
 
     [ObservableProperty]
     private bool _computeOsoHashes;
 
     [ObservableProperty]
-    private string _appName = "ReScene.NET";
+    private bool _generateLanguagesDiz = true;
+
+    [ObservableProperty]
+    private string _appName = GetDefaultAppName();
+
+    private static string GetDefaultAppName()
+    {
+        string? version = Assembly.GetEntryAssembly()?
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (version is null)
+            return "ReScene.NET";
+
+        int plus = version.IndexOf('+');
+        return plus >= 0
+            ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
+            : $"ReScene.NET v{version}";
+    }
 
     // Progress
     [ObservableProperty]
@@ -87,6 +118,8 @@ public partial class CreatorViewModel : ViewModelBase
     {
         if (!string.IsNullOrWhiteSpace(value))
             IsSfvInput = Path.GetExtension(value).Equals(".sfv", StringComparison.OrdinalIgnoreCase);
+        UpdateStoredNames();
+        AutoScanReleaseFiles();
     }
 
     [RelayCommand]
@@ -106,17 +139,26 @@ public partial class CreatorViewModel : ViewModelBase
 
         foreach (string path in paths)
         {
-            if (!StoredFiles.Contains(path))
-                StoredFiles.Add(path);
+            if (StoredFiles.Any(f => f.FullPath.Equals(path, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            StoredFiles.Add(new StoredFileItem
+            {
+                FullPath = path,
+                StoredName = ComputeStoredName(path)
+            });
         }
     }
 
     [RelayCommand]
     private void RemoveStoredFile()
     {
-        if (SelectedStoredFile != null)
+        if (SelectedStoredFile is not null)
             StoredFiles.Remove(SelectedStoredFile);
     }
+
+    [RelayCommand]
+    private void RemoveAllStoredFiles() => StoredFiles.Clear();
 
     private bool CanCreateSrr() => !IsCreating
         && !string.IsNullOrWhiteSpace(InputPath)
@@ -132,6 +174,7 @@ public partial class CreatorViewModel : ViewModelBase
         LogEntries.Clear();
 
         _cts = new CancellationTokenSource();
+        string? tempDir = null;
 
         try
         {
@@ -139,33 +182,46 @@ public partial class CreatorViewModel : ViewModelBase
             {
                 AppName = string.IsNullOrWhiteSpace(AppName) ? null : AppName,
                 AllowCompressed = AllowCompressed,
-                StorePaths = StorePaths,
-                ComputeOsoHashes = ComputeOsoHashes
+                ComputeOsoHashes = ComputeOsoHashes,
+                GenerateLanguagesDiz = GenerateLanguagesDiz
             };
 
             Log("Starting SRR creation...");
             Log($"Input: {InputPath}");
             Log($"Output: {OutputPath}");
 
+            string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
+
+            // Phase 1: Auto-create SRS files for samples
+            if (AutoCreateSrs)
+                tempDir = await CreateSrsForSamplesAsync(releaseDir, options, _cts.Token);
+
+            // Phase 2: Create nested SRRs for subtitle archives
+            if (CreateVobsubSrr)
+                await CreateVobsubSrrsAsync(releaseDir, options, tempDir ??= CreateTempDir(), _cts.Token);
+
+            // Phase 3: Store fix RAR if applicable
+            if (StoreFixRar)
+                StoreFixRarFile(releaseDir);
+
+            // Phase 4: Create the main SRR
             SrrCreationResult result;
+
+            var storedFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in StoredFiles)
+                storedFiles[item.StoredName] = item.FullPath;
 
             if (IsSfvInput)
             {
-                var additionalFiles = StoredFiles.ToList();
                 result = await _srrService.CreateFromSfvAsync(
-                    OutputPath, InputPath, additionalFiles, options, _cts.Token);
+                    OutputPath, InputPath,
+                    storedFiles.Count > 0 ? storedFiles : null,
+                    options, _cts.Token);
             }
             else
             {
-                // Single RAR file input - discover all volumes from the first one
                 var volumes = DiscoverRarVolumes(InputPath);
                 Log($"Found {volumes.Count} volume(s).");
-
-                var storedFiles = new Dictionary<string, string>();
-                foreach (string path in StoredFiles)
-                {
-                    storedFiles[Path.GetFileName(path)] = path;
-                }
 
                 result = await _srrService.CreateFromRarAsync(
                     OutputPath, volumes,
@@ -189,9 +245,7 @@ public partial class CreatorViewModel : ViewModelBase
             }
 
             foreach (string warning in result.Warnings)
-            {
                 Log($"WARNING: {warning}");
-            }
         }
         catch (Exception ex)
         {
@@ -203,6 +257,7 @@ public partial class CreatorViewModel : ViewModelBase
             IsCreating = false;
             _cts?.Dispose();
             _cts = null;
+            CleanupTempDir(tempDir);
         }
     }
 
@@ -212,6 +267,175 @@ public partial class CreatorViewModel : ViewModelBase
         _cts?.Cancel();
         Log("Cancellation requested...");
     }
+
+    // ── Auto-scan ───────────────────────────────────────────
+
+    private void AutoScanReleaseFiles()
+    {
+        if (!AutoIncludeFiles || string.IsNullOrWhiteSpace(InputPath))
+            return;
+
+        string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
+        if (!Directory.Exists(releaseDir))
+            return;
+
+        StoredFiles.Clear();
+
+        try
+        {
+            var scanned = ReleaseFileScanner.ScanReleaseDirectory(releaseDir);
+            foreach (var (fullPath, storedName) in scanned)
+            {
+                StoredFiles.Add(new StoredFileItem
+                {
+                    FullPath = fullPath,
+                    StoredName = storedName
+                });
+            }
+        }
+        catch
+        {
+            // Directory scan failures are non-fatal
+        }
+    }
+
+    // ── SRS auto-creation ───────────────────────────────────
+
+    private async Task<string?> CreateSrsForSamplesAsync(string releaseDir, SrrCreationOptions options, CancellationToken ct)
+    {
+        var samples = ReleaseFileScanner.FindSampleFiles(releaseDir);
+        if (samples.Count == 0)
+            return null;
+
+        string tempDir = CreateTempDir();
+        var srsOptions = new SrsCreationOptions
+        {
+            AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene.NET" : AppName
+        };
+
+        foreach (string samplePath in samples)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            string sampleName = Path.GetFileName(samplePath);
+            string srsName = Path.ChangeExtension(sampleName, ".srs");
+            string srsPath = Path.Combine(tempDir, srsName);
+
+            Log($"Creating SRS for: {sampleName}");
+
+            try
+            {
+                var result = await _srsService.CreateAsync(srsPath, samplePath, srsOptions, ct);
+                if (result.Success)
+                {
+                    string storedName = Path.GetRelativePath(releaseDir, samplePath).Replace('\\', '/');
+                    storedName = Path.ChangeExtension(storedName, ".srs");
+
+                    StoredFiles.Add(new StoredFileItem
+                    {
+                        FullPath = srsPath,
+                        StoredName = storedName
+                    });
+
+                    Log($"  SRS created: {srsName} ({result.SrsFileSize:N0} bytes)");
+                }
+                else
+                {
+                    Log($"  SRS failed for {sampleName}: {result.ErrorMessage}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"  SRS error for {sampleName}: {ex.Message}");
+            }
+        }
+
+        return tempDir;
+    }
+
+    // ── Vobsub nested SRR ───────────────────────────────────
+
+    private async Task CreateVobsubSrrsAsync(string releaseDir, SrrCreationOptions options, string tempDir, CancellationToken ct)
+    {
+        var subtitleSfvs = ReleaseFileScanner.FindSubtitleSfvFiles(releaseDir);
+        if (subtitleSfvs.Count == 0)
+            return;
+
+        foreach (string sfvPath in subtitleSfvs)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            string sfvName = Path.GetFileName(sfvPath);
+            string srrName = Path.ChangeExtension(sfvName, ".srr");
+            string srrPath = Path.Combine(tempDir, srrName);
+
+            Log($"Creating nested SRR for: {sfvName}");
+
+            try
+            {
+                var result = await _srrService.CreateFromSfvAsync(
+                    srrPath, sfvPath, null, options, ct);
+
+                if (result.Success)
+                {
+                    string storedName = Path.GetRelativePath(releaseDir, sfvPath).Replace('\\', '/');
+                    storedName = Path.ChangeExtension(storedName, ".srr");
+
+                    StoredFiles.Add(new StoredFileItem
+                    {
+                        FullPath = srrPath,
+                        StoredName = storedName
+                    });
+
+                    Log($"  Nested SRR created: {srrName} ({result.SrrFileSize:N0} bytes)");
+                }
+                else
+                {
+                    Log($"  Nested SRR failed for {sfvName}: {result.ErrorMessage}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"  Nested SRR error for {sfvName}: {ex.Message}");
+            }
+        }
+    }
+
+    // ── Fix release detection ───────────────────────────────
+
+    private void StoreFixRarFile(string releaseDir)
+    {
+        string releaseName = Path.GetFileName(releaseDir) ?? string.Empty;
+        if (!ReleaseFileScanner.IsFixRelease(releaseName))
+            return;
+
+        // Find SFV files in the release root
+        string[] sfvFiles = Directory.GetFiles(releaseDir, "*.sfv");
+        if (sfvFiles.Length != 1)
+            return;
+
+        // Find RAR files referenced by the SFV
+        var rarFiles = ReleaseFileScanner.FindRarFilesFromSfv(sfvFiles[0]);
+        if (rarFiles.Count != 1)
+            return;
+
+        string rarPath = rarFiles[0];
+        string storedName = Path.GetFileName(rarPath);
+
+        // Don't add if already in stored files
+        if (StoredFiles.Any(f => f.StoredName.Equals(storedName, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        StoredFiles.Add(new StoredFileItem
+        {
+            FullPath = rarPath,
+            StoredName = storedName
+        });
+
+        Log($"Fix release detected. Storing RAR: {storedName}");
+    }
+
+    // ── Progress & logging ──────────────────────────────────
 
     private void OnProgress(object? _, SrrCreationProgressEventArgs e)
     {
@@ -229,6 +453,8 @@ public partial class CreatorViewModel : ViewModelBase
         LogEntries.Add(entry);
     }
 
+    // ── Helpers ─────────────────────────────────────────────
+
     private void AutoSetOutputPath(string inputPath)
     {
         if (string.IsNullOrWhiteSpace(OutputPath))
@@ -239,6 +465,40 @@ public partial class CreatorViewModel : ViewModelBase
         }
     }
 
+    private string ComputeStoredName(string fullPath)
+    {
+        if (string.IsNullOrWhiteSpace(InputPath))
+            return Path.GetFileName(fullPath);
+
+        string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
+        string relative = Path.GetRelativePath(releaseDir, fullPath);
+
+        if (relative.StartsWith("..", StringComparison.Ordinal))
+            return Path.GetFileName(fullPath);
+
+        return relative.Replace('\\', '/');
+    }
+
+    private void UpdateStoredNames()
+    {
+        foreach (var item in StoredFiles)
+            item.StoredName = ComputeStoredName(item.FullPath);
+    }
+
+    private static string CreateTempDir()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
+    private static void CleanupTempDir(string? tempDir)
+    {
+        if (tempDir is null) return;
+        try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); }
+        catch { /* best-effort cleanup */ }
+    }
+
     private static List<string> DiscoverRarVolumes(string firstRarPath)
     {
         string dir = Path.GetDirectoryName(firstRarPath) ?? ".";
@@ -246,36 +506,21 @@ public partial class CreatorViewModel : ViewModelBase
 
         var volumes = new List<string>();
 
-        // Check for new-style naming: name.part01.rar, name.part02.rar
         if (baseName.Contains(".part", StringComparison.OrdinalIgnoreCase))
         {
-            // Find all partNN.rar files with the same base name
             string pattern = baseName[..baseName.LastIndexOf(".part", StringComparison.OrdinalIgnoreCase)];
             foreach (string file in Directory.GetFiles(dir, $"{pattern}.part*.rar"))
-            {
                 volumes.Add(file);
-            }
         }
         else
         {
-            // Old-style: name.rar, name.r00, name.r01, etc.
             volumes.Add(firstRarPath);
             for (int i = 0; i < 999; i++)
             {
-                string ext;
-                if (i < 100)
-                {
-                    int letterIndex = i / 100;
-                    char letter = (char)('r' + letterIndex);
-                    ext = $".{letter}{i % 100:D2}";
-                }
-                else
-                {
-                    int letterIndex = i / 100;
-                    if (letterIndex > 25) break;
-                    char letter = (char)('r' + letterIndex);
-                    ext = $".{letter}{i % 100:D2}";
-                }
+                int letterIndex = i / 100;
+                if (letterIndex > 25) break;
+                char letter = (char)('r' + letterIndex);
+                string ext = $".{letter}{i % 100:D2}";
 
                 string nextVolume = Path.Combine(dir, baseName + ext);
                 if (File.Exists(nextVolume))
@@ -287,5 +532,11 @@ public partial class CreatorViewModel : ViewModelBase
 
         volumes.Sort(SRRWriter.CompareRarVolumeNames);
         return volumes;
+    }
+
+    public class StoredFileItem
+    {
+        public string FullPath { get; set; } = string.Empty;
+        public string StoredName { get; set; } = string.Empty;
     }
 }

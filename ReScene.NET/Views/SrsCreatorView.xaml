@@ -42,8 +42,11 @@
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
       <TextBlock Text="App name:" VerticalAlignment="Center"
                  Margin="0,0,8,0" />
-      <TextBox Text="{Binding AppName}" Width="200"
+      <TextBox Text="{Binding AppName}" Width="400"
                HorizontalAlignment="Left" />
+      <TextBlock Text="Embedded in the SRS file to identify the creating application."
+                 VerticalAlignment="Center" Margin="8,0,0,0"
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
     </DockPanel>
 
     <!-- separator -->

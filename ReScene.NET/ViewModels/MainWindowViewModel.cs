@@ -57,7 +57,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _recentFiles = recentFiles;
 
         Inspector = new InspectorViewModel(fileDialog);
-        Creator = new CreatorViewModel(srrService, fileDialog);
+        Creator = new CreatorViewModel(srrService, srsService, fileDialog);
         SrsCreator = new SrsCreatorViewModel(srsService, fileDialog);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
         SrsReconstructor = new SrsReconstructorViewModel(srsReconService, fileDialog);

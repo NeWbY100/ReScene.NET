@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Reflection;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -33,7 +34,21 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     // Options
     [ObservableProperty]
-    private string _appName = "ReScene.NET";
+    private string _appName = GetDefaultAppName();
+
+    private static string GetDefaultAppName()
+    {
+        string? version = Assembly.GetEntryAssembly()?
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (version is null)
+            return "ReScene.NET";
+
+        int plus = version.IndexOf('+');
+        return plus >= 0
+            ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
+            : $"ReScene.NET v{version}";
+    }
 
     // Progress
     [ObservableProperty]
@@ -98,7 +113,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
         {
             var options = new SrsCreationOptions
             {
-                AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene.NET" : AppName
+                AppName = string.IsNullOrWhiteSpace(AppName) ? GetDefaultAppName() : AppName
             };
 
             Log("Starting SRS creation...");

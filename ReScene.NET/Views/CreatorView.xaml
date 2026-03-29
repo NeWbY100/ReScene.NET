@@ -9,7 +9,7 @@
       <RowDefinition Height="Auto" />  <!-- Input section -->
       <RowDefinition Height="Auto" />  <!-- separator -->
       <RowDefinition Height="Auto" />  <!-- Stored Files header + buttons -->
-      <RowDefinition Height="80" MinHeight="40" />  <!-- Stored Files list (resizable) -->
+      <RowDefinition Height="150" MinHeight="150" />  <!-- Stored Files list (resizable) -->
       <RowDefinition Height="Auto" />  <!-- GridSplitter -->
       <RowDefinition Height="*" MinHeight="100" />  <!-- Bottom half (Output + Options + Action + Log) -->
     </Grid.RowDefinitions>
@@ -38,16 +38,35 @@
     <!-- ── Stored Files header + buttons ─────────────────────── -->
     <StackPanel Grid.Row="3">
       <TextBlock Text="Stored Files" FontWeight="SemiBold" Margin="0,0,0,2" />
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-        <Button Content="Add..." Command="{Binding AddStoredFileCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
-        <Button Content="Remove" Command="{Binding RemoveStoredFileCommand}" Style="{StaticResource GhostButton}" />
-      </StackPanel>
+      <DockPanel Margin="0,0,0,2">
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Add..." Command="{Binding AddStoredFileCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
+          <Button Content="Remove" Command="{Binding RemoveStoredFileCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
+          <Button Content="Remove All" Command="{Binding RemoveAllStoredFilesCommand}" Style="{StaticResource GhostButton}" />
+        </StackPanel>
+        <TextBlock Text="Double-click the Stored As column to edit the name used in the SRR."
+                   VerticalAlignment="Center" Margin="8,0,0,0"
+                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+      </DockPanel>
     </StackPanel>
 
     <!-- ── Stored Files list (resizable) ─────────────────────── -->
-    <ListBox Grid.Row="4"
-             ItemsSource="{Binding StoredFiles}"
-             SelectedItem="{Binding SelectedStoredFile}" />
+    <DataGrid Grid.Row="4"
+              ItemsSource="{Binding StoredFiles}"
+              SelectedItem="{Binding SelectedStoredFile}"
+              AutoGenerateColumns="False"
+              CanUserReorderColumns="False"
+              CanUserSortColumns="False"
+              CanUserAddRows="False"
+              GridLinesVisibility="Horizontal"
+              HeadersVisibility="Column"
+              SelectionMode="Single"
+              BorderThickness="0">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="File Path" Binding="{Binding FullPath}" IsReadOnly="True" Width="*" />
+        <DataGridTextColumn Header="Stored As" Binding="{Binding StoredName, UpdateSourceTrigger=PropertyChanged}" Width="450" />
+      </DataGrid.Columns>
+    </DataGrid>
 
     <!-- GridSplitter between Stored Files and bottom half -->
     <GridSplitter Grid.Row="5" Height="5" HorizontalAlignment="Stretch"
@@ -86,12 +105,20 @@
       <!-- ── Options ───────────────────────────────────────────── -->
       <StackPanel Grid.Row="2">
         <TextBlock Text="Options" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <CheckBox Content="Auto-include files — Scan release directory for .nfo, .sfv, proof images, .m3u, .cue, .log files."
+                  IsChecked="{Binding AutoIncludeFiles}" Margin="0,1" />
+        <CheckBox Content="Auto-create SRS — Create .srs files for samples found in Sample/ subdirectory."
+                  IsChecked="{Binding AutoCreateSrs}" Margin="0,1" />
+        <CheckBox Content="Vobsub SRR — Create nested SRR files for subtitle archives found in Subs/ directories."
+                  IsChecked="{Binding CreateVobsubSrr}" Margin="0,1" />
+        <CheckBox Content="Store fix RAR — For fix/patch releases, store the main RAR file as proof."
+                  IsChecked="{Binding StoreFixRar}" Margin="0,1" />
         <CheckBox Content="Allow compressed — Accept RAR volumes that use compression (method != Store)."
                   IsChecked="{Binding AllowCompressed}" Margin="0,1" />
-        <CheckBox Content="Store paths — Preserve directory paths in stored file names."
-                  IsChecked="{Binding StorePaths}" Margin="0,1" />
         <CheckBox Content="OSO hashes — Compute and store OpenSubtitles OSO hashes for archived files."
-                  IsChecked="{Binding ComputeOsoHashes}" Margin="0,1,0,4" />
+                  IsChecked="{Binding ComputeOsoHashes}" Margin="0,1" />
+        <CheckBox Content="Languages.diz — Extract language metadata from VobSub .idx files and store in the SRR."
+                  IsChecked="{Binding GenerateLanguagesDiz}" Margin="0,1,0,4" />
         <DockPanel Margin="0,0,0,2">
           <TextBlock Text="App name:" VerticalAlignment="Center"
                      Margin="0,0,8,0" />

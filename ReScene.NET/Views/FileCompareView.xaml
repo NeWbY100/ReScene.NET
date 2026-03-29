@@ -13,52 +13,63 @@
                TextWrapping="Wrap" Margin="0,0,0,6" />
 
     <!-- Top: File paths and controls -->
-    <Border DockPanel.Dock="Top"
-            Background="{DynamicResource SurfaceBackground}"
-            Padding="6,4">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="8" />
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="8" />
-          <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <!-- Left file -->
-        <TextBox Grid.Column="0"
-                 Text="{Binding LeftFilePath}"
-                 IsReadOnly="True"
-                 FontSize="{DynamicResource FontSizeBody}" />
-        <Button Grid.Column="1"
+    <Grid DockPanel.Dock="Top"
+          Background="{DynamicResource SurfaceBackground}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Left file -->
+      <DockPanel Grid.Column="0" Margin="6,4,2,4">
+        <Button DockPanel.Dock="Right"
+                Content="Close"
+                Command="{Binding CloseLeftCommand}"
+                Style="{StaticResource GhostButton}"
+                ToolTip="Close left file"
+                Margin="4,0,0,0"
+                Padding="8,4" />
+        <Button DockPanel.Dock="Right"
                 Content="Browse"
                 Command="{Binding BrowseLeftCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0"
                 Padding="8,4" />
-
-        <!-- Right file -->
-        <TextBox Grid.Column="3"
-                 Text="{Binding RightFilePath}"
+        <TextBox Text="{Binding LeftFilePath}"
                  IsReadOnly="True"
                  FontSize="{DynamicResource FontSizeBody}" />
-        <Button Grid.Column="4"
+      </DockPanel>
+
+      <!-- Swap button centered between sides -->
+      <Button Grid.Column="1"
+              Content="Swap"
+              Command="{Binding SwapCommand}"
+              Style="{StaticResource GhostButton}"
+              ToolTip="Swap left and right files"
+              Margin="2,4"
+              Padding="8,4" />
+
+      <!-- Right file -->
+      <DockPanel Grid.Column="2" Margin="2,4,6,4">
+        <Button DockPanel.Dock="Right"
+                Content="Close"
+                Command="{Binding CloseRightCommand}"
+                Style="{StaticResource GhostButton}"
+                ToolTip="Close right file"
+                Margin="4,0,0,0"
+                Padding="8,4" />
+        <Button DockPanel.Dock="Right"
                 Content="Browse"
                 Command="{Binding BrowseRightCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0"
                 Padding="8,4" />
-
-        <!-- Swap -->
-        <Button Grid.Column="6"
-                Content="Swap"
-                Command="{Binding SwapCommand}"
-                Style="{StaticResource GhostButton}"
-                ToolTip="Swap left and right files"
-                Padding="8,4" />
-      </Grid>
-    </Border>
+        <TextBox Text="{Binding RightFilePath}"
+                 IsReadOnly="True"
+                 FontSize="{DynamicResource FontSizeBody}" />
+      </DockPanel>
+    </Grid>
 
     <!-- Bottom: Status bar -->
     <Border DockPanel.Dock="Bottom"

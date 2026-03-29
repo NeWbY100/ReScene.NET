@@ -25,7 +25,7 @@ public class SrrCreationService : ISrrCreationService
     public Task<SrrCreationResult> CreateFromSfvAsync(
         string outputPath,
         string sfvFilePath,
-        IReadOnlyList<string>? additionalFiles,
+        IReadOnlyDictionary<string, string>? additionalFiles,
         SrrCreationOptions options,
         CancellationToken ct)
     {
