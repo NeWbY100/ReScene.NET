@@ -25,7 +25,9 @@ public class SampleRestorerService : ISampleRestorerService
             foreach (var stored in srr.StoredFiles)
             {
                 if (!stored.FileName.EndsWith(".srs", StringComparison.OrdinalIgnoreCase))
+                {
                     continue;
+                }
 
                 string srsName = stored.FileName;
 
@@ -34,7 +36,9 @@ public class SampleRestorerService : ISampleRestorerService
                     srrFilePath, tempDir, name => name == srsName);
 
                 if (extractedPath is null)
+                {
                     continue;
+                }
 
                 try
                 {
@@ -58,7 +62,13 @@ public class SampleRestorerService : ISampleRestorerService
         }
         finally
         {
-            try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); }
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
             catch { /* cleanup best-effort */ }
         }
 
@@ -90,7 +100,13 @@ public class SampleRestorerService : ISampleRestorerService
         }
         finally
         {
-            try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); }
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
             catch { /* cleanup best-effort */ }
         }
     }

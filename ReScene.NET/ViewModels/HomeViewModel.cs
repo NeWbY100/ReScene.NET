@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Models;
@@ -37,7 +38,10 @@ public partial class HomeViewModel : ViewModelBase
     {
         RecentFiles.Clear();
         foreach (var entry in _recentFiles.LoadEntries())
+        {
             RecentFiles.Add(entry);
+        }
+
         HasRecentFiles = RecentFiles.Count > 0;
     }
 
@@ -57,7 +61,25 @@ public partial class HomeViewModel : ViewModelBase
     private void OpenRecentFile(RecentFileEntry entry)
     {
         if (File.Exists(entry.FilePath))
+        {
             _openFile(entry.FilePath);
+        }
+        else
+        {
+            MessageBox.Show(
+                $"File not found:\n{entry.FilePath}",
+                "File Not Found",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    [RelayCommand]
+    private void RemoveRecentFile(RecentFileEntry entry)
+    {
+        _recentFiles.RemoveEntry(entry.FilePath);
+        RecentFiles.Remove(entry);
+        HasRecentFiles = RecentFiles.Count > 0;
     }
 
     [RelayCommand]

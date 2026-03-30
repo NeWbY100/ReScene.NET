@@ -67,13 +67,18 @@ public partial class SampleRestorerViewModel : ViewModelBase
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
             ["SRR Files|*.srr", "All Files|*.*"]);
 
-        if (path is null) return;
+        if (path is null)
+        {
+            return;
+        }
 
         SrrFilePath = path;
         LoadSrsEntries();
 
         if (!string.IsNullOrWhiteSpace(MediaDirectoryPath))
+        {
             MatchMediaFiles();
+        }
     }
 
     [RelayCommand]
@@ -81,7 +86,10 @@ public partial class SampleRestorerViewModel : ViewModelBase
     {
         string? path = await _fileDialog.OpenFolderAsync("Select Media Directory");
 
-        if (path is null) return;
+        if (path is null)
+        {
+            return;
+        }
 
         MediaDirectoryPath = path;
         MatchMediaFiles();
@@ -93,7 +101,9 @@ public partial class SampleRestorerViewModel : ViewModelBase
         string? path = await _fileDialog.OpenFolderAsync("Select Output Directory");
 
         if (path is null)
+        {
             return;
+        }
 
         OutputDirectoryPath = path;
     }
@@ -127,7 +137,9 @@ public partial class SampleRestorerViewModel : ViewModelBase
             foreach (var entry in selected)
             {
                 if (_cts.Token.IsCancellationRequested)
+                {
                     break;
+                }
 
                 current++;
                 OverallProgressText = $"Restoring {current} of {total}...";
@@ -205,7 +217,10 @@ public partial class SampleRestorerViewModel : ViewModelBase
     private void LoadSrsEntries()
     {
         foreach (var old in SrsEntries)
+        {
             old.PropertyChanged -= OnEntryPropertyChanged;
+        }
+
         SrsEntries.Clear();
 
         try
@@ -235,14 +250,18 @@ public partial class SampleRestorerViewModel : ViewModelBase
     private void MatchMediaFiles()
     {
         if (string.IsNullOrWhiteSpace(MediaDirectoryPath) || !Directory.Exists(MediaDirectoryPath))
+        {
             return;
+        }
 
         var mediaFiles = Directory.GetFiles(MediaDirectoryPath, "*.*", SearchOption.AllDirectories);
 
         // Build lookup: filename → full path
         var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in mediaFiles)
+        {
             byName.TryAdd(Path.GetFileName(file), file);
+        }
 
         int found = 0;
         foreach (var entry in SrsEntries)
@@ -268,7 +287,9 @@ public partial class SampleRestorerViewModel : ViewModelBase
     partial void OnMediaDirectoryPathChanged(string value)
     {
         if (!string.IsNullOrWhiteSpace(value) && SrsEntries.Count > 0)
+        {
             MatchMediaFiles();
+        }
     }
 
     private void OnEntryPropertyChanged(object? _, PropertyChangedEventArgs e)

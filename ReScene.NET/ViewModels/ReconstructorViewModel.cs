@@ -306,16 +306,20 @@ public partial class ReconstructorViewModel : ViewModelBase
     private async Task BrowseWinRarAsync()
     {
         string? path = await _fileDialog.OpenFolderAsync("Select WinRAR Installations Directory");
-        if (path != null)
+        if (path is not null)
+        {
             WinRarPath = path;
+        }
     }
 
     [RelayCommand]
     private async Task BrowseReleaseAsync()
     {
         string? path = await _fileDialog.OpenFolderAsync("Select Release Directory");
-        if (path != null)
+        if (path is not null)
+        {
             ReleasePath = path;
+        }
     }
 
     [RelayCommand]
@@ -323,16 +327,20 @@ public partial class ReconstructorViewModel : ViewModelBase
     {
         string? path = await _fileDialog.OpenFileAsync("Select Verification File",
             ["SFV Files|*.sfv", "SHA1 Files|*.sha1", "All Files|*.*"]);
-        if (path != null)
+        if (path is not null)
+        {
             VerificationPath = path;
+        }
     }
 
     [RelayCommand]
     private async Task BrowseOutputAsync()
     {
         string? path = await _fileDialog.OpenFolderAsync("Select Output Directory");
-        if (path != null)
+        if (path is not null)
+        {
             OutputPath = path;
+        }
     }
 
     // ── Import SRR ──
@@ -342,7 +350,10 @@ public partial class ReconstructorViewModel : ViewModelBase
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
             ["SRR Files|*.srr", "All Files|*.*"]);
-        if (path == null) return;
+        if (path is null)
+        {
+            return;
+        }
 
         try
         {
@@ -468,12 +479,15 @@ public partial class ReconstructorViewModel : ViewModelBase
                     case 2048: SwitchMD2048K = true; break;
                     case 4096: SwitchMD4096K = true; break;
                 }
+
                 Log(LogTarget.System, $"Dictionary: {srr.DictionarySize.Value} KB");
             }
 
             // Solid archive
             if (srr.IsSolidArchive.HasValue)
+            {
                 SwitchSDash = !srr.IsSolidArchive.Value;
+            }
 
             // Archive format
             if (srr.RARVersion.HasValue)
@@ -583,6 +597,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             MessageBox.Show("Invalid WinRAR directory.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+
         if (!Directory.Exists(WinRarPath))
         {
             Log(LogTarget.System, "WinRAR directory does not exist.");
@@ -596,6 +611,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             MessageBox.Show("Invalid release directory.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+
         if (!Directory.Exists(ReleasePath))
         {
             Log(LogTarget.System, "Release directory does not exist.");
@@ -629,6 +645,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             MessageBox.Show("Invalid verification file path.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+
         if (!File.Exists(VerificationPath))
         {
             Log(LogTarget.System, "Verification file does not exist.");
@@ -701,9 +718,15 @@ public partial class ReconstructorViewModel : ViewModelBase
             try
             {
                 foreach (string file in Directory.GetFiles(OutputPath))
+                {
                     File.Delete(file);
+                }
+
                 foreach (string dir in Directory.GetDirectories(OutputPath))
+                {
                     Directory.Delete(dir, true);
+                }
+
                 Log(LogTarget.System, "Output directory cleaned.");
             }
             catch (Exception ex)
@@ -775,7 +798,10 @@ public partial class ReconstructorViewModel : ViewModelBase
         catch (OperationCanceledException)
         {
             if (_activeVersionIndex >= 0 && _activeVersionIndex < VersionEntries.Count)
+            {
                 VersionEntries[_activeVersionIndex].Status = "Cancelled";
+            }
+
             ProgressMessage = "Cancelled.";
             PhaseDescription = "Cancelled";
             Log(LogTarget.System, "Brute-force cancelled by user.");
@@ -783,7 +809,10 @@ public partial class ReconstructorViewModel : ViewModelBase
         catch (Exception ex)
         {
             if (_activeVersionIndex >= 0 && _activeVersionIndex < VersionEntries.Count)
+            {
                 VersionEntries[_activeVersionIndex].Status = "Error";
+            }
+
             ProgressMessage = "Error.";
             PhaseDescription = "Error";
             Log(LogTarget.System, $"Error: {ex.Message}");
@@ -824,14 +853,20 @@ public partial class ReconstructorViewModel : ViewModelBase
             {
                 var sfv = SFVFile.ReadFile(VerificationPath);
                 foreach (var entry in sfv.Entries)
+                {
                     options.Hashes.Add(entry.CRC);
+                }
+
                 options.HashType = HashType.CRC32;
             }
             else if (ext == ".sha1")
             {
                 var sha1 = SHA1File.ReadFile(VerificationPath);
                 foreach (var entry in sha1.Entries)
+                {
                     options.Hashes.Add(entry.SHA1);
+                }
+
                 options.HashType = HashType.SHA1;
             }
         }
@@ -944,40 +979,96 @@ public partial class ReconstructorViewModel : ViewModelBase
         List<RARCommandLineArgument[]> result = [];
 
         for (int a = 0; a < Math.Max(compressionLevels.Count, 1); a++)
-        for (int b = 0; b < Math.Max(archiveFormats.Count, 1); b++)
-        for (int c = 0; c < Math.Max(dictSizes.Count, 1); c++)
-        for (int d = 0; d < Math.Max(mtimes.Count, 1); d++)
-        for (int e = 0; e < Math.Max(ctimes.Count, 1); e++)
-        for (int f = 0; f < Math.Max(atimes.Count, 1); f++)
-        for (int x = 0; x < (SwitchAI ? 2 : 1); x++)
-        for (int z = SwitchMT ? SwitchMTStart : 0; z < (SwitchMT ? SwitchMTEnd + 1 : 1); z++)
         {
-            List<RARCommandLineArgument> switches = [new("a", 200)];
-
-            if (x == 0 && SwitchAI) switches.Add(new("-ai", 390));
-            if (SwitchR) switches.Add(new("-r", 200));
-            if (SwitchDS) switches.Add(new("-ds", 200));
-            if (SwitchSDash) switches.Add(new("-s-", 201));
-
-            if (compressionLevels.Count > 0) switches.Add(compressionLevels[a]);
-            if (archiveFormats.Count > 0) switches.Add(archiveFormats[b]);
-            if (dictSizes.Count > 0) switches.Add(dictSizes[c]);
-            if (mtimes.Count > 0) switches.Add(mtimes[d]);
-            if (ctimes.Count > 0) switches.Add(ctimes[e]);
-            if (atimes.Count > 0) switches.Add(atimes[f]);
-
-            if (SwitchV)
+            for (int b = 0; b < Math.Max(archiveFormats.Count, 1); b++)
             {
-                string volumeArg = BuildVolumeArgument();
-                switches.Add(new(volumeArg, 200));
-                if (UseOldVolumeNaming)
-                    switches.Add(new("-vn", 300, 699));
+                for (int c = 0; c < Math.Max(dictSizes.Count, 1); c++)
+                {
+                    for (int d = 0; d < Math.Max(mtimes.Count, 1); d++)
+                    {
+                        for (int e = 0; e < Math.Max(ctimes.Count, 1); e++)
+                        {
+                            for (int f = 0; f < Math.Max(atimes.Count, 1); f++)
+                            {
+                                for (int x = 0; x < (SwitchAI ? 2 : 1); x++)
+                                {
+                                    for (int z = SwitchMT ? SwitchMTStart : 0; z < (SwitchMT ? SwitchMTEnd + 1 : 1); z++)
+                                    {
+                                        List<RARCommandLineArgument> switches = [new("a", 200)];
+
+                                        if (x == 0 && SwitchAI)
+                                        {
+                                            switches.Add(new("-ai", 390));
+                                        }
+
+                                        if (SwitchR)
+                                        {
+                                            switches.Add(new("-r", 200));
+                                        }
+
+                                        if (SwitchDS)
+                                        {
+                                            switches.Add(new("-ds", 200));
+                                        }
+
+                                        if (SwitchSDash)
+                                        {
+                                            switches.Add(new("-s-", 201));
+                                        }
+
+                                        if (compressionLevels.Count > 0)
+                                        {
+                                            switches.Add(compressionLevels[a]);
+                                        }
+
+                                        if (archiveFormats.Count > 0)
+                                        {
+                                            switches.Add(archiveFormats[b]);
+                                        }
+
+                                        if (dictSizes.Count > 0)
+                                        {
+                                            switches.Add(dictSizes[c]);
+                                        }
+
+                                        if (mtimes.Count > 0)
+                                        {
+                                            switches.Add(mtimes[d]);
+                                        }
+
+                                        if (ctimes.Count > 0)
+                                        {
+                                            switches.Add(ctimes[e]);
+                                        }
+
+                                        if (atimes.Count > 0)
+                                        {
+                                            switches.Add(atimes[f]);
+                                        }
+
+                                        if (SwitchV)
+                                        {
+                                            string volumeArg = BuildVolumeArgument();
+                                            switches.Add(new(volumeArg, 200));
+                                            if (UseOldVolumeNaming)
+                                            {
+                                                switches.Add(new("-vn", 300, 699));
+                                            }
+                                        }
+
+                                        if (SwitchMT)
+                                        {
+                                            switches.Add(new($"-mt{z}", 360));
+                                        }
+
+                                        result.Add([.. switches]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            if (SwitchMT)
-                switches.Add(new($"-mt{z}", 360));
-
-            result.Add([.. switches]);
         }
 
         return result;
@@ -986,7 +1077,9 @@ public partial class ReconstructorViewModel : ViewModelBase
     private string BuildVolumeArgument()
     {
         if (!long.TryParse(VolumeSize, out long sizeValue))
+        {
             sizeValue = 15000;
+        }
 
         return VolumeSizeUnitIndex switch
         {
@@ -1064,13 +1157,17 @@ public partial class ReconstructorViewModel : ViewModelBase
             size /= 1024;
             i++;
         }
+
         return $"{size:0.##} {suffixes[i]}";
     }
 
     private static string FormatSpeed(double bytesPerSec)
     {
         if (bytesPerSec >= 1024 * 1024)
+        {
             return $"{bytesPerSec / (1024 * 1024):F1} MB/s";
+        }
+
         return $"{bytesPerSec / 1024:F1} KB/s";
     }
 
@@ -1231,7 +1328,10 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private void SetRARVersionsFromSrr(SRRFile srr)
     {
-        if (!srr.RARVersion.HasValue) return;
+        if (!srr.RARVersion.HasValue)
+        {
+            return;
+        }
 
         int unpVer = srr.RARVersion.Value;
         Version2 = Version3 = Version4 = Version5 = Version6 = Version7 = false;
@@ -1260,7 +1360,9 @@ public partial class ReconstructorViewModel : ViewModelBase
             bool isRar4 = unpVer >= 26 && unpVer <= 36;
 
             if (srr.HasFirstVolumeFlag == true || srr.HasUnicodeNames == true)
+            {
                 isRar2 = false;
+            }
 
             if (unpVer == 36)
             {
@@ -1297,16 +1399,48 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private void ApplyVolumeSize(long sizeBytes)
     {
-        if (sizeBytes <= 0) return;
+        if (sizeBytes <= 0)
+        {
+            return;
+        }
+
         SwitchV = true;
 
-        if (sizeBytes % 1_000_000_000 == 0) { VolumeSize = (sizeBytes / 1_000_000_000).ToString(); VolumeSizeUnitIndex = 3; }
-        else if (sizeBytes % 1_000_000 == 0) { VolumeSize = (sizeBytes / 1_000_000).ToString(); VolumeSizeUnitIndex = 2; }
-        else if (sizeBytes % 1_000 == 0) { VolumeSize = (sizeBytes / 1_000).ToString(); VolumeSizeUnitIndex = 1; }
-        else if (sizeBytes % (1024L * 1024 * 1024) == 0) { VolumeSize = (sizeBytes / (1024L * 1024 * 1024)).ToString(); VolumeSizeUnitIndex = 6; }
-        else if (sizeBytes % (1024L * 1024) == 0) { VolumeSize = (sizeBytes / (1024L * 1024)).ToString(); VolumeSizeUnitIndex = 5; }
-        else if (sizeBytes % 1024 == 0) { VolumeSize = (sizeBytes / 1024).ToString(); VolumeSizeUnitIndex = 4; }
-        else { VolumeSize = sizeBytes.ToString(); VolumeSizeUnitIndex = 0; }
+        if (sizeBytes % 1_000_000_000 == 0)
+        {
+            VolumeSize = (sizeBytes / 1_000_000_000).ToString();
+            VolumeSizeUnitIndex = 3;
+        }
+        else if (sizeBytes % 1_000_000 == 0)
+        {
+            VolumeSize = (sizeBytes / 1_000_000).ToString();
+            VolumeSizeUnitIndex = 2;
+        }
+        else if (sizeBytes % 1_000 == 0)
+        {
+            VolumeSize = (sizeBytes / 1_000).ToString();
+            VolumeSizeUnitIndex = 1;
+        }
+        else if (sizeBytes % (1024L * 1024 * 1024) == 0)
+        {
+            VolumeSize = (sizeBytes / (1024L * 1024 * 1024)).ToString();
+            VolumeSizeUnitIndex = 6;
+        }
+        else if (sizeBytes % (1024L * 1024) == 0)
+        {
+            VolumeSize = (sizeBytes / (1024L * 1024)).ToString();
+            VolumeSizeUnitIndex = 5;
+        }
+        else if (sizeBytes % 1024 == 0)
+        {
+            VolumeSize = (sizeBytes / 1024).ToString();
+            VolumeSizeUnitIndex = 4;
+        }
+        else
+        {
+            VolumeSize = sizeBytes.ToString();
+            VolumeSizeUnitIndex = 0;
+        }
 
         Log(LogTarget.System, $"Volume size: {VolumeSize} {VolumeSizeUnits[VolumeSizeUnitIndex]}");
     }
@@ -1315,7 +1449,9 @@ public partial class ReconstructorViewModel : ViewModelBase
     {
         Match m = VersionLabelRegex().Match(dirName);
         if (!m.Success)
+        {
             return dirName;
+        }
 
         string digits = m.Groups[1].Value;
         string beta = m.Groups[2].Value;
@@ -1329,13 +1465,19 @@ public partial class ReconstructorViewModel : ViewModelBase
     private static string FormatTimeSpan(TimeSpan ts)
     {
         if (ts.TotalHours >= 1)
+        {
             return $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}";
+        }
+
         return $"{ts.Minutes:D2}:{ts.Seconds:D2}";
     }
 
     private void TryExtractStoredSfv(string srrFilePath, SRRFile srr)
     {
-        if (srr.StoredFiles.Count == 0) return;
+        if (srr.StoredFiles.Count == 0)
+        {
+            return;
+        }
 
         try
         {

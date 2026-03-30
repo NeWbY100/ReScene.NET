@@ -17,16 +17,22 @@ public partial class ReconstructorView : UserControl
     private void OnDataContextChanged(object _, DependencyPropertyChangedEventArgs e)
     {
         if (e.OldValue is ReconstructorViewModel oldVm)
+        {
             oldVm.PropertyChanged -= OnVmPropertyChanged;
+        }
 
         if (e.NewValue is ReconstructorViewModel newVm)
+        {
             newVm.PropertyChanged += OnVmPropertyChanged;
+        }
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(ReconstructorViewModel.IsRunning))
+        {
             return;
+        }
 
         if (sender is ReconstructorViewModel { IsRunning: true })
         {

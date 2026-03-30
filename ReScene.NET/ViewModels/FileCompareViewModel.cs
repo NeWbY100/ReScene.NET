@@ -16,19 +16,33 @@ namespace ReScene.NET.ViewModels;
 /// </summary>
 public enum CompareNodeType
 {
+    /// <summary>Root node of the comparison tree.</summary>
     Root,
+    /// <summary>Archive-level information node.</summary>
     ArchiveInfo,
+    /// <summary>Container node for RAR volume entries.</summary>
     RarVolumes,
+    /// <summary>Individual RAR volume entry.</summary>
     RarVolume,
+    /// <summary>Container node for stored file entries.</summary>
     StoredFiles,
+    /// <summary>Individual stored file entry.</summary>
     StoredFile,
+    /// <summary>Container node for archived file entries.</summary>
     ArchivedFiles,
+    /// <summary>Individual archived file entry.</summary>
     ArchivedFile,
+    /// <summary>Container node for OSO hash entries.</summary>
     OsoHashes,
+    /// <summary>Individual OSO hash entry.</summary>
     OsoHash,
+    /// <summary>Detailed RAR block header entry.</summary>
     DetailedBlock,
+    /// <summary>SRS file-level information node.</summary>
     SrsFileInfo,
+    /// <summary>SRS track data entry.</summary>
     SrsTrack,
+    /// <summary>Container node for SRS container chunk entries.</summary>
     SrsContainerChunks
 }
 
@@ -157,8 +171,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         string? path = await _fileDialog.OpenFileAsync("Open Left File",
             ["Scene Files|*.rar;*.srr;*.srs", "RAR Files|*.rar", "SRR Files|*.srr", "SRS Files|*.srs", "All Files|*.*"]);
 
-        if (path != null)
+        if (path is not null)
+        {
             LoadLeftFile(path);
+        }
     }
 
     [RelayCommand]
@@ -167,8 +183,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         string? path = await _fileDialog.OpenFileAsync("Open Right File",
             ["Scene Files|*.rar;*.srr;*.srs", "RAR Files|*.rar", "SRR Files|*.srr", "SRS Files|*.srs", "All Files|*.*"]);
 
-        if (path != null)
+        if (path is not null)
+        {
             LoadRightFile(path);
+        }
     }
 
     [RelayCommand]
@@ -297,13 +315,17 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         LeftProperties.Clear();
         RightProperties.Clear();
 
-        if (_leftData != null)
+        if (_leftData is not null)
+        {
             PopulateTree(LeftTreeRoots, _leftData, true);
+        }
 
-        if (_rightData != null)
+        if (_rightData is not null)
+        {
             PopulateTree(RightTreeRoots, _rightData, false);
+        }
 
-        if (_leftData != null && _rightData != null)
+        if (_leftData is not null && _rightData is not null)
         {
             _compareResult = _compareService.Compare(_leftData, _rightData,
                 _leftDetailedBlocks, _rightDetailedBlocks);
@@ -321,7 +343,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private void UpdateStatus()
     {
-        if (_compareResult == null)
+        if (_compareResult is null)
         {
             StatusMessage = "Load files on both sides to compare.";
             HasDiffSummary = false;
@@ -430,7 +452,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             LeftHexBlockOffset = offset;
             LeftHexBlockLength = length;
-            LeftHexDataSource = source != null && length > 0
+            LeftHexDataSource = source is not null && length > 0
                 ? new HexDataSourceSlice(source, offset, length)
                 : null;
         }
@@ -438,7 +460,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             RightHexBlockOffset = offset;
             RightHexBlockLength = length;
-            RightHexDataSource = source != null && length > 0
+            RightHexDataSource = source is not null && length > 0
                 ? new HexDataSourceSlice(source, offset, length)
                 : null;
         }
@@ -446,7 +468,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     partial void OnSelectedLeftPropertyChanged(PropertyItem? value)
     {
-        if (value?.ByteRange != null)
+        if (value?.ByteRange is not null)
         {
             LeftHexSelectionOffset = value.ByteRange.Offset;
             LeftHexSelectionLength = value.ByteRange.Length;
@@ -458,13 +480,15 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         // Sync to right
-        if (value != null)
+        if (value is not null)
+        {
             SyncPropertySelection(value, RightProperties, false);
+        }
     }
 
     partial void OnSelectedRightPropertyChanged(PropertyItem? value)
     {
-        if (value?.ByteRange != null)
+        if (value?.ByteRange is not null)
         {
             RightHexSelectionOffset = value.ByteRange.Offset;
             RightHexSelectionLength = value.ByteRange.Length;
@@ -476,20 +500,26 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         // Sync to left
-        if (value != null)
+        if (value is not null)
+        {
             SyncPropertySelection(value, LeftProperties, true);
+        }
     }
 
     private void SyncPropertySelection(PropertyItem source, ObservableCollection<PropertyItem> targetProperties, bool isLeftTarget)
     {
         // Find matching property by name
         var match = targetProperties.FirstOrDefault(p => p.Name == source.Name);
-        if (match != null)
+        if (match is not null)
         {
             if (isLeftTarget && SelectedLeftProperty != match)
+            {
                 SelectedLeftProperty = match;
+            }
             else if (!isLeftTarget && SelectedRightProperty != match)
+            {
                 SelectedRightProperty = match;
+            }
         }
     }
 
@@ -500,10 +530,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private void PopulateTree(ObservableCollection<TreeNodeViewModel> roots, object data, bool isLeft)
     {
         var detailedBlocks = isLeft ? _leftDetailedBlocks : _rightDetailedBlocks;
-        bool hasFileHeaders = detailedBlocks != null &&
+        bool hasFileHeaders = detailedBlocks is not null &&
                               detailedBlocks.Any(b => b.BlockType is "File Header" or "Service Block");
 
-        if (detailedBlocks != null && detailedBlocks.Count > 0 && hasFileHeaders)
+        if (detailedBlocks is not null && detailedBlocks.Count > 0 && hasFileHeaders)
         {
             PopulateDetailedTree(roots, detailedBlocks, isLeft);
         }
@@ -542,7 +572,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             string blockLabel = $"[{i}] {blockType}";
 
             if (!string.IsNullOrEmpty(block.ItemName))
+            {
                 blockLabel = $"[{i}] {blockType}: {block.ItemName}";
+            }
 
             rootNode.Children.Add(new TreeNodeViewModel
             {
@@ -601,7 +633,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                         string blockType = block.HasData && block.BlockType.Contains("File") ? "File Data" : block.BlockType;
                         string blockLabel = $"[{i}] {blockType}";
                         if (!string.IsNullOrEmpty(block.ItemName))
+                        {
                             blockLabel = $"[{i}] {blockType}: {block.ItemName}";
+                        }
 
                         volNode.Children.Add(new TreeNodeViewModel
                         {
@@ -655,7 +689,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             {
                 string displayName = file;
                 if (srr.ArchivedFileCrcs.TryGetValue(file, out var crc))
+                {
                     displayName = $"{file} [CRC: {crc}]";
+                }
 
                 archivedNode.Children.Add(new TreeNodeViewModel
                 {
@@ -827,7 +863,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private void ApplyComparisonHighlighting()
     {
-        if (_compareResult == null) return;
+        if (_compareResult is null) return;
 
         var addedFiles = _compareResult.FileDifferences
             .Where(d => d.Type == DifferenceType.Added)
@@ -856,10 +892,14 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
         // Apply text annotations to tree nodes
         foreach (var root in LeftTreeRoots)
+        {
             ApplyNodeHighlighting(root, removedFiles, addedFiles, modifiedFiles, removedStoredFiles, addedStoredFiles, true);
+        }
 
         foreach (var root in RightTreeRoots)
+        {
             ApplyNodeHighlighting(root, addedFiles, removedFiles, modifiedFiles, addedStoredFiles, removedStoredFiles, false);
+        }
 
         // Mark sections that exist on only one side
         MarkUniqueSections(LeftTreeRoots, RightTreeRoots);
@@ -874,7 +914,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             foreach (var child in root.Children)
             {
                 if (child.Tag is CompareNodeData d)
+                {
                     otherNodeTypes.Add(d.NodeType);
+                }
             }
         }
 
@@ -883,7 +925,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             foreach (var child in root.Children)
             {
                 if (child.Tag is CompareNodeData d && !otherNodeTypes.Contains(d.NodeType))
+                {
                     MarkNodeAndChildren(child);
+                }
             }
         }
     }
@@ -892,7 +936,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         node.IsDifferent = true;
         foreach (var child in node.Children)
+        {
             MarkNodeAndChildren(child);
+        }
     }
 
     private void ApplyNodeHighlighting(TreeNodeViewModel node, HashSet<string> removed, HashSet<string> added,
@@ -909,11 +955,11 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             else if (data.NodeType == CompareNodeType.DetailedBlock && data.Data is RARDetailedBlock block)
             {
                 var otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
-                if (otherBlocks != null)
+                if (otherBlocks is not null)
                 {
                     var otherBlock = otherBlocks.FirstOrDefault(b =>
                         b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-                    if (otherBlock != null && FileComparer.HasFieldDifferences(block, otherBlock))
+                    if (otherBlock is not null && FileComparer.HasFieldDifferences(block, otherBlock))
                     {
                         node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
                         node.IsDifferent = true;
@@ -962,18 +1008,25 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         foreach (var child in node.Children)
+        {
             ApplyNodeHighlighting(child, removed, added, modified, storedRemoved, storedAdded, isLeft);
+        }
 
         // Bubble up: mark parent as different if any child has differences
         if (!node.IsDifferent && node.Children.Any(c => c.IsDifferent))
+        {
             node.IsDifferent = true;
+        }
     }
 
     private static string GetBaseNodeText(string text)
     {
         int bracketIndex = text.LastIndexOf(" [", StringComparison.Ordinal);
         if (bracketIndex > 0 && (text.EndsWith("[REMOVED]") || text.EndsWith("[NEW]") || text.EndsWith("[DIFF]")))
+        {
             return text[..bracketIndex];
+        }
+
         return text;
     }
 
@@ -986,13 +1039,15 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         ref TreeNodeViewModel? targetSelectedField)
     {
         var match = FindMatchingNode(targetRoots, sourceData);
-        if (match != null && targetSelectedField != match)
+        if (match is not null && targetSelectedField != match)
         {
             bool isLeftTarget = targetSelectedField == SelectedLeftTreeNode;
 
             // Deselect previous node
-            if (targetSelectedField != null)
+            if (targetSelectedField is not null)
+            {
                 targetSelectedField.IsSelected = false;
+            }
 
             // Use field to avoid re-triggering the property changed handler
             targetSelectedField = match;
@@ -1017,8 +1072,12 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         foreach (var node in roots)
         {
             var result = FindMatchingNodeRecursive(node, sourceData);
-            if (result != null) return result;
+            if (result is not null)
+            {
+                return result;
+            }
         }
+
         return null;
     }
 
@@ -1031,7 +1090,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 if (nodeData.Data is RARDetailedBlock nodeBlock && sourceData.Data is RARDetailedBlock sourceBlock)
                 {
                     if (nodeBlock.BlockType == sourceBlock.BlockType && nodeBlock.ItemName == sourceBlock.ItemName)
+                    {
                         return node;
+                    }
                 }
             }
             else if (nodeData.NodeType == sourceData.NodeType && nodeData.FileName == sourceData.FileName)
@@ -1043,8 +1104,12 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         foreach (var child in node.Children)
         {
             var result = FindMatchingNodeRecursive(child, sourceData);
-            if (result != null) return result;
+            if (result is not null)
+            {
+                return result;
+            }
         }
+
         return null;
     }
 
@@ -1060,53 +1125,86 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             case CompareNodeType.DetailedBlock:
                 if (nodeData.Data is RARDetailedBlock detailedBlock)
+                {
                     ShowDetailedBlockProperties(properties, detailedBlock, isLeft);
+                }
+
                 break;
 
             case CompareNodeType.ArchiveInfo:
                 if (nodeData.Data is SRRFile srr)
+                {
                     ShowSRRArchiveProperties(properties, srr);
+                }
                 else if (nodeData.Data is RARFileData rar)
+                {
                     ShowRARArchiveProperties(properties, rar);
+                }
+
                 break;
 
             case CompareNodeType.ArchivedFile:
                 if (nodeData.Data is RARFileHeader fileHeader)
+                {
                     ShowRAR4FileProperties(properties, fileHeader);
+                }
                 else if (nodeData.Data is RAR5FileInfo fileInfo)
+                {
                     ShowRAR5FileProperties(properties, fileInfo);
-                else if (nodeData.Data is SRRFile srrFile && nodeData.FileName != null)
+                }
+                else if (nodeData.Data is SRRFile srrFile && nodeData.FileName is not null)
+                {
                     ShowSRRArchivedFileProperties(properties, srrFile, nodeData.FileName);
+                }
+
                 break;
 
             case CompareNodeType.StoredFile:
                 if (nodeData.Data is SrrStoredFileBlock stored)
+                {
                     ShowStoredFileProperties(properties, stored);
+                }
+
                 break;
 
             case CompareNodeType.RarVolume:
                 if (nodeData.Data is SrrRarFileBlock rarFile)
+                {
                     ShowRarVolumeProperties(properties, rarFile);
+                }
+
                 break;
 
             case CompareNodeType.SrsFileInfo:
                 if (nodeData.Data is SrsFileDataBlock fd)
+                {
                     ShowSrsFileInfoProperties(properties, fd);
+                }
+
                 break;
 
             case CompareNodeType.SrsTrack:
                 if (nodeData.Data is SrsTrackDataBlock track)
+                {
                     ShowSrsTrackProperties(properties, track, nodeData.FileName);
+                }
+
                 break;
 
             case CompareNodeType.SrsContainerChunks:
                 if (nodeData.Data is SrsContainerChunk chunk)
+                {
                     ShowSrsContainerChunkProperties(properties, chunk);
+                }
+
                 break;
 
             case CompareNodeType.OsoHash:
                 if (nodeData.Data is SrrOsoHashBlock oso)
+                {
                     ShowOsoHashProperties(properties, oso);
+                }
+
                 break;
         }
     }
@@ -1119,24 +1217,30 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "Total Size", Value = $"{block.TotalSize:N0} bytes" });
 
         if (block.HasData)
+        {
             properties.Add(new PropertyItem { Name = "Data Size", Value = $"{block.DataSize:N0} bytes" });
+        }
 
         properties.Add(new PropertyItem { Name = "--- Fields ---", Value = "", IsSeparator = true });
 
-        var otherBlock = _compareResult != null ? FindMatchingDetailedBlock(block, isLeft) : null;
+        var otherBlock = _compareResult is not null ? FindMatchingDetailedBlock(block, isLeft) : null;
 
         foreach (var field in block.Fields)
         {
             string value = field.Value;
             if (!string.IsNullOrEmpty(field.Description) && field.Description != field.Value)
+            {
                 value = $"{field.Value} ({field.Description})";
+            }
 
             bool isDiff = false;
-            if (_compareResult != null && otherBlock != null)
+            if (_compareResult is not null && otherBlock is not null)
             {
                 var otherField = otherBlock.Fields.FirstOrDefault(f => f.Name == field.Name);
-                if (otherField != null)
+                if (otherField is not null)
+                {
                     isDiff = otherField.Value != field.Value;
+                }
             }
 
             properties.Add(new PropertyItem
@@ -1155,12 +1259,14 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             foreach (var child in field.Children)
             {
                 bool childDiff = false;
-                if (_compareResult != null && otherBlock != null)
+                if (_compareResult is not null && otherBlock is not null)
                 {
                     var otherParent = otherBlock.Fields.FirstOrDefault(f => f.Name == field.Name);
                     var otherChild = otherParent?.Children.FirstOrDefault(c => c.Name == child.Name);
-                    if (otherChild != null)
+                    if (otherChild is not null)
+                    {
                         childDiff = otherChild.Value != child.Value;
+                    }
                 }
 
                 long childOffset = child.Length > 0 ? child.Offset : field.Offset;
@@ -1184,11 +1290,11 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             long dataOffset = block.StartOffset + block.HeaderSize;
             bool dataDiff = false;
 
-            if (_compareResult != null && otherBlock is { HasData: true })
+            if (_compareResult is not null && otherBlock is { HasData: true })
             {
                 var thisFilePath = isLeft ? _leftFilePathInternal : _rightFilePathInternal;
                 var otherFilePath = isLeft ? _rightFilePathInternal : _leftFilePathInternal;
-                if (thisFilePath != null && otherFilePath != null)
+                if (thisFilePath is not null && otherFilePath is not null)
                 {
                     long otherDataOffset = otherBlock.StartOffset + otherBlock.HeaderSize;
                     if (block.DataSize != otherBlock.DataSize)
@@ -1199,7 +1305,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                     {
                         var thisData = ReadFileSlice(thisFilePath, dataOffset, (int)block.DataSize);
                         var otherData = ReadFileSlice(otherFilePath, otherDataOffset, (int)otherBlock.DataSize);
-                        dataDiff = thisData == null || otherData == null ||
+                        dataDiff = thisData is null || otherData is null ||
                             !thisData.AsSpan().SequenceEqual(otherData.AsSpan());
                     }
                 }
@@ -1223,11 +1329,14 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private RARDetailedBlock? FindMatchingDetailedBlock(RARDetailedBlock block, bool isLeft)
     {
         var otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
-        if (otherBlocks != null)
+        if (otherBlocks is not null)
         {
             var match = otherBlocks.FirstOrDefault(b =>
                 b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-            if (match != null) return match;
+            if (match is not null)
+            {
+                return match;
+            }
         }
 
         var otherData = isLeft ? _rightData : _leftData;
@@ -1237,7 +1346,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             {
                 var match = volumeBlocks.FirstOrDefault(b =>
                     b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-                if (match != null) return match;
+                if (match is not null)
+                {
+                    return match;
+                }
             }
         }
 
@@ -1263,10 +1375,14 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "--- Reconstruction Hints ---", Value = "", IsSeparator = true });
 
         if (srr.DetectedHostOS.HasValue)
+        {
             AddComparedProperty(properties, "Host OS (files)", $"{srr.DetectedHostOSName} (0x{srr.DetectedHostOS:X2})", "Host OS");
+        }
 
         if (srr.CmtHostOS.HasValue)
+        {
             AddComparedProperty(properties, "CMT Host OS", $"{srr.CmtHostOSName} (0x{srr.CmtHostOS:X2})", "CMT Host OS");
+        }
 
         if (srr.CmtFileTimeDOS.HasValue)
         {
@@ -1278,14 +1394,16 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         if (srr.CmtFileAttributes.HasValue)
+        {
             AddComparedProperty(properties, "CMT Attributes", $"0x{srr.CmtFileAttributes:X8}", "CMT Attributes");
+        }
     }
 
     private void ShowRARArchiveProperties(ObservableCollection<PropertyItem> properties, RARFileData rar)
     {
         AddComparedProperty(properties, "Format", rar.IsRAR5 ? "RAR 5.x" : "RAR 4.x", "Format");
 
-        if (rar.IsRAR5 && rar.RAR5ArchiveInfo != null)
+        if (rar.IsRAR5 && rar.RAR5ArchiveInfo is not null)
         {
             AddComparedProperty(properties, "Volume", FileComparer.FormatBool(rar.RAR5ArchiveInfo.IsVolume), "Volume");
             AddComparedProperty(properties, "Solid", FileComparer.FormatBool(rar.RAR5ArchiveInfo.IsSolid), "Solid");
@@ -1293,7 +1411,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             AddComparedProperty(properties, "Locked", FileComparer.FormatBool(rar.RAR5ArchiveInfo.IsLocked), "Locked");
             AddComparedProperty(properties, "File Count", rar.RAR5FileInfos.Count.ToString(), "File Count");
         }
-        else if (!rar.IsRAR5 && rar.ArchiveHeader != null)
+        else if (!rar.IsRAR5 && rar.ArchiveHeader is not null)
         {
             AddComparedProperty(properties, "Volume", FileComparer.FormatBool(rar.ArchiveHeader.IsVolume), "Volume");
             AddComparedProperty(properties, "Solid", FileComparer.FormatBool(rar.ArchiveHeader.IsSolid), "Solid");
@@ -1333,6 +1451,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             var dt = DateTimeOffset.FromUnixTimeSeconds(info.ModificationTime.Value).LocalDateTime;
             properties.Add(new PropertyItem { Name = "Modified Time", Value = dt.ToString("yyyy-MM-dd HH:mm:ss") });
         }
+
         properties.Add(new PropertyItem { Name = "Split Before", Value = FileComparer.FormatBool(info.IsSplitBefore) });
         properties.Add(new PropertyItem { Name = "Split After", Value = FileComparer.FormatBool(info.IsSplitAfter) });
     }
@@ -1342,16 +1461,24 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "File Name", Value = fileName });
 
         if (srr.ArchivedFileCrcs.TryGetValue(fileName, out var crc))
+        {
             AddComparedProperty(properties, "CRC32", crc, "CRC");
+        }
 
         if (srr.ArchivedFileTimestamps.TryGetValue(fileName, out var modTime))
+        {
             AddComparedProperty(properties, "Modified Time", modTime.ToString("yyyy-MM-dd HH:mm:ss"), "Modified Time");
+        }
 
         if (srr.ArchivedFileCreationTimes.TryGetValue(fileName, out var createTime))
+        {
             properties.Add(new PropertyItem { Name = "Creation Time", Value = createTime.ToString("yyyy-MM-dd HH:mm:ss") });
+        }
 
         if (srr.ArchivedFileAccessTimes.TryGetValue(fileName, out var accessTime))
+        {
             properties.Add(new PropertyItem { Name = "Access Time", Value = accessTime.ToString("yyyy-MM-dd HH:mm:ss") });
+        }
     }
 
     private static void ShowStoredFileProperties(ObservableCollection<PropertyItem> properties, SrrStoredFileBlock stored)
@@ -1476,7 +1603,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             string sigHex = Convert.ToHexString(track.Signature.AsSpan(0, Math.Min(32, track.Signature.Length)));
             if (track.Signature.Length > 32)
+            {
                 sigHex += "...";
+            }
 
             properties.Add(new PropertyItem
             {
@@ -1536,12 +1665,16 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private static byte[]? ReadFileSlice(string? filePath, long offset, int length)
     {
-        if (filePath == null || length <= 0)
+        if (filePath is null || length <= 0)
+        {
             return null;
+        }
 
         using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (offset >= fs.Length)
+        {
             return null;
+        }
 
         fs.Seek(offset, SeekOrigin.Begin);
         int toRead = (int)Math.Min(length, fs.Length - offset);
@@ -1553,15 +1686,19 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             if (read == 0) break;
             totalRead += read;
         }
+
         if (totalRead < toRead)
+        {
             Array.Resize(ref buffer, totalRead);
+        }
+
         return buffer;
     }
 
     private void AddComparedProperty(ObservableCollection<PropertyItem> properties, string name, string value, string? diffPropertyName)
     {
         bool isDiff = false;
-        if (diffPropertyName != null && _compareResult != null)
+        if (diffPropertyName is not null && _compareResult is not null)
         {
             isDiff = _compareResult.ArchiveDifferences.Any(d => d.PropertyName == diffPropertyName);
         }
@@ -1622,6 +1759,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             size /= 1024;
             i++;
         }
+
         return $"{size:0.##} {suffixes[i]}";
     }
 

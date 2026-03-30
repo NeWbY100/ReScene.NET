@@ -23,9 +23,13 @@ public partial class BruteForceProgressWindow : Window
 
                 // Catch up with state that changed before we loaded
                 if (vm.IsCopying)
+                {
                     ShowCopyWindow();
+                }
                 else if (vm.IsVerifying)
+                {
                     ShowVerifyWindow();
+                }
             }
         };
     }
@@ -36,7 +40,9 @@ public partial class BruteForceProgressWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             if (DataContext is not ReconstructorViewModel { IsCopying: true })
+            {
                 return;
+            }
 
             var copyWindow = new FileCopyProgressWindow
             {
@@ -52,7 +58,9 @@ public partial class BruteForceProgressWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             if (DataContext is not ReconstructorViewModel { IsVerifying: true })
+            {
                 return;
+            }
 
             var verifyWindow = new CrcValidationProgressWindow
             {
@@ -68,19 +76,27 @@ public partial class BruteForceProgressWindow : Window
         if (e.PropertyName == nameof(ReconstructorViewModel.IsCopying))
         {
             if (sender is ReconstructorViewModel { IsCopying: true })
+            {
                 ShowCopyWindow();
+            }
+
             return;
         }
 
         if (e.PropertyName == nameof(ReconstructorViewModel.IsVerifying))
         {
             if (sender is ReconstructorViewModel { IsVerifying: true })
+            {
                 ShowVerifyWindow();
+            }
+
             return;
         }
 
         if (e.PropertyName != nameof(ReconstructorViewModel.IsRunning))
+        {
             return;
+        }
 
         if (sender is ReconstructorViewModel { IsRunning: false })
         {
@@ -130,11 +146,14 @@ public partial class BruteForceProgressWindow : Window
                 btnStopClose.IsEnabled = false;
                 btnStopClose.Content = "Stopping...";
             }
+
             return;
         }
 
         if (DataContext is ReconstructorViewModel vmCleanup)
+        {
             vmCleanup.PropertyChanged -= OnVmPropertyChanged;
+        }
 
         base.OnClosing(e);
     }

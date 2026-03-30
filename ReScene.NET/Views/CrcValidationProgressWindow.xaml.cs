@@ -14,19 +14,26 @@ public partial class CrcValidationProgressWindow : Window
         Loaded += (_, _) =>
         {
             if (DataContext is ReconstructorViewModel vm)
+            {
                 vm.PropertyChanged += OnVmPropertyChanged;
+            }
         };
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(ReconstructorViewModel.IsVerifying))
+        {
             return;
+        }
 
         if (sender is ReconstructorViewModel { IsVerifying: false })
         {
             if (DataContext is ReconstructorViewModel vmCleanup)
+            {
                 vmCleanup.PropertyChanged -= OnVmPropertyChanged;
+            }
+
             Close();
         }
     }
@@ -53,7 +60,9 @@ public partial class CrcValidationProgressWindow : Window
         }
 
         if (DataContext is ReconstructorViewModel vmCleanup)
+        {
             vmCleanup.PropertyChanged -= OnVmPropertyChanged;
+        }
 
         base.OnClosing(e);
     }

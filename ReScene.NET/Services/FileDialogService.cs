@@ -26,7 +26,9 @@ public class FileDialogService : IFileDialogService
         };
 
         if (dialog.ShowDialog() == true)
+        {
             return Task.FromResult<IReadOnlyList<string>>(dialog.FileNames.ToList());
+        }
 
         return Task.FromResult<IReadOnlyList<string>>([]);
     }

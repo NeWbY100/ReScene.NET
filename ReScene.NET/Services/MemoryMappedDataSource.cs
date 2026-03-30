@@ -28,7 +28,9 @@ public sealed class MemoryMappedDataSource : IHexDataSource
     public int Read(long position, byte[] buffer, int offset, int count)
     {
         if (position < 0 || position >= Length)
+        {
             return 0;
+        }
 
         int available = (int)Math.Min(count, Length - position);
         return _accessor.ReadArray(position, buffer, offset, available);

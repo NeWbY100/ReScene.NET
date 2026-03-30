@@ -82,6 +82,8 @@ internal static partial class ReleaseFileScanner
     /// Scans the release directory for files that should be stored in the SRR.
     /// Returns (FullPath, StoredName) tuples sorted appropriately.
     /// </summary>
+    /// <param name="releaseDir">The root directory of the scene release.</param>
+    /// <returns>A sorted list of file paths and their stored names for the SRR.</returns>
     public static List<(string FullPath, string StoredName)> ScanReleaseDirectory(string releaseDir)
     {
         var files = new List<(string FullPath, string StoredName)>();
@@ -108,6 +110,8 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Finds sample media files in the release directory (Sample/ subdir or files with "sample" in name).
     /// </summary>
+    /// <param name="releaseDir">The root directory of the scene release.</param>
+    /// <returns>A list of sample media file paths.</returns>
     public static List<string> FindSampleFiles(string releaseDir)
     {
         var samples = new List<string>();
@@ -119,7 +123,9 @@ internal static partial class ReleaseFileScanner
             foreach (string file in Directory.GetFiles(sampleDir))
             {
                 if (SampleExtensions.Contains(Path.GetExtension(file)))
+                {
                     samples.Add(file);
+                }
             }
         }
 
@@ -141,6 +147,8 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Finds subtitle SFV files in subtitle subdirectories.
     /// </summary>
+    /// <param name="releaseDir">The root directory of the scene release.</param>
+    /// <returns>A list of SFV file paths found in subtitle subdirectories.</returns>
     public static List<string> FindSubtitleSfvFiles(string releaseDir)
     {
         var sfvFiles = new List<string>();
@@ -151,7 +159,9 @@ internal static partial class ReleaseFileScanner
             if (SubtitleDirs.Contains(dirName))
             {
                 foreach (string file in Directory.GetFiles(subDir, "*.sfv"))
+                {
                     sfvFiles.Add(file);
+                }
             }
         }
 
@@ -161,6 +171,8 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Detects if the release is a fix/patch release by its name.
     /// </summary>
+    /// <param name="releaseName">The release directory or folder name to check.</param>
+    /// <returns><see langword="true"/> if the name matches a fix/patch pattern.</returns>
     public static bool IsFixRelease(string releaseName)
     {
         return FixPattern1().IsMatch(releaseName)
@@ -171,12 +183,16 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Checks if the release directory contains music files.
     /// </summary>
+    /// <param name="releaseDir">The root directory of the scene release.</param>
+    /// <returns><see langword="true"/> if music files are found in the release.</returns>
     public static bool IsMusicRelease(string releaseDir)
     {
         foreach (string file in Directory.GetFiles(releaseDir))
         {
             if (MusicExtensions.Contains(Path.GetExtension(file)))
+            {
                 return true;
+            }
         }
 
         // Check CD subdirectories
@@ -187,7 +203,9 @@ internal static partial class ReleaseFileScanner
                 foreach (string file in Directory.GetFiles(subDir))
                 {
                     if (MusicExtensions.Contains(Path.GetExtension(file)))
+                    {
                         return true;
+                    }
                 }
             }
         }
@@ -198,6 +216,8 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Finds all RAR files referenced by an SFV (lines with .rNN or .rar extensions).
     /// </summary>
+    /// <param name="sfvPath">The path to the SFV file.</param>
+    /// <returns>A list of existing RAR file paths referenced by the SFV.</returns>
     public static List<string> FindRarFilesFromSfv(string sfvPath)
     {
         string dir = Path.GetDirectoryName(sfvPath) ?? ".";
@@ -206,11 +226,15 @@ internal static partial class ReleaseFileScanner
         foreach (string line in File.ReadLines(sfvPath))
         {
             if (string.IsNullOrWhiteSpace(line) || line.StartsWith(';'))
+            {
                 continue;
+            }
 
             int lastSpace = line.LastIndexOf(' ');
             if (lastSpace <= 0)
+            {
                 continue;
+            }
 
             string fileName = line[..lastSpace].Trim();
             string ext = Path.GetExtension(fileName);
@@ -221,7 +245,9 @@ internal static partial class ReleaseFileScanner
             {
                 string fullPath = Path.Combine(dir, fileName);
                 if (File.Exists(fullPath))
+                {
                     rarFiles.Add(fullPath);
+                }
             }
         }
 
@@ -244,14 +270,18 @@ internal static partial class ReleaseFileScanner
             if (StoredExtensions.Contains(ext))
             {
                 if (!ShouldIncludeFile(file))
+                {
                     continue;
+                }
 
                 AddFile(file, releaseDir, files);
             }
             else if (ImageExtensions.Contains(ext))
             {
                 if (!ShouldIncludeImage(fileName, isProofDir, isSubDir))
+                {
                     continue;
+                }
 
                 AddFile(file, releaseDir, files);
             }
@@ -264,14 +294,21 @@ internal static partial class ReleaseFileScanner
         string ext = Path.GetExtension(fileName);
 
         if (ext.Equals(".nfo", StringComparison.OrdinalIgnoreCase))
+        {
             return !NfoBlacklist.Contains(fileName);
+        }
 
         if (ext.Equals(".log", StringComparison.OrdinalIgnoreCase))
         {
             if (LogBlacklist.Contains(fileName))
+            {
                 return false;
+            }
+
             if (fileName.StartsWith('.'))
+            {
                 return false;
+            }
         }
 
         return true;
@@ -281,14 +318,18 @@ internal static partial class ReleaseFileScanner
     {
         // Only include images from proof-related subdirectories or with proof-like names
         if (!isProofDir && isSubDir)
+        {
             return false;
+        }
 
         // In root dir, only include images with proof-like names
         if (!isSubDir)
         {
             string lower = fileName.ToLowerInvariant();
             if (!lower.Contains("proof"))
+            {
                 return false;
+            }
         }
 
         return !IsUnwantedImage(fileName);
@@ -300,14 +341,21 @@ internal static partial class ReleaseFileScanner
 
         // Windows Media Player album art
         if (lower.Contains("albumartsmall"))
+        {
             return true;
+        }
+
         if (lower.StartsWith("albumart_{", StringComparison.Ordinal))
+        {
             return true;
+        }
 
         // "Folder.jpg" type
         string baseName = Path.GetFileNameWithoutExtension(lower);
         if (baseName == "folder")
+        {
             return true;
+        }
 
         return false;
     }
@@ -316,7 +364,9 @@ internal static partial class ReleaseFileScanner
     {
         // Avoid duplicates
         if (files.Any(f => f.FullPath.Equals(fullPath, StringComparison.OrdinalIgnoreCase)))
+        {
             return;
+        }
 
         string storedName = Path.GetRelativePath(releaseDir, fullPath).Replace('\\', '/');
         files.Add((fullPath, storedName));

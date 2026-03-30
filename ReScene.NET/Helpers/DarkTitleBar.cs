@@ -17,6 +17,7 @@ internal static partial class DarkTitleBar
     /// <summary>
     /// Enables dark mode for the window's title bar. Call from SourceInitialized or later.
     /// </summary>
+    /// <param name="window">The window to enable dark mode on.</param>
     public static void Enable(Window window)
     {
         if (PresentationSource.FromVisual(window) is HwndSource source)

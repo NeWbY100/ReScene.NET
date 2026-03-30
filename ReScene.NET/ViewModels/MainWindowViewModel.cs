@@ -42,7 +42,9 @@ public partial class MainWindowViewModel : ViewModelBase
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         if (version is null)
+        {
             return "0.0.0";
+        }
 
         // InformationalVersion is "1.0.0+abcdef1" — extract hash after '+'
         int plus = version.IndexOf('+');
@@ -75,39 +77,53 @@ public partial class MainWindowViewModel : ViewModelBase
         Inspector.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(InspectorViewModel.StatusMessage))
+            {
                 StatusMessage = Inspector.StatusMessage;
+            }
             else if (e.PropertyName == nameof(InspectorViewModel.IsExporting))
+            {
                 UpdateIsBusy();
+            }
         };
 
         Creator.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(CreatorViewModel.IsCreating))
+            {
                 UpdateIsBusy();
+            }
         };
 
         SrsCreator.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SrsCreatorViewModel.IsCreating))
+            {
                 UpdateIsBusy();
+            }
         };
 
         Reconstructor.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ReconstructorViewModel.IsRunning))
+            {
                 UpdateIsBusy();
+            }
         };
 
         SrsReconstructor.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SrsReconstructorViewModel.IsRebuilding))
+            {
                 UpdateIsBusy();
+            }
         };
 
         SampleRestorer.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SampleRestorerViewModel.IsRestoring))
+            {
                 UpdateIsBusy();
+            }
         };
     }
 
@@ -120,8 +136,10 @@ public partial class MainWindowViewModel : ViewModelBase
         string? path = await _fileDialog.OpenFileAsync(
             "Open Scene File", ["Scene Files|*.srr;*.srs", "SRR Files|*.srr", "SRS Files|*.srs", "All Files|*.*"]);
 
-        if (path != null)
+        if (path is not null)
+        {
             OpenSceneFile(path);
+        }
     }
 
     /// <summary>

@@ -70,7 +70,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         string? path = await _fileDialog.OpenFileAsync("Select SRS File",
             ["SRS Files|*.srs", "All Files|*.*"]);
 
-        if (path != null)
+        if (path is not null)
         {
             SrsFilePath = path;
             AutoSetOutputPath(path);
@@ -88,8 +88,10 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             "All Files|*.*"
         ]);
 
-        if (path != null)
+        if (path is not null)
+        {
             MediaFilePath = path;
+        }
     }
 
     [RelayCommand]
@@ -99,8 +101,10 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             "Save Reconstructed Sample", ".*",
             ["All Files|*.*"],
             string.IsNullOrWhiteSpace(OutputPath) ? null : Path.GetFileName(OutputPath));
-        if (path != null)
+        if (path is not null)
+        {
             OutputPath = path;
+        }
     }
 
     private bool CanRebuild() => !IsRebuilding
@@ -202,7 +206,9 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private void AutoSetOutputPath(string srsPath)
     {
         if (!string.IsNullOrWhiteSpace(OutputPath))
+        {
             return;
+        }
 
         // Try to infer the sample file name from the SRS
         try

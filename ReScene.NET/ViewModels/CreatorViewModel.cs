@@ -79,7 +79,9 @@ public partial class CreatorViewModel : ViewModelBase
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         if (version is null)
+        {
             return "ReScene.NET";
+        }
 
         int plus = version.IndexOf('+');
         return plus >= 0
@@ -110,7 +112,7 @@ public partial class CreatorViewModel : ViewModelBase
         string? path = await _fileDialog.OpenFileAsync("Select Input File",
             ["SFV Files|*.sfv", "RAR Files|*.rar", "All Files|*.*"]);
 
-        if (path != null)
+        if (path is not null)
         {
             InputPath = path;
             AutoSetOutputPath(path);
@@ -120,7 +122,10 @@ public partial class CreatorViewModel : ViewModelBase
     partial void OnInputPathChanged(string value)
     {
         if (!string.IsNullOrWhiteSpace(value))
+        {
             IsSfvInput = Path.GetExtension(value).Equals(".sfv", StringComparison.OrdinalIgnoreCase);
+        }
+
         UpdateStoredNames();
         AutoScanReleaseFiles();
     }
@@ -130,8 +135,10 @@ public partial class CreatorViewModel : ViewModelBase
     {
         string? path = await _fileDialog.SaveFileAsync(
             "Save SRR File", ".srr", ["SRR Files|*.srr"]);
-        if (path != null)
+        if (path is not null)
+        {
             OutputPath = path;
+        }
     }
 
     [RelayCommand]
@@ -143,7 +150,9 @@ public partial class CreatorViewModel : ViewModelBase
         foreach (string path in paths)
         {
             if (StoredFiles.Any(f => f.FullPath.Equals(path, StringComparison.OrdinalIgnoreCase)))
+            {
                 continue;
+            }
 
             StoredFiles.Add(new StoredFileItem
             {
@@ -157,7 +166,9 @@ public partial class CreatorViewModel : ViewModelBase
     private void RemoveStoredFile()
     {
         if (SelectedStoredFile is not null)
+        {
             StoredFiles.Remove(SelectedStoredFile);
+        }
     }
 
     [RelayCommand]
@@ -197,22 +208,30 @@ public partial class CreatorViewModel : ViewModelBase
 
             // Phase 1: Auto-create SRS files for samples
             if (AutoCreateSrs)
+            {
                 tempDir = await CreateSrsForSamplesAsync(releaseDir, options, _cts.Token);
+            }
 
             // Phase 2: Create nested SRRs for subtitle archives
             if (CreateVobsubSrr)
+            {
                 await CreateVobsubSrrsAsync(releaseDir, options, tempDir ??= CreateTempDir(), _cts.Token);
+            }
 
             // Phase 3: Store fix RAR if applicable
             if (StoreFixRar)
+            {
                 StoreFixRarFile(releaseDir);
+            }
 
             // Phase 4: Create the main SRR
             SrrCreationResult result;
 
             var storedFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var item in StoredFiles)
+            {
                 storedFiles[item.StoredName] = item.FullPath;
+            }
 
             if (IsSfvInput)
             {
@@ -248,7 +267,9 @@ public partial class CreatorViewModel : ViewModelBase
             }
 
             foreach (string warning in result.Warnings)
+            {
                 Log($"WARNING: {warning}");
+            }
         }
         catch (Exception ex)
         {
@@ -276,11 +297,15 @@ public partial class CreatorViewModel : ViewModelBase
     private void AutoScanReleaseFiles()
     {
         if (!AutoIncludeFiles || string.IsNullOrWhiteSpace(InputPath))
+        {
             return;
+        }
 
         string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
         if (!Directory.Exists(releaseDir))
+        {
             return;
+        }
 
         StoredFiles.Clear();
 
@@ -308,7 +333,9 @@ public partial class CreatorViewModel : ViewModelBase
     {
         var samples = ReleaseFileScanner.FindSampleFiles(releaseDir);
         if (samples.Count == 0)
+        {
             return null;
+        }
 
         string tempDir = CreateTempDir();
         var srsOptions = new SrsCreationOptions
@@ -362,7 +389,9 @@ public partial class CreatorViewModel : ViewModelBase
     {
         var subtitleSfvs = ReleaseFileScanner.FindSubtitleSfvFiles(releaseDir);
         if (subtitleSfvs.Count == 0)
+        {
             return;
+        }
 
         foreach (string sfvPath in subtitleSfvs)
         {
@@ -410,24 +439,32 @@ public partial class CreatorViewModel : ViewModelBase
     {
         string releaseName = Path.GetFileName(releaseDir) ?? string.Empty;
         if (!ReleaseFileScanner.IsFixRelease(releaseName))
+        {
             return;
+        }
 
         // Find SFV files in the release root
         string[] sfvFiles = Directory.GetFiles(releaseDir, "*.sfv");
         if (sfvFiles.Length != 1)
+        {
             return;
+        }
 
         // Find RAR files referenced by the SFV
         var rarFiles = ReleaseFileScanner.FindRarFilesFromSfv(sfvFiles[0]);
         if (rarFiles.Count != 1)
+        {
             return;
+        }
 
         string rarPath = rarFiles[0];
         string storedName = Path.GetFileName(rarPath);
 
         // Don't add if already in stored files
         if (StoredFiles.Any(f => f.StoredName.Equals(storedName, StringComparison.OrdinalIgnoreCase)))
+        {
             return;
+        }
 
         StoredFiles.Add(new StoredFileItem
         {
@@ -471,13 +508,17 @@ public partial class CreatorViewModel : ViewModelBase
     private string ComputeStoredName(string fullPath)
     {
         if (string.IsNullOrWhiteSpace(InputPath))
+        {
             return Path.GetFileName(fullPath);
+        }
 
         string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
         string relative = Path.GetRelativePath(releaseDir, fullPath);
 
         if (relative.StartsWith("..", StringComparison.Ordinal))
+        {
             return Path.GetFileName(fullPath);
+        }
 
         return relative.Replace('\\', '/');
     }
@@ -485,7 +526,9 @@ public partial class CreatorViewModel : ViewModelBase
     private void UpdateStoredNames()
     {
         foreach (var item in StoredFiles)
+        {
             item.StoredName = ComputeStoredName(item.FullPath);
+        }
     }
 
     private static string CreateTempDir()
@@ -497,8 +540,18 @@ public partial class CreatorViewModel : ViewModelBase
 
     private static void CleanupTempDir(string? tempDir)
     {
-        if (tempDir is null) return;
-        try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); }
+        if (tempDir is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
         catch { /* best-effort cleanup */ }
     }
 
@@ -513,7 +566,9 @@ public partial class CreatorViewModel : ViewModelBase
         {
             string pattern = baseName[..baseName.LastIndexOf(".part", StringComparison.OrdinalIgnoreCase)];
             foreach (string file in Directory.GetFiles(dir, $"{pattern}.part*.rar"))
+            {
                 volumes.Add(file);
+            }
         }
         else
         {
@@ -527,9 +582,13 @@ public partial class CreatorViewModel : ViewModelBase
 
                 string nextVolume = Path.Combine(dir, baseName + ext);
                 if (File.Exists(nextVolume))
+                {
                     volumes.Add(nextVolume);
+                }
                 else
+                {
                     break;
+                }
             }
         }
 

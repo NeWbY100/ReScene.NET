@@ -42,7 +42,9 @@ public partial class SrsCreatorViewModel : ViewModelBase
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
         if (version is null)
+        {
             return "ReScene.NET";
+        }
 
         int plus = version.IndexOf('+');
         return plus >= 0
@@ -78,7 +80,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
             "All Files|*.*"
         ]);
 
-        if (path != null)
+        if (path is not null)
         {
             InputPath = path;
             AutoSetOutputPath(path);
@@ -90,8 +92,10 @@ public partial class SrsCreatorViewModel : ViewModelBase
     {
         string? path = await _fileDialog.SaveFileAsync(
             "Save SRS File", ".srs", ["SRS Files|*.srs"]);
-        if (path != null)
+        if (path is not null)
+        {
             OutputPath = path;
+        }
     }
 
     private bool CanCreateSrs() => !IsCreating

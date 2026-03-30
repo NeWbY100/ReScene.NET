@@ -16,7 +16,9 @@ public class RecentFilesService : IRecentFilesService
         try
         {
             if (!File.Exists(FilePath))
+            {
                 return [];
+            }
 
             string json = File.ReadAllText(FilePath);
             return JsonSerializer.Deserialize<List<RecentFileEntry>>(json) ?? [];
@@ -41,8 +43,17 @@ public class RecentFilesService : IRecentFilesService
         });
 
         if (entries.Count > MaxEntries)
+        {
             entries.RemoveRange(MaxEntries, entries.Count - MaxEntries);
+        }
 
+        Save(entries);
+    }
+
+    public void RemoveEntry(string filePath)
+    {
+        var entries = LoadEntries();
+        entries.RemoveAll(e => string.Equals(e.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
         Save(entries);
     }
 

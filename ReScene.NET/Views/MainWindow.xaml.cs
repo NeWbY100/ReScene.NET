@@ -28,7 +28,9 @@ public partial class MainWindow : Window
         if (args.Length > 1 && IsSceneFile(args[1]) && File.Exists(args[1]))
         {
             if (DataContext is MainWindowViewModel vm)
+            {
                 vm.OpenSceneFile(args[1]);
+            }
         }
     }
 
@@ -60,15 +62,25 @@ public partial class MainWindow : Window
 
     private void OnDrop(object _, DragEventArgs e)
     {
-        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return;
+        }
+
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files)
+        {
+            return;
+        }
 
         foreach (var file in files)
         {
             if (IsSceneFile(file))
             {
                 if (DataContext is MainWindowViewModel vm)
+                {
                     vm.OpenSceneFile(file);
+                }
+
                 break;
             }
         }
@@ -90,7 +102,9 @@ public partial class MainWindow : Window
         base.OnClosing(e);
 
         if (DataContext is MainWindowViewModel vm)
+        {
             vm.Cleanup();
+        }
     }
 
     private void OnAboutClick(object _, RoutedEventArgs e)
@@ -142,7 +156,10 @@ public partial class MainWindow : Window
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key >= Key.D1 && e.Key <= Key.D7)
         {
             if (DataContext is MainWindowViewModel vm)
+            {
                 vm.SelectedTabIndex = e.Key - Key.D1;
+            }
+
             e.Handled = true;
         }
     }

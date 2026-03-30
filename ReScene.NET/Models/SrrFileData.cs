@@ -21,6 +21,8 @@ public class SrrFileData
     /// <summary>
     /// Loads an SRR file and parses embedded RAR headers for each volume into detailed blocks.
     /// </summary>
+    /// <param name="filePath">The path to the SRR file.</param>
+    /// <returns>A populated <see cref="SrrFileData"/> instance.</returns>
     public static SrrFileData Load(string filePath)
     {
         var srrFile = SRRFile.Load(filePath);

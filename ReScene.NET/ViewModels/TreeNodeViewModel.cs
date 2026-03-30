@@ -27,15 +27,21 @@ public partial class TreeNodeViewModel : ViewModelBase
     public bool MatchesFilter(string filter)
     {
         if (string.IsNullOrWhiteSpace(filter))
+        {
             return true;
+        }
 
         if (Text.Contains(filter, StringComparison.OrdinalIgnoreCase))
+        {
             return true;
+        }
 
         foreach (var child in Children)
         {
             if (child.MatchesFilter(filter))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -47,7 +53,10 @@ public partial class TreeNodeViewModel : ViewModelBase
         {
             IsVisible = true;
             foreach (var child in Children)
+            {
                 child.ApplyFilter(filter);
+            }
+
             return;
         }
 
@@ -57,10 +66,14 @@ public partial class TreeNodeViewModel : ViewModelBase
         if (matches)
         {
             foreach (var child in Children)
+            {
                 child.ApplyFilter(filter);
+            }
 
             if (Children.Count > 0)
+            {
                 IsExpanded = true;
+            }
         }
     }
 }

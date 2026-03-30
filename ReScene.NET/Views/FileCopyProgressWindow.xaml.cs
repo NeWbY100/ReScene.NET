@@ -14,20 +14,27 @@ public partial class FileCopyProgressWindow : Window
         Loaded += (_, _) =>
         {
             if (DataContext is ReconstructorViewModel vm)
+            {
                 vm.PropertyChanged += OnVmPropertyChanged;
+            }
         };
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(ReconstructorViewModel.IsCopying))
+        {
             return;
+        }
 
         if (sender is ReconstructorViewModel { IsCopying: false })
         {
             // Copy finished — auto-close
             if (DataContext is ReconstructorViewModel vmCleanup)
+            {
                 vmCleanup.PropertyChanged -= OnVmPropertyChanged;
+            }
+
             Close();
         }
     }
@@ -55,7 +62,9 @@ public partial class FileCopyProgressWindow : Window
         }
 
         if (DataContext is ReconstructorViewModel vmCleanup)
+        {
             vmCleanup.PropertyChanged -= OnVmPropertyChanged;
+        }
 
         base.OnClosing(e);
     }

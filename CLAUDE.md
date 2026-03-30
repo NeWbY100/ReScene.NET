@@ -71,21 +71,24 @@ if (path != null) {
 }
 ```
 
-- **Single-statement bodies** — braces may be omitted for simple single-line `if`/`return` guards:
+- **Always use braces** for `if`/`else`/`for`/`while`/`foreach` bodies, even single-statement ones:
 
 ```csharp
-// OK — single-line guard clause without braces
-if (path == null) return;
-if (!File.Exists(file)) return;
-if (files == null) return;
-if (path != null) OutputPath = path;
-
-// Also OK — with braces for slightly longer bodies
-if (path != null)
+// CORRECT — always use braces
+if (path is null)
 {
-    InputPath = path;
-    AutoSetOutputPath(path);
+    return;
 }
+
+if (path is not null)
+{
+    OutputPath = path;
+}
+
+// WRONG — braceless bodies
+if (path is null) return;
+if (path is not null)
+    OutputPath = path;
 ```
 
 - **No trailing commas** in object initializers or collection expressions:
@@ -104,6 +107,82 @@ var entry = new VersionEntry
     VersionName = label,
     Arguments = args,
 };
+```
+
+### XML Doc Comments
+
+Use multi-line format for all XML doc comments. Single-line `/// <summary>Text</summary>` is acceptable only for very short property descriptions:
+
+```csharp
+// CORRECT — multi-line format (preferred)
+/// <summary>
+/// Gets or sets the block CRC value.
+/// </summary>
+public ushort Crc { get; set; }
+
+// ACCEPTABLE — single-line for short property docs
+/// <summary>Gets or sets the absolute path to the file on disk.</summary>
+public string FullPath { get; set; } = string.Empty;
+```
+
+- `<param>` and `<returns>` tags go on their own lines
+- Blank line before each XML doc block
+- Do not add XML doc comments to private members
+
+### Blank Lines
+
+- **Between methods**: Always one blank line
+- **Between property groups**: One blank line between logical groups
+- **After opening brace**: No blank line after `{` for class/method bodies
+- **After closing brace**: Always a blank line after `}` before the next statement, unless the next line is `}`, `else`, `catch`, `finally`, or `while` (do-while):
+
+```csharp
+// CORRECT — blank line after }
+if (condition)
+{
+    DoSomething();
+}
+
+NextStatement();
+
+// CORRECT — no blank line before else/catch/finally
+if (condition)
+{
+    DoSomething();
+}
+else
+{
+    DoOther();
+}
+
+// CORRECT — no blank line before closing }
+if (condition)
+{
+    DoSomething();
+}
+```
+
+- **Between logical sections**: Blank line between logical chunks in long methods, typically with a comment
+
+### Region Directives
+
+Use `#region` / `#endregion` to group related methods in large files (e.g., `#region Commands`, `#region File Loading`). Blank line before `#region` and after `#endregion`.
+
+### Method Parameters
+
+Keep parameters on one line when they fit within ~120 characters. When wrapping, each parameter goes on its own indented line:
+
+```csharp
+// Same line — short enough
+public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters)
+
+// Wrapped — each on own line
+public async Task<SrrCreationResult> CreateAsync(
+    string outputPath,
+    IReadOnlyList<string> rarVolumePaths,
+    IReadOnlyDictionary<string, string>? storedFiles = null,
+    SrrCreationOptions? options = null,
+    CancellationToken ct = default)
 ```
 
 ### Naming
@@ -1288,6 +1367,8 @@ private void Vm_PropertyChanged(object? sender, PropertyChangedEventArgs e) { }
 - Use `ConfigureAwait(false)` in UI code
 - Add trailing commas in object/collection initializers
 - Use `== null` or `!= null` — use `is null` / `is not null` instead
+- Omit braces on `if`/`else`/`for`/`while`/`foreach` bodies — always use braces, even for single statements
+- Omit blank line after `}` before the next statement (except before `else`/`catch`/`finally`/`}`)
 - Leave unused parameters named — use `_` discard for unused `sender`, `e`, etc.
 - Name event handlers with WinForms-style `BtnFoo_Click` — use `OnFooClick` instead
 - Skip `GC.SuppressFinalize(this)` in Dispose — always include it

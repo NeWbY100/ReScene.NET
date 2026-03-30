@@ -107,12 +107,21 @@
                                  Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                                  TextTrimming="CharacterEllipsis" />
                     </StackPanel>
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding LastOpened, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
-                               FontSize="{DynamicResource FontSizeCaption}"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                               Margin="8,0,0,0" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding LastOpened, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                 FontSize="{DynamicResource FontSizeCaption}"
+                                 VerticalAlignment="Center"
+                                 Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                 Margin="8,0,0,0" />
+                      <Button Content="Remove"
+                              Command="{Binding DataContext.RemoveRecentFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                              CommandParameter="{Binding}"
+                              Style="{StaticResource GhostButton}"
+                              FontSize="{DynamicResource FontSizeCaption}"
+                              Padding="6,1"
+                              Margin="8,0,0,0"
+                              VerticalAlignment="Center" />
+                    </StackPanel>
                   </Grid>
                 </Button>
               </DataTemplate>

@@ -65,6 +65,7 @@
 
           <TreeView ItemsSource="{Binding TreeRoots}"
                     SelectedItemChanged="TreeView_SelectedItemChanged"
+                    PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
                     Margin="{DynamicResource TreeViewMargin}"
                     FontSize="{DynamicResource FontSizeBody}">
             <TreeView.ItemTemplate>

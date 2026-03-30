@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.RAR;
@@ -29,8 +30,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         string? path = await _fileDialog.OpenFileAsync("Open File to Inspect",
             ["Scene Files|*.srr;*.srs;*.rar", "SRR Files|*.srr", "SRS Files|*.srs", "RAR Files|*.rar", "All Files|*.*"]);
 
-        if (path != null)
+        if (path is not null)
+        {
             LoadFile(path);
+        }
     }
 
     private bool CanCloseFile() => HasFile;
@@ -157,7 +160,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             if (isSrs)
             {
                 var srs = _srsData!.SrsFile;
-                int blockCount = (srs.FileData != null ? 1 : 0) + srs.Tracks.Count + srs.ContainerChunks.Count;
+                int blockCount = (srs.FileData is not null ? 1 : 0) + srs.Tracks.Count + srs.ContainerChunks.Count;
                 StatusMessage = $"{Path.GetFileName(filePath)} | {srs.ContainerType} | {blockCount} blocks | {_fileSize:N0} bytes";
             }
             else if (isRar)
@@ -170,13 +173,15 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
                 // Detect custom packer sentinels in RAR file headers
                 if (DetectCustomPackerInRarBlocks(_rarDetailedBlocks))
+                {
                     WarningMessage = "Custom RAR packer detected — file size fields may be unreliable. Known groups: RELOADED, HI2U, QCF.";
+                }
             }
             else
             {
                 int blockCount = 0;
                 var srr = _srrData!.SrrFile;
-                if (srr.HeaderBlock != null) blockCount++;
+                if (srr.HeaderBlock is not null) blockCount++;
                 blockCount += srr.OsoHashBlocks.Count + srr.RarPaddingBlocks.Count
                             + srr.RarFiles.Count + srr.StoredFiles.Count;
                 StatusMessage = $"{Path.GetFileName(filePath)} | {blockCount} blocks | {_fileSize:N0} bytes";
@@ -294,7 +299,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     partial void OnTreeFilterTextChanged(string value)
     {
         foreach (var root in TreeRoots)
+        {
             root.ApplyFilter(value);
+        }
     }
 
     private bool CanExportBlock() => HasFile && HexBlockLength > 0;
@@ -303,7 +310,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     private async Task ExportBlockAsync()
     {
         if (!HasFile || HexBlockLength <= 0 || string.IsNullOrEmpty(_loadedFilePathInternal))
+        {
             return;
+        }
 
         // Pick a sensible default filename from the selected node
         string defaultName = SelectedTreeNode?.Tag switch
@@ -319,8 +328,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             ["All Files|*.*"],
             defaultName);
 
-        if (outputPath == null)
+        if (outputPath is null)
+        {
             return;
+        }
 
         long offset = HexBlockOffset;
         long length = HexBlockLength;
@@ -347,6 +358,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             });
 
             StatusMessage = $"Exported: {Path.GetFileName(outputPath)} ({length:N0} bytes)";
+            MessageBox.Show(
+                $"Exported {Path.GetFileName(outputPath)}\n{length:N0} bytes written.",
+                "Export Complete",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
@@ -362,19 +378,23 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     {
         TreeRoots.Clear();
 
-        if (_srsData != null)
+        if (_srsData is not null)
         {
             BuildSrsTree();
             return;
         }
 
-        if (_rarDetailedBlocks != null)
+        if (_rarDetailedBlocks is not null)
         {
             BuildRarTree();
             return;
         }
 
-        if (_srrData == null) return;
+        if (_srrData is null)
+        {
+            return;
+        }
+
         BuildSrrTree();
     }
 
@@ -382,15 +402,21 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     {
         foreach (var block in blocks)
         {
-            if (block.BlockType != "File Header") continue;
+            if (block.BlockType != "File Header")
+            {
+                continue;
+            }
 
             // Check for sentinel descriptions added by the detailed parser
             foreach (var field in block.Fields)
             {
-                if (field.Description != null && field.Description.Contains("Custom packer sentinel"))
+                if (field.Description is not null && field.Description.Contains("Custom packer sentinel"))
+                {
                     return true;
+                }
             }
         }
+
         return false;
     }
 
@@ -411,7 +437,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             string blockLabel = $"[{i}] {blockType}";
 
             if (!string.IsNullOrEmpty(block.ItemName))
+            {
                 blockLabel = $"[{i}] {blockType}: {block.ItemName}";
+            }
 
             root.Children.Add(new TreeNodeViewModel { Text = blockLabel, Tag = block });
         }
@@ -425,7 +453,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
         var root = new TreeNodeViewModel { Text = "SRR File", Tag = "root", IsExpanded = true };
 
-        if (srr.HeaderBlock != null)
+        if (srr.HeaderBlock is not null)
         {
             root.Children.Add(new TreeNodeViewModel { Text = "SRR Header", Tag = srr.HeaderBlock });
         }
@@ -447,6 +475,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 osoNode.Children.Add(new TreeNodeViewModel { Text = oso.FileName, Tag = oso });
             }
+
             root.Children.Add(osoNode);
         }
 
@@ -461,6 +490,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 paddingNode.Children.Add(new TreeNodeViewModel { Text = padding.RarFileName, Tag = padding });
             }
+
             root.Children.Add(paddingNode);
         }
 
@@ -484,7 +514,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                         string blockType = block.HasData && block.BlockType.Contains("File") ? "File Data" : block.BlockType;
                         string blockLabel = $"[{i}] {blockType}";
                         if (!string.IsNullOrEmpty(block.ItemName))
+                        {
                             blockLabel = $"[{i}] {blockType}: {block.ItemName}";
+                        }
 
                         volNode.Children.Add(new TreeNodeViewModel { Text = blockLabel, Tag = block });
                     }
@@ -492,6 +524,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
                 volumesNode.Children.Add(volNode);
             }
+
             root.Children.Add(volumesNode);
         }
 
@@ -507,6 +540,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 storedNode.Children.Add(new TreeNodeViewModel { Text = stored.FileName, Tag = stored });
             }
+
             root.Children.Add(storedNode);
         }
 
@@ -521,9 +555,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 string label = file;
                 if (srr.ArchivedFileCrcs.TryGetValue(file, out var crc))
+                {
                     label = $"{file} [CRC: {crc}]";
+                }
+
                 archivedNode.Children.Add(new TreeNodeViewModel { Text = label, Tag = "archived" });
             }
+
             root.Children.Add(archivedNode);
         }
 
@@ -540,7 +578,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             IsExpanded = true
         };
 
-        if (srs.FileData != null)
+        if (srs.FileData is not null)
         {
             root.Children.Add(new TreeNodeViewModel
             {
@@ -565,6 +603,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                     Tag = track
                 });
             }
+
             root.Children.Add(tracksNode);
         }
 
@@ -586,13 +625,15 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     {
         AddProperty("Container Type", srs.ContainerType.ToString());
 
-        if (srs.FileData != null)
+        if (srs.FileData is not null)
         {
             AddProperty("Sample File", srs.FileData.FileName);
             AddProperty("Sample Size", $"{srs.FileData.SampleSize:N0} bytes ({FormatSize((long)srs.FileData.SampleSize)})");
             AddProperty("Sample CRC32", $"0x{srs.FileData.Crc32:X8}");
             if (!string.IsNullOrEmpty(srs.FileData.AppName))
+            {
                 AddProperty("App Name", srs.FileData.AppName);
+            }
         }
 
         AddProperty("Track Count", srs.Tracks.Count.ToString());
@@ -612,8 +653,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         AddProperty("App Name Size", $"{block.AppNameSize}",
             new ByteRange { Offset = block.AppNameSizeOffset, Length = 2 });
         if (block.AppNameSize > 0)
+        {
             AddProperty("App Name", block.AppName,
                 new ByteRange { Offset = block.AppNameOffset, Length = block.AppNameSize });
+        }
+
         AddProperty("File Name Size", $"{block.FileNameSize}",
             new ByteRange { Offset = block.FileNameSizeOffset, Length = 2 });
         AddProperty("File Name", block.FileName,
@@ -677,7 +721,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
         HexBlockOffset = offset;
         HexBlockLength = clampedSize;
-        HexDataSource = _fileDataSource != null
+        HexDataSource = _fileDataSource is not null
             ? new HexDataSourceSlice(_fileDataSource, offset, clampedSize)
             : null;
     }
@@ -689,7 +733,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         long len = Math.Min(_fileSize, MaxHexSliceSize);
         HexBlockOffset = 0;
         HexBlockLength = len;
-        HexDataSource = _fileDataSource != null
+        HexDataSource = _fileDataSource is not null
             ? new HexDataSourceSlice(_fileDataSource, 0, len)
             : null;
     }
@@ -704,7 +748,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     protected virtual void Dispose(bool disposing)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (disposing)
         {
@@ -883,9 +930,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         foreach (var field in block.Fields)
         {
             string value = field.Value;
-            bool isWarning = field.Description != null && field.Description.Contains("Custom packer sentinel");
+            bool isWarning = field.Description is not null && field.Description.Contains("Custom packer sentinel");
             if (!string.IsNullOrEmpty(field.Description) && field.Description != field.Value)
+            {
                 value = $"{field.Value} ({field.Description})";
+            }
 
             ByteRange? range = field.Length > 0
                 ? new ByteRange { PropertyName = field.Name, Offset = field.Offset, Length = field.Length }
@@ -912,8 +961,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             bool hasData = false;
             foreach (var p in Properties)
             {
-                if (p.Name == "Data") { hasData = true; break; }
+                if (p.Name == "Data")
+                {
+                    hasData = true;
+                    break;
+                }
             }
+
             if (!hasData)
             {
                 long dataOffset = block.StartOffset + block.HeaderSize;
@@ -930,9 +984,14 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             : "Unknown");
 
         if (srr.CompressionMethod.HasValue)
+        {
             AddProperty("Compression Method", GetCompressionMethodName((byte)srr.CompressionMethod.Value));
+        }
+
         if (srr.DictionarySize.HasValue)
+        {
             AddProperty("Dictionary Size", $"{srr.DictionarySize.Value} KB");
+        }
 
         AddProperty("Solid Archive", FormatBool(srr.IsSolidArchive));
         AddProperty("Volume Archive", FormatBool(srr.IsVolumeArchive));
@@ -945,7 +1004,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         AddProperty("Extended Time", FormatBool(srr.HasExtendedTime));
 
         if (srr.VolumeSizeBytes.HasValue)
+        {
             AddProperty("Volume Size", $"{srr.VolumeSizeBytes.Value:N0} bytes ({FormatSize(srr.VolumeSizeBytes.Value)})");
+        }
+
         if (srr.RarVolumeSizes.Count > 0)
         {
             AddProperty("Volume Sizes Count", srr.RarVolumeSizes.Count.ToString());
@@ -955,8 +1017,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 AddProperty($"  Unique Size {i + 1}",
                     $"{uniqueSizes[i]:N0} bytes ({FormatSize(uniqueSizes[i])})", indented: true);
             }
+
             if (uniqueSizes.Count > 5)
+            {
                 AddProperty("  ...", $"({uniqueSizes.Count - 5} more)", indented: true);
+            }
         }
 
         AddProperty("RAR Volumes", srr.RarFiles.Count.ToString());
@@ -976,7 +1041,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         AddProperty("Has Comment", !string.IsNullOrEmpty(srr.ArchiveComment) ? "Yes" : "No");
 
         if (!string.IsNullOrEmpty(srr.ArchiveComment))
+        {
             AddProperty("Comment", srr.ArchiveComment);
+        }
     }
 
     private static string FormatBool(bool? value) =>
@@ -1021,6 +1088,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             size /= 1024;
             i++;
         }
+
         return $"{size:0.##} {suffixes[i]}";
     }
 

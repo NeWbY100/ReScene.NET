@@ -104,7 +104,10 @@ public class HexViewControl : UserControl
 
     private static void OnDataChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
     {
-        if (d is HexViewControl c) c.RefreshCanvas();
+        if (d is HexViewControl c)
+        {
+            c.RefreshCanvas();
+        }
     }
 
     private static void OnSelectionOffsetChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
@@ -118,7 +121,10 @@ public class HexViewControl : UserControl
 
     private static void OnSelectionLengthChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
     {
-        if (d is HexViewControl c) c.OnSelectionChanged();
+        if (d is HexViewControl c)
+        {
+            c.OnSelectionChanged();
+        }
     }
 
     private static void OnBytesPerLineChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
@@ -242,6 +248,7 @@ public class HexViewControl : UserControl
                 if (i > 0) sb.Append(' ');
                 sb.Append(i.ToString("X2"));
             }
+
             var hexFmt = new FormattedText(sb.ToString(), CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight, MonoTypeface, 12, brush, Dpi);
             context.DrawText(hexFmt, new Point(_owner.HexStartX, 2));
@@ -269,9 +276,14 @@ public class HexViewControl : UserControl
                 double delta = pos.X - _dragStartX;
                 double newGap = Math.Max(MinGap, _dragStartGap + delta);
                 if (_dragIndex == 1)
+                {
                     _owner._gap1 = newGap;
+                }
                 else
+                {
                     _owner._gap2 = newGap;
+                }
+
                 _owner.RefreshCanvas();
                 InvalidateVisual();
                 e.Handled = true;
@@ -279,9 +291,13 @@ public class HexViewControl : UserControl
             }
 
             if (Math.Abs(pos.X - Divider1X) <= HitTolerance || Math.Abs(pos.X - Divider2X) <= HitTolerance)
+            {
                 Cursor = Cursors.SizeWE;
+            }
             else
+            {
                 Cursor = Cursors.Arrow;
+            }
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -481,19 +497,27 @@ public class HexViewControl : UserControl
             GetActiveSelection(out long selStart, out long selLength);
 
             var source = _owner.DataSource;
-            if (selStart < 0 || selLength <= 0 || source == null)
+            if (selStart < 0 || selLength <= 0 || source is null)
+            {
                 return;
+            }
 
             long blockOffset = _owner.BlockOffset;
             long relStart = Math.Max(0, selStart - blockOffset);
             long len = Math.Min(selLength, _owner.BlockLength - relStart);
-            if (len <= 0) return;
+            if (len <= 0)
+            {
+                return;
+            }
 
             // Cap copy size
             int copyLen = (int)Math.Min(len, MaxCopyBytes);
             byte[] buf = new byte[copyLen];
             int read = source.Read(relStart, buf, 0, copyLen);
-            if (read <= 0) return;
+            if (read <= 0)
+            {
+                return;
+            }
 
             string text;
             if (asText)
@@ -504,6 +528,7 @@ public class HexViewControl : UserControl
                     byte b = buf[i];
                     sb.Append(b >= 0x20 && b <= 0x7E ? (char)b : '.');
                 }
+
                 text = sb.ToString();
             }
             else
@@ -514,6 +539,7 @@ public class HexViewControl : UserControl
                     if (i > 0) sb.Append(' ');
                     sb.Append(buf[i].ToString("X2"));
                 }
+
                 text = sb.ToString();
             }
 
@@ -525,13 +551,19 @@ public class HexViewControl : UserControl
             isAsciiArea = false;
 
             long blockLen = _owner.BlockLength;
-            if (blockLen <= 0) return -1;
+            if (blockLen <= 0)
+            {
+                return -1;
+            }
 
             int bytesPerLine = _owner.BytesPerLine;
 
             long line = (long)(pos.Y / LineHeight);
             long totalLines = (blockLen + bytesPerLine - 1) / bytesPerLine;
-            if (line < 0 || line >= totalLines) return -1;
+            if (line < 0 || line >= totalLines)
+            {
+                return -1;
+            }
 
             double hexStartX = _owner.HexStartX;
             double hexEndX = hexStartX + _owner.HexWidth;
@@ -557,7 +589,10 @@ public class HexViewControl : UserControl
             }
 
             long lineOffset = line * bytesPerLine + byteInLine;
-            if (lineOffset >= blockLen) return -1;
+            if (lineOffset >= blockLen)
+            {
+                return -1;
+            }
 
             return _owner.BlockOffset + lineOffset;
         }
@@ -567,8 +602,10 @@ public class HexViewControl : UserControl
             base.OnRender(context);
 
             var source = _owner.DataSource;
-            if (source == null || _owner.BlockLength <= 0)
+            if (source is null || _owner.BlockLength <= 0)
+            {
                 return;
+            }
 
             var addressBrush = GetBrush("HexOffsetForeground", Brushes.Gray);
             var hexBrush = GetBrush("HexBytesForeground", Brushes.Black);
@@ -581,7 +618,9 @@ public class HexViewControl : UserControl
 
             // Ensure line buffer is large enough
             if (_lineBuffer.Length < bytesPerLine)
+            {
                 _lineBuffer = new byte[bytesPerLine];
+            }
 
             long selStart;
             long selLen;
@@ -639,7 +678,10 @@ public class HexViewControl : UserControl
 
                 // Read this line's bytes from the data source
                 int read = source.Read(lineDataStart, _lineBuffer, 0, lineBytes);
-                if (read <= 0) continue;
+                if (read <= 0)
+                {
+                    continue;
+                }
 
                 var hexBuilder = new StringBuilder(bytesPerLine * 3);
                 var asciiBuilder = new StringBuilder(bytesPerLine);

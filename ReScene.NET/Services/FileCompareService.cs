@@ -25,7 +25,10 @@ public class FileCompareService : IFileCompareService
     public List<RARDetailedBlock>? ParseDetailedBlocks(string filePath)
     {
         string ext = Path.GetExtension(filePath).ToLowerInvariant();
-        if (ext != ".rar") return null;
+        if (ext != ".rar")
+        {
+            return null;
+        }
 
         try
         {
