@@ -17,6 +17,8 @@ namespace ReScene.NET.ViewModels;
 
 public partial class ReconstructorViewModel : ViewModelBase
 {
+    private const long DefaultVolumeSizeKb = 15000;
+
     private readonly IBruteForceService _bruteForceService;
     private readonly IFileDialogService _fileDialog;
     private CancellationTokenSource? _cts;
@@ -259,7 +261,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsVolumeOptionsEnabled))]
     private bool _switchV;
 
-    [ObservableProperty] private string _volumeSize = "15000";
+    [ObservableProperty] private string _volumeSize = DefaultVolumeSizeKb.ToString();
     [ObservableProperty] private int _volumeSizeUnitIndex = 1; // default KB
     [ObservableProperty] private bool _useOldVolumeNaming;
 
@@ -1078,7 +1080,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     {
         if (!long.TryParse(VolumeSize, out long sizeValue))
         {
-            sizeValue = 15000;
+            sizeValue = DefaultVolumeSizeKb;
         }
 
         return VolumeSizeUnitIndex switch

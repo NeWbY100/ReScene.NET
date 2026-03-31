@@ -573,12 +573,15 @@ public partial class CreatorViewModel : ViewModelBase
         else
         {
             volumes.Add(firstRarPath);
-            for (int i = 0; i < 999; i++)
+            const int maxOldStyleVolumes = 999;
+            const int volumesPerLetter = 100;
+            const int maxLetterIndex = 25; // 'r' through 'z'
+            for (int i = 0; i < maxOldStyleVolumes; i++)
             {
-                int letterIndex = i / 100;
-                if (letterIndex > 25) break;
+                int letterIndex = i / volumesPerLetter;
+                if (letterIndex > maxLetterIndex) break;
                 char letter = (char)('r' + letterIndex);
-                string ext = $".{letter}{i % 100:D2}";
+                string ext = $".{letter}{i % volumesPerLetter:D2}";
 
                 string nextVolume = Path.Combine(dir, baseName + ext);
                 if (File.Exists(nextVolume))

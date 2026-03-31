@@ -11,13 +11,15 @@ namespace ReScene.NET.Controls;
 public class HexViewControl : UserControl
 {
     private const double LineHeight = 18;
+    private const double DefaultFontSize = 12;
+    private const double ContentRightMargin = 20;
 
     private static readonly Typeface MonoTypeface = new("Cascadia Mono, Consolas, Courier New, monospace");
     private static readonly double Dpi = VisualTreeHelper.GetDpi(new DrawingVisual()).PixelsPerDip;
 
     private static readonly double CharWidth = new FormattedText(
         "0000000000", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-        MonoTypeface, 12, Brushes.Black, Dpi).Width / 10;
+        MonoTypeface, DefaultFontSize, Brushes.Black, Dpi).Width / 10;
 
     private static readonly double AddressWidth = 10 * CharWidth;
 
@@ -30,7 +32,7 @@ public class HexViewControl : UserControl
 
     private double HexStartX => AddressWidth + _gap1;
     private double AsciiStartX => AddressWidth + _gap1 + HexWidth + _gap2;
-    private double TotalContentWidth => AsciiStartX + AsciiWidth + 20;
+    private double TotalContentWidth => AsciiStartX + AsciiWidth + ContentRightMargin;
 
     public static readonly DependencyProperty DataSourceProperty =
         DependencyProperty.Register(nameof(DataSource), typeof(IHexDataSource), typeof(HexViewControl),
@@ -238,7 +240,7 @@ public class HexViewControl : UserControl
             var brush = GetBrush("ForegroundSecondary", Brushes.Gray);
 
             var offsetFmt = new FormattedText("Offset", CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, MonoTypeface, 12, brush, Dpi);
+                FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, brush, Dpi);
             context.DrawText(offsetFmt, new Point(0, 2));
 
             int bytesPerLine = _owner.BytesPerLine;
@@ -250,11 +252,11 @@ public class HexViewControl : UserControl
             }
 
             var hexFmt = new FormattedText(sb.ToString(), CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, MonoTypeface, 12, brush, Dpi);
+                FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, brush, Dpi);
             context.DrawText(hexFmt, new Point(_owner.HexStartX, 2));
 
             var asciiFmt = new FormattedText("ASCII", CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, MonoTypeface, 12, brush, Dpi);
+                FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, brush, Dpi);
             context.DrawText(asciiFmt, new Point(_owner.AsciiStartX, 2));
 
             var dividerBrush = GetBrush("BorderMedium", Brushes.Gray);
@@ -673,7 +675,7 @@ public class HexViewControl : UserControl
                 // Address
                 string addr = lineFileOffset.ToString("X8");
                 var addrText = new FormattedText(addr, CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, MonoTypeface, 12, addressBrush, Dpi);
+                    FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, addressBrush, Dpi);
                 context.DrawText(addrText, new Point(0, y + 2));
 
                 // Read this line's bytes from the data source
@@ -696,12 +698,12 @@ public class HexViewControl : UserControl
 
                 var hexText = new FormattedText(hexBuilder.ToString(),
                     CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, MonoTypeface, 12, hexBrush, Dpi);
+                    FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, hexBrush, Dpi);
                 context.DrawText(hexText, new Point(_owner.HexStartX, y + 2));
 
                 var asciiText = new FormattedText(asciiBuilder.ToString(),
                     CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, MonoTypeface, 12, asciiBrush, Dpi);
+                    FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, asciiBrush, Dpi);
                 context.DrawText(asciiText, new Point(_owner.AsciiStartX, y + 2));
             }
         }

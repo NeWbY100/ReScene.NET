@@ -164,6 +164,25 @@ if (condition)
 
 - **Between logical sections**: Blank line between logical chunks in long methods, typically with a comment
 
+### Magic Numbers
+
+Avoid inline magic numbers. Extract repeated or non-obvious numeric literals to named constants:
+
+```csharp
+// CORRECT — named constant
+private const int MaxLacingHeaderSize = 256;
+byte[] header = new byte[MaxLacingHeaderSize];
+
+// CORRECT — readable expression for buffer sizes
+byte[] buffer = new byte[32 * 1024 * 1024];
+
+// WRONG — unexplained magic number
+byte[] buffer = new byte[33554432];
+byte[] header = new byte[256];
+```
+
+Acceptable inline values that don't need constants: `0`, `1`, `-1`, `2`, `4`, `7`, `8`, `16`, `32`, `64`, `100`, `1024`.
+
 ### Region Directives
 
 Use `#region` / `#endregion` to group related methods in large files (e.g., `#region Commands`, `#region File Loading`). Blank line before `#region` and after `#endregion`.

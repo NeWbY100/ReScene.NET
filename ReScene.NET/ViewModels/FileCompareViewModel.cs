@@ -69,6 +69,8 @@ public class CompareNodeData
 /// </summary>
 public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog) : ViewModelBase, IDisposable
 {
+    private const int MaxBlockCompareSize = 10 * 1024 * 1024;
+
     private readonly IFileCompareService _compareService = compareService;
     private readonly IFileDialogService _fileDialog = fileDialog;
 
@@ -1301,7 +1303,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                     {
                         dataDiff = true;
                     }
-                    else if (block.DataSize <= 10 * 1024 * 1024) // Compare up to 10 MB
+                    else if (block.DataSize <= MaxBlockCompareSize) // Compare up to 10 MB
                     {
                         var thisData = ReadFileSlice(thisFilePath, dataOffset, (int)block.DataSize);
                         var otherData = ReadFileSlice(otherFilePath, otherDataOffset, (int)otherBlock.DataSize);
@@ -1601,8 +1603,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
         if (track.Signature.Length > 0)
         {
-            string sigHex = Convert.ToHexString(track.Signature.AsSpan(0, Math.Min(32, track.Signature.Length)));
-            if (track.Signature.Length > 32)
+            const int maxSignatureDisplayBytes = 32;
+            string sigHex = Convert.ToHexString(track.Signature.AsSpan(0, Math.Min(maxSignatureDisplayBytes, track.Signature.Length)));
+            if (track.Signature.Length > maxSignatureDisplayBytes)
             {
                 sigHex += "...";
             }

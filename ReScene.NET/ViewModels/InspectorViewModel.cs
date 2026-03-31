@@ -13,6 +13,8 @@ namespace ReScene.NET.ViewModels;
 
 public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewModelBase, IDisposable
 {
+    private const int ExportBufferSize = 80 * 1024;
+
     private readonly IFileDialogService _fileDialog = fileDialog;
     private SrrFileData? _srrData;
     private SrsInspectorData? _srsData;
@@ -345,7 +347,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 using var input = new FileStream(_loadedFilePathInternal!, FileMode.Open, FileAccess.Read, FileShare.Read);
                 using var output = File.Create(outputPath);
                 input.Seek(offset, SeekOrigin.Begin);
-                byte[] buffer = new byte[81920];
+                byte[] buffer = new byte[ExportBufferSize];
                 long remaining = length;
                 while (remaining > 0)
                 {
@@ -695,7 +697,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         if (block.SignatureSize > 0)
         {
             string sigHex = BitConverter.ToString(block.Signature).Replace("-", " ");
-            if (sigHex.Length > 80) sigHex = sigHex[..80] + "...";
+            const int maxSignatureDisplayLength = 80;
+            if (sigHex.Length > maxSignatureDisplayLength) sigHex = sigHex[..maxSignatureDisplayLength] + "...";
             AddProperty("Signature", sigHex,
                 new ByteRange { Offset = block.SignatureOffset, Length = block.SignatureSize });
         }
@@ -1049,7 +1052,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     private static string FormatBool(bool? value) =>
         value.HasValue ? (value.Value ? "Yes" : "No") : "Unknown";
 
-    private void BuildChunkHierarchy(TreeNodeViewModel root, List<SrsContainerChunk> chunks)
+    private static void BuildChunkHierarchy(TreeNodeViewModel root, List<SrsContainerChunk> chunks)
     {
         var nodeStack = new Stack<TreeNodeViewModel>();
         var endStack = new Stack<long>();
