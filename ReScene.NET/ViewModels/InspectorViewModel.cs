@@ -161,7 +161,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
             if (isSrs)
             {
-                var srs = _srsData!.SrsFile;
+                SRSFile srs = _srsData!.SrsFile;
                 int blockCount = (srs.FileData is not null ? 1 : 0) + srs.Tracks.Count + srs.ContainerChunks.Count;
                 StatusMessage = $"{Path.GetFileName(filePath)} | {srs.ContainerType} | {blockCount} blocks | {_fileSize:N0} bytes";
             }
@@ -169,7 +169,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 int blockCount = _rarDetailedBlocks!.Count;
                 bool isRAR5 = blockCount > 0 && _rarDetailedBlocks[0].BlockType == "Signature" &&
-                              _rarDetailedBlocks[0].Fields.Count > 0 && _rarDetailedBlocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01");
+                              _rarDetailedBlocks[0].Fields.Count > 0 && _rarDetailedBlocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01", StringComparison.Ordinal);
                 string format = isRAR5 ? "RAR 5.x" : "RAR 4.x";
                 StatusMessage = $"{Path.GetFileName(filePath)} | {format} | {blockCount} blocks | {_fileSize:N0} bytes";
 
@@ -182,8 +182,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             else
             {
                 int blockCount = 0;
-                var srr = _srrData!.SrrFile;
-                if (srr.HeaderBlock is not null) blockCount++;
+                SRRFile srr = _srrData!.SrrFile;
+                if (srr.HeaderBlock is not null)
+                {
+                    blockCount++;
+                }
                 blockCount += srr.OsoHashBlocks.Count + srr.RarPaddingBlocks.Count
                             + srr.RarFiles.Count + srr.StoredFiles.Count;
                 StatusMessage = $"{Path.GetFileName(filePath)} | {blockCount} blocks | {_fileSize:N0} bytes";
@@ -344,8 +347,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         {
             await Task.Run(() =>
             {
-                using var input = new FileStream(_loadedFilePathInternal!, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using var output = File.Create(outputPath);
+                using var input = new FileStream(_loadedFilePathInternal, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using FileStream output = File.Create(outputPath);
                 input.Seek(offset, SeekOrigin.Begin);
                 byte[] buffer = new byte[ExportBufferSize];
                 long remaining = length;
@@ -353,7 +356,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 {
                     int toRead = (int)Math.Min(buffer.Length, remaining);
                     int read = input.Read(buffer, 0, toRead);
-                    if (read == 0) break;
+                    if (read == 0)
+                    {
+                        break;
+                    }
                     output.Write(buffer, 0, read);
                     remaining -= read;
                 }
@@ -402,7 +408,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     private static bool DetectCustomPackerInRarBlocks(List<RARDetailedBlock> blocks)
     {
-        foreach (var block in blocks)
+        foreach (RARDetailedBlock block in blocks)
         {
             if (block.BlockType != "File Header")
             {
@@ -410,9 +416,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             }
 
             // Check for sentinel descriptions added by the detailed parser
-            foreach (var field in block.Fields)
+            foreach (RARHeaderField field in block.Fields)
             {
-                if (field.Description is not null && field.Description.Contains("Custom packer sentinel"))
+                if (field.Description is not null && field.Description.Contains("Custom packer sentinel", StringComparison.Ordinal))
                 {
                     return true;
                 }
@@ -424,9 +430,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     private void BuildRarTree()
     {
-        var blocks = _rarDetailedBlocks!;
+        List<RARDetailedBlock> blocks = _rarDetailedBlocks!;
         bool isRAR5 = blocks.Count > 0 && blocks[0].BlockType == "Signature" &&
-                      blocks[0].Fields.Count > 0 && blocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01");
+                      blocks[0].Fields.Count > 0 && blocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01", StringComparison.Ordinal);
 
         string rootName = isRAR5 ? $"RAR 5.x Archive ({blocks.Count} blocks)" : $"RAR 4.x Archive ({blocks.Count} blocks)";
 
@@ -434,8 +440,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
         for (int i = 0; i < blocks.Count; i++)
         {
-            var block = blocks[i];
-            string blockType = block.HasData && block.BlockType.Contains("File") ? "File Data" : block.BlockType;
+            RARDetailedBlock block = blocks[i];
+            string blockType = block.HasData && block.BlockType.Contains("File", StringComparison.Ordinal) ? "File Data" : block.BlockType;
             string blockLabel = $"[{i}] {blockType}";
 
             if (!string.IsNullOrEmpty(block.ItemName))
@@ -451,7 +457,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     private void BuildSrrTree()
     {
-        var srr = _srrData!.SrrFile;
+        SRRFile srr = _srrData!.SrrFile;
 
         var root = new TreeNodeViewModel { Text = "SRR File", Tag = "root", IsExpanded = true };
 
@@ -473,7 +479,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 Tag = "container",
                 IsExpanded = true
             };
-            foreach (var oso in srr.OsoHashBlocks)
+            foreach (SrrOsoHashBlock oso in srr.OsoHashBlocks)
             {
                 osoNode.Children.Add(new TreeNodeViewModel { Text = oso.FileName, Tag = oso });
             }
@@ -488,7 +494,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 Text = $"RAR Padding ({srr.RarPaddingBlocks.Count})",
                 Tag = "container"
             };
-            foreach (var padding in srr.RarPaddingBlocks)
+            foreach (SrrRarPaddingBlock padding in srr.RarPaddingBlocks)
             {
                 paddingNode.Children.Add(new TreeNodeViewModel { Text = padding.RarFileName, Tag = padding });
             }
@@ -504,16 +510,16 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 Tag = "container",
                 IsExpanded = true
             };
-            foreach (var rar in srr.RarFiles)
+            foreach (SrrRarFileBlock rar in srr.RarFiles)
             {
                 var volNode = new TreeNodeViewModel { Text = rar.FileName, Tag = rar };
 
-                if (_srrData.VolumeDetailedBlocks.TryGetValue(rar.FileName, out var detailedBlocks))
+                if (_srrData.VolumeDetailedBlocks.TryGetValue(rar.FileName, out List<RARDetailedBlock>? detailedBlocks))
                 {
                     for (int i = 0; i < detailedBlocks.Count; i++)
                     {
-                        var block = detailedBlocks[i];
-                        string blockType = block.HasData && block.BlockType.Contains("File") ? "File Data" : block.BlockType;
+                        RARDetailedBlock block = detailedBlocks[i];
+                        string blockType = block.HasData && block.BlockType.Contains("File", StringComparison.Ordinal) ? "File Data" : block.BlockType;
                         string blockLabel = $"[{i}] {blockType}";
                         if (!string.IsNullOrEmpty(block.ItemName))
                         {
@@ -538,7 +544,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 Tag = "container",
                 IsExpanded = true
             };
-            foreach (var stored in srr.StoredFiles)
+            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
             {
                 storedNode.Children.Add(new TreeNodeViewModel { Text = stored.FileName, Tag = stored });
             }
@@ -572,7 +578,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     private void BuildSrsTree()
     {
-        var srs = _srsData!.SrsFile;
+        SRSFile srs = _srsData!.SrsFile;
         var root = new TreeNodeViewModel
         {
             Text = $"SRS File ({srs.ContainerType})",
@@ -597,7 +603,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
                 Tag = "container",
                 IsExpanded = true
             };
-            foreach (var track in srs.Tracks)
+            foreach (SrsTrackDataBlock track in srs.Tracks)
             {
                 tracksNode.Children.Add(new TreeNodeViewModel
                 {
@@ -696,9 +702,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
         if (block.SignatureSize > 0)
         {
-            string sigHex = BitConverter.ToString(block.Signature).Replace("-", " ");
+            string sigHex = BitConverter.ToString(block.Signature).Replace("-", " ", StringComparison.Ordinal);
             const int maxSignatureDisplayLength = 80;
-            if (sigHex.Length > maxSignatureDisplayLength) sigHex = sigHex[..maxSignatureDisplayLength] + "...";
+            if (sigHex.Length > maxSignatureDisplayLength)
+            {
+                sigHex = sigHex[..maxSignatureDisplayLength] + "...";
+            }
             AddProperty("Signature", sigHex,
                 new ByteRange { Offset = block.SignatureOffset, Length = block.SignatureSize });
         }
@@ -886,7 +895,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         AddProperty("File Size", $"{oso.FileSize:N0} bytes ({FormatSize((long)oso.FileSize)})",
             new ByteRange { Offset = p, Length = 8 });
         p += 8;
-        AddProperty("OSO Hash", BitConverter.ToString(oso.OsoHash).Replace("-", ""),
+        AddProperty("OSO Hash", Convert.ToHexString(oso.OsoHash),
             new ByteRange { Offset = p, Length = 8 });
         p += 8;
 
@@ -930,10 +939,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
     private void ShowDetailedBlockProperties(RARDetailedBlock block)
     {
-        foreach (var field in block.Fields)
+        foreach (RARHeaderField field in block.Fields)
         {
             string value = field.Value;
-            bool isWarning = field.Description is not null && field.Description.Contains("Custom packer sentinel");
+            bool isWarning = field.Description is not null && field.Description.Contains("Custom packer sentinel", StringComparison.Ordinal);
             if (!string.IsNullOrEmpty(field.Description) && field.Description != field.Value)
             {
                 value = $"{field.Value} ({field.Description})";
@@ -945,7 +954,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
             AddProperty(field.Name, value, range, warning: isWarning);
 
-            foreach (var child in field.Children)
+            foreach (RARHeaderField child in field.Children)
             {
                 long childOffset = child.Length > 0 ? child.Offset : field.Offset;
                 int childLength = child.Length > 0 ? child.Length : field.Length;
@@ -962,7 +971,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         if (block.HasData && block.DataSize > 0)
         {
             bool hasData = false;
-            foreach (var p in Properties)
+            foreach (PropertyItem p in Properties)
             {
                 if (p.Name == "Data")
                 {
@@ -1059,7 +1068,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         nodeStack.Push(root);
         endStack.Push(long.MaxValue);
 
-        foreach (var chunk in chunks)
+        foreach (SrsContainerChunk chunk in chunks)
         {
             long chunkEnd = chunk.BlockPosition + chunk.BlockSize;
 

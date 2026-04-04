@@ -2,9 +2,9 @@ namespace ReScene.NET.Services;
 
 public interface IFileDialogService
 {
-    Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters);
-    Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters);
-    Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null);
-    Task<string?> OpenFolderAsync(string title);
-    Task<bool> ShowConfirmAsync(string title, string message);
+    public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters);
+    public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters);
+    public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null);
+    public Task<string?> OpenFolderAsync(string title);
+    public Task<bool> ShowConfirmAsync(string title, string message);
 }

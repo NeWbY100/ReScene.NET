@@ -37,7 +37,7 @@ public partial class HomeViewModel : ViewModelBase
     public void LoadRecentFiles()
     {
         RecentFiles.Clear();
-        foreach (var entry in _recentFiles.LoadEntries())
+        foreach (RecentFileEntry entry in _recentFiles.LoadEntries())
         {
             RecentFiles.Add(entry);
         }

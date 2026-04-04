@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 using ReScene.NET.ViewModels;
 
@@ -25,6 +27,12 @@ public partial class ReconstructorView : UserControl
         {
             newVm.PropertyChanged += OnVmPropertyChanged;
         }
+    }
+
+    private void OnHyperlinkRequestNavigate(object _, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)

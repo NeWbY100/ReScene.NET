@@ -10,6 +10,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\app_icon.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-All</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">

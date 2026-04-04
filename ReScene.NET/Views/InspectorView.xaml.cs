@@ -29,7 +29,7 @@ public partial class InspectorView : UserControl
     {
         if (e.OriginalSource is DependencyObject source)
         {
-            var treeViewItem = FindVisualParent<TreeViewItem>(source);
+            TreeViewItem? treeViewItem = FindVisualParent<TreeViewItem>(source);
             if (treeViewItem is not null)
             {
                 treeViewItem.IsSelected = true;
@@ -41,7 +41,7 @@ public partial class InspectorView : UserControl
 
     private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
     {
-        var current = child;
+        DependencyObject? current = child;
         while (current is not null)
         {
             if (current is T match)

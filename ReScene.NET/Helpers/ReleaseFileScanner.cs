@@ -10,54 +10,54 @@ internal static partial class ReleaseFileScanner
 {
     // ── Stored file extensions ──────────────────────────────
 
-    private static readonly HashSet<string> StoredExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _storedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".nfo", ".sfv", ".m3u", ".cue", ".log", ".srs"
     };
 
-    private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _imageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".bmp", ".gif"
     };
 
-    private static readonly HashSet<string> SampleExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _sampleExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".avi", ".mkv", ".mp4", ".wmv", ".m4v",
         ".flac", ".mp3",
         ".vob", ".m2ts", ".ts", ".mpg", ".mpeg", ".evo"
     };
 
-    private static readonly HashSet<string> MusicExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _musicExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".mp3", ".flac", ".mp2"
     };
 
     // ── Blacklisted filenames ───────────────────────────────
 
-    private static readonly HashSet<string> NfoBlacklist = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _nfoBlacklist = new(StringComparer.OrdinalIgnoreCase)
     {
         "imdb.nfo", "tvmaze.nfo", "movie.nfo", "scc.nfo", "motechnetfiles.nfo", "no.nfo"
     };
 
-    private static readonly HashSet<string> LogBlacklist = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _logBlacklist = new(StringComparer.OrdinalIgnoreCase)
     {
         "rushchk.log", ".upchk.log", "ufxpcrc.log"
     };
 
     // ── Subdirectory names ──────────────────────────────────
 
-    private static readonly HashSet<string> ProofDirs = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _proofDirs = new(StringComparer.OrdinalIgnoreCase)
     {
         "proof", "proofs", "sample", "cover", "covers", "screenshots", "compare"
     };
 
-    private static readonly HashSet<string> SubtitleDirs = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _subtitleDirs = new(StringComparer.OrdinalIgnoreCase)
     {
         "subs", "vobsubs", "vobsub", "subtitles", "sub", "subpack",
         "vobsubs-full", "vobsubs-light", "czsubs"
     };
 
-    private static readonly HashSet<string> DiscDirs = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> _discDirs = new(StringComparer.OrdinalIgnoreCase)
     {
         "codec", "codecs"
     };
@@ -97,8 +97,8 @@ internal static partial class ReleaseFileScanner
         {
             string dirName = Path.GetFileName(subDir);
 
-            if (ProofDirs.Contains(dirName) || SubtitleDirs.Contains(dirName) ||
-                DiscDirs.Contains(dirName) || CdDirPattern().IsMatch(dirName))
+            if (_proofDirs.Contains(dirName) || _subtitleDirs.Contains(dirName) ||
+                _discDirs.Contains(dirName) || CdDirPattern().IsMatch(dirName))
             {
                 ScanDirectory(subDir, releaseDir, files);
             }
@@ -122,7 +122,7 @@ internal static partial class ReleaseFileScanner
         {
             foreach (string file in Directory.GetFiles(sampleDir))
             {
-                if (SampleExtensions.Contains(Path.GetExtension(file)))
+                if (_sampleExtensions.Contains(Path.GetExtension(file)))
                 {
                     samples.Add(file);
                 }
@@ -134,7 +134,7 @@ internal static partial class ReleaseFileScanner
         {
             string name = Path.GetFileNameWithoutExtension(file);
             if (name.Contains("sample", StringComparison.OrdinalIgnoreCase) &&
-                SampleExtensions.Contains(Path.GetExtension(file)) &&
+                _sampleExtensions.Contains(Path.GetExtension(file)) &&
                 !samples.Contains(file))
             {
                 samples.Add(file);
@@ -156,7 +156,7 @@ internal static partial class ReleaseFileScanner
         foreach (string subDir in Directory.GetDirectories(releaseDir))
         {
             string dirName = Path.GetFileName(subDir);
-            if (SubtitleDirs.Contains(dirName))
+            if (_subtitleDirs.Contains(dirName))
             {
                 foreach (string file in Directory.GetFiles(subDir, "*.sfv"))
                 {
@@ -189,7 +189,7 @@ internal static partial class ReleaseFileScanner
     {
         foreach (string file in Directory.GetFiles(releaseDir))
         {
-            if (MusicExtensions.Contains(Path.GetExtension(file)))
+            if (_musicExtensions.Contains(Path.GetExtension(file)))
             {
                 return true;
             }
@@ -202,7 +202,7 @@ internal static partial class ReleaseFileScanner
             {
                 foreach (string file in Directory.GetFiles(subDir))
                 {
-                    if (MusicExtensions.Contains(Path.GetExtension(file)))
+                    if (_musicExtensions.Contains(Path.GetExtension(file)))
                     {
                         return true;
                     }
@@ -260,14 +260,14 @@ internal static partial class ReleaseFileScanner
     {
         bool isSubDir = !string.Equals(dir, releaseDir, StringComparison.OrdinalIgnoreCase);
         string dirName = Path.GetFileName(dir);
-        bool isProofDir = isSubDir && ProofDirs.Contains(dirName);
+        bool isProofDir = isSubDir && _proofDirs.Contains(dirName);
 
         foreach (string file in Directory.GetFiles(dir))
         {
             string ext = Path.GetExtension(file);
             string fileName = Path.GetFileName(file);
 
-            if (StoredExtensions.Contains(ext))
+            if (_storedExtensions.Contains(ext))
             {
                 if (!ShouldIncludeFile(file))
                 {
@@ -276,7 +276,7 @@ internal static partial class ReleaseFileScanner
 
                 AddFile(file, releaseDir, files);
             }
-            else if (ImageExtensions.Contains(ext))
+            else if (_imageExtensions.Contains(ext))
             {
                 if (!ShouldIncludeImage(fileName, isProofDir, isSubDir))
                 {
@@ -295,12 +295,12 @@ internal static partial class ReleaseFileScanner
 
         if (ext.Equals(".nfo", StringComparison.OrdinalIgnoreCase))
         {
-            return !NfoBlacklist.Contains(fileName);
+            return !_nfoBlacklist.Contains(fileName);
         }
 
         if (ext.Equals(".log", StringComparison.OrdinalIgnoreCase))
         {
-            if (LogBlacklist.Contains(fileName))
+            if (_logBlacklist.Contains(fileName))
             {
                 return false;
             }
@@ -326,7 +326,7 @@ internal static partial class ReleaseFileScanner
         if (!isSubDir)
         {
             string lower = fileName.ToLowerInvariant();
-            if (!lower.Contains("proof"))
+            if (!lower.Contains("proof", StringComparison.Ordinal))
             {
                 return false;
             }
@@ -340,7 +340,7 @@ internal static partial class ReleaseFileScanner
         string lower = fileName.ToLowerInvariant();
 
         // Windows Media Player album art
-        if (lower.Contains("albumartsmall"))
+        if (lower.Contains("albumartsmall", StringComparison.Ordinal))
         {
             return true;
         }
@@ -380,14 +380,14 @@ internal static partial class ReleaseFileScanner
         return files.OrderBy(f =>
         {
             string ext = Path.GetExtension(f.FullPath).ToLowerInvariant();
-            bool isInSubDir = f.StoredName.Contains(Path.DirectorySeparatorChar)
-                || f.StoredName.Contains('/');
+            bool isInSubDir = f.StoredName.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                || f.StoredName.Contains('/', StringComparison.Ordinal);
 
             return ext switch
             {
                 ".nfo" => 0,
                 ".m3u" => 1,
-                _ when ImageExtensions.Contains(ext) => 2,
+                _ when _imageExtensions.Contains(ext) => 2,
                 ".log" when isMusicRelease => 3,
                 ".log" => 4,
                 ".cue" => 5,

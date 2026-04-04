@@ -4,8 +4,8 @@ namespace ReScene.NET.Services;
 
 public interface ISrsReconstructionService
 {
-    event EventHandler<SrsReconstructionProgressEventArgs>? Progress;
+    public event EventHandler<SrsReconstructionProgressEventArgs>? Progress;
 
-    Task<SrsReconstructionResult> RebuildAsync(
+    public Task<SrsReconstructionResult> RebuildAsync(
         string srsFilePath, string mediaFilePath, string outputPath, CancellationToken ct);
 }

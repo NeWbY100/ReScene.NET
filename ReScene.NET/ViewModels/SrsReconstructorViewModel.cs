@@ -13,6 +13,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private readonly ISrsReconstructionService _service;
     private readonly IFileDialogService _fileDialog;
     private CancellationTokenSource? _cts;
+    private string? _extractedTempFile;
 
     public SrsReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog)
     {
@@ -31,6 +32,19 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
     private string _mediaFilePath = string.Empty;
+
+    // ISO support
+    [ObservableProperty]
+    private bool _isIsoSource;
+
+    [ObservableProperty]
+    private string _isoFilePath = string.Empty;
+
+    public ObservableCollection<string> IsoMediaFiles { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
+    private string? _selectedIsoMediaFile;
 
     // Output
     [ObservableProperty]
@@ -85,11 +99,25 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             "Video Files|*.avi;*.mkv;*.mp4;*.wmv;*.m4v;*.mov",
             "Audio Files|*.flac;*.mp3",
             "Stream Files|*.vob;*.m2ts;*.ts;*.mpg;*.mpeg;*.evo;*.m2v",
+            "ISO Images|*.iso;*.img",
             "All Files|*.*"
         ]);
 
-        if (path is not null)
+        if (path is null)
         {
+            return;
+        }
+
+        if (IsoMediaExtractor.IsIsoFile(path))
+        {
+            LoadIsoFile(path);
+        }
+        else
+        {
+            IsIsoSource = false;
+            IsoFilePath = string.Empty;
+            IsoMediaFiles.Clear();
+            SelectedIsoMediaFile = null;
             MediaFilePath = path;
         }
     }
@@ -101,16 +129,27 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             "Save Reconstructed Sample", ".*",
             ["All Files|*.*"],
             string.IsNullOrWhiteSpace(OutputPath) ? null : Path.GetFileName(OutputPath));
+
         if (path is not null)
         {
             OutputPath = path;
         }
     }
 
-    private bool CanRebuild() => !IsRebuilding
-        && !string.IsNullOrWhiteSpace(SrsFilePath)
-        && !string.IsNullOrWhiteSpace(MediaFilePath)
-        && !string.IsNullOrWhiteSpace(OutputPath);
+    private bool CanRebuild()
+    {
+        if (IsRebuilding || string.IsNullOrWhiteSpace(SrsFilePath) || string.IsNullOrWhiteSpace(OutputPath))
+        {
+            return false;
+        }
+
+        if (IsIsoSource)
+        {
+            return !string.IsNullOrWhiteSpace(SelectedIsoMediaFile);
+        }
+
+        return !string.IsNullOrWhiteSpace(MediaFilePath);
+    }
 
     [RelayCommand(CanExecute = nameof(CanRebuild))]
     private async Task RebuildAsync()
@@ -129,11 +168,42 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         {
             Log("Starting SRS reconstruction...");
             Log($"SRS file:   {SrsFilePath}");
-            Log($"Media file: {MediaFilePath}");
+
+            string mediaPath;
+
+            // If ISO source, extract the selected file first
+            if (IsIsoSource && !string.IsNullOrWhiteSpace(SelectedIsoMediaFile))
+            {
+                Log($"ISO image:  {IsoFilePath}");
+                Log($"Media file: {SelectedIsoMediaFile}");
+                Log("Extracting media file from ISO...");
+
+                string tempDir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N")[..8]);
+                Directory.CreateDirectory(tempDir);
+                string tempFile = Path.Combine(tempDir, Path.GetFileName(SelectedIsoMediaFile));
+                _extractedTempFile = tempFile;
+
+                await IsoMediaExtractor.ExtractFileAsync(
+                    IsoFilePath, SelectedIsoMediaFile, tempFile,
+                    p => Application.Current.Dispatcher.BeginInvoke(() =>
+                    {
+                        ProgressPercent = p / 2; // 0-50% for extraction
+                        ProgressMessage = $"Extracting from ISO... {p}%";
+                    }), _cts.Token);
+
+                Log($"Extracted to temp: {tempFile}");
+                mediaPath = tempFile;
+            }
+            else
+            {
+                Log($"Media file: {MediaFilePath}");
+                mediaPath = MediaFilePath;
+            }
+
             Log($"Output:     {OutputPath}");
 
-            var result = await _service.RebuildAsync(
-                SrsFilePath, MediaFilePath, OutputPath, _cts.Token);
+            SrsReconstructionResult result = await _service.RebuildAsync(
+                SrsFilePath, mediaPath, OutputPath, _cts.Token);
 
             sw.Stop();
 
@@ -174,6 +244,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             IsRebuilding = false;
             _cts?.Dispose();
             _cts = null;
+            CleanupTempFile();
         }
     }
 
@@ -184,11 +255,91 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         Log("Cancellation requested...");
     }
 
+    #region ISO Support
+
+    private void LoadIsoFile(string isoPath)
+    {
+        IsoFilePath = isoPath;
+        IsoMediaFiles.Clear();
+        SelectedIsoMediaFile = null;
+
+        try
+        {
+            List<string> files = IsoMediaExtractor.ListMediaFiles(isoPath);
+            foreach (string file in files)
+            {
+                IsoMediaFiles.Add(file);
+            }
+
+            IsIsoSource = true;
+            MediaFilePath = isoPath;
+
+            if (IsoMediaFiles.Count == 1)
+            {
+                SelectedIsoMediaFile = IsoMediaFiles[0];
+            }
+
+            Log($"ISO loaded: {Path.GetFileName(isoPath)} — {IsoMediaFiles.Count} media file(s) found");
+        }
+        catch (Exception ex)
+        {
+            IsIsoSource = false;
+            Log($"ERROR reading ISO: {ex.Message}");
+            MessageBox.Show(
+                $"Unable to read ISO image:\n{ex.Message}",
+                "ISO Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    partial void OnSelectedIsoMediaFileChanged(string? value)
+    {
+        RebuildCommand.NotifyCanExecuteChanged();
+    }
+
+    private void CleanupTempFile()
+    {
+        if (_extractedTempFile is null)
+        {
+            return;
+        }
+
+        try
+        {
+            string? tempDir = Path.GetDirectoryName(_extractedTempFile);
+            if (File.Exists(_extractedTempFile))
+            {
+                File.Delete(_extractedTempFile);
+            }
+
+            if (tempDir is not null && Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup
+        }
+
+        _extractedTempFile = null;
+    }
+
+    #endregion
+
     private void OnProgress(object? _, SrsReconstructionProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            ProgressPercent = (int)e.ProgressPercent;
+            int percent = (int)e.ProgressPercent;
+            // If ISO extraction was done, reconstruction progress maps to 50-100%
+            if (_extractedTempFile is not null)
+            {
+                percent = 50 + percent / 2;
+            }
+
+            ProgressPercent = percent;
             string msg = e.TotalTracks > 0
                 ? $"{e.Phase} (track {e.TrackNumber}/{e.TotalTracks})"
                 : e.Phase;

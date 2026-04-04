@@ -12,10 +12,20 @@
         </Grid.RowDefinitions>
 
         <!-- ── Tab description ─────────────────────────────────── -->
-        <TextBlock Grid.Row="0"
-                   Text="Reconstruct original RAR archives from an SRR file by brute-forcing WinRAR compression settings. Provide the source files and a WinRAR executable, then configure which RAR versions and switches to try."
-                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                   TextWrapping="Wrap" Margin="0,0,0,6" />
+        <StackPanel Grid.Row="0" Margin="0,0,0,6">
+          <TextBlock Text="Reconstruct original RAR archives from an SRR file by brute-forcing WinRAR compression settings. Provide the source files and a WinRAR executable, then configure which RAR versions and switches to try."
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                     TextWrapping="Wrap" />
+          <TextBlock Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                     TextWrapping="Wrap" Margin="0,2,0,0">
+            <Run Text="WinRAR versions needed for reconstruction can be downloaded from:" />
+            <Hyperlink NavigateUri="https://drive.google.com/file/d/1of053kS2Wxk-foHN_ALRu-u6Tcck58yn/view?usp=drive_link"
+                       RequestNavigate="OnHyperlinkRequestNavigate">Extracted files (ready to use)</Hyperlink>
+            <Run Text="or" />
+            <Hyperlink NavigateUri="https://drive.google.com/file/d/1hvgzSY6YH_ZS3cpy7bHcw2zpjiwuP_Xi/view?usp=drive_link"
+                       RequestNavigate="OnHyperlinkRequestNavigate">Original files from RAR FTP</Hyperlink>
+          </TextBlock>
+        </StackPanel>
 
         <!-- ── Top section: Paths, Settings, Action ─────────────── -->
         <DockPanel Grid.Row="1" Margin="0,0,0,2">

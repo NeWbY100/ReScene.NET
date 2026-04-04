@@ -46,7 +46,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
             return "ReScene.NET";
         }
 
-        int plus = version.IndexOf('+');
+        int plus = version.IndexOf('+', StringComparison.Ordinal);
         return plus >= 0
             ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
             : $"ReScene.NET v{version}";
@@ -124,7 +124,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
             Log($"Input: {InputPath}");
             Log($"Output: {OutputPath}");
 
-            var result = await _srsService.CreateAsync(
+            SrsCreationResult result = await _srsService.CreateAsync(
                 OutputPath, InputPath, options, _cts.Token);
 
             if (result.Success)

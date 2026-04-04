@@ -134,7 +134,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
             Log($"Restoring {total} sample(s)...");
 
-            foreach (var entry in selected)
+            foreach (SrsFileEntry? entry in selected)
             {
                 if (_cts.Token.IsCancellationRequested)
                 {
@@ -157,7 +157,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
                 try
                 {
-                    var result = await _service.RestoreSampleAsync(
+                    SrsReconstructionResult result = await _service.RestoreSampleAsync(
                         SrrFilePath, entry.SrsFileName,
                         entry.MediaFilePath, outputPath, _cts.Token);
 
@@ -216,7 +216,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
     private void LoadSrsEntries()
     {
-        foreach (var old in SrsEntries)
+        foreach (SrsFileEntry old in SrsEntries)
         {
             old.PropertyChanged -= OnEntryPropertyChanged;
         }
@@ -225,9 +225,9 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
         try
         {
-            var entries = _service.GetSrsEntries(SrrFilePath);
+            List<SrsEntryInfo> entries = _service.GetSrsEntries(SrrFilePath);
 
-            foreach (var info in entries)
+            foreach (SrsEntryInfo info in entries)
             {
                 var entry = new SrsFileEntry
                 {
@@ -264,7 +264,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
 
         int found = 0;
-        foreach (var entry in SrsEntries)
+        foreach (SrsFileEntry entry in SrsEntries)
         {
             if (byName.TryGetValue(entry.SampleFileName, out string? match))
             {

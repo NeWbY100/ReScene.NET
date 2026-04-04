@@ -31,7 +31,18 @@
               Command="{Binding BrowseMediaCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding MediaFilePath}" />
+      <TextBox Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsIsoSource}" />
+    </DockPanel>
+
+    <!-- ── ISO File Selection (visible only when ISO is loaded) ── -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,4,0,0"
+               Visibility="{Binding IsIsoSource, Converter={StaticResource BoolToVisibility}}">
+      <TextBlock DockPanel.Dock="Left" Text="File in ISO:"
+                 VerticalAlignment="Center" Margin="0,0,8,0" />
+      <ComboBox ItemsSource="{Binding IsoMediaFiles}"
+                SelectedItem="{Binding SelectedIsoMediaFile}"
+                FontFamily="{DynamicResource MonoFontFamily}"
+                FontSize="{DynamicResource FontSizeCaption}" />
     </DockPanel>
 
     <!-- separator -->

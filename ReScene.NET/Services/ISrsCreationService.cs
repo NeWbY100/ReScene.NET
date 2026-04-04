@@ -8,7 +8,7 @@ namespace ReScene.NET.Services;
 public interface ISrsCreationService
 {
     /// <summary>Raised to report progress during SRS creation.</summary>
-    event EventHandler<SrsCreationProgressEventArgs>? Progress;
+    public event EventHandler<SrsCreationProgressEventArgs>? Progress;
 
     /// <summary>
     /// Creates an SRS file from a sample media file.
@@ -18,7 +18,7 @@ public interface ISrsCreationService
     /// <param name="options">Creation options.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The creation result including success status and file size.</returns>
-    Task<SrsCreationResult> CreateAsync(
+    public Task<SrsCreationResult> CreateAsync(
         string outputPath,
         string sampleFilePath,
         SrsCreationOptions options,

@@ -20,7 +20,10 @@ public partial class TreeNodeViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isDifferent;
 
-    public object? Tag { get; set; }
+    public object? Tag
+    {
+        get; set;
+    }
 
     public ObservableCollection<TreeNodeViewModel> Children { get; } = [];
 
@@ -36,7 +39,7 @@ public partial class TreeNodeViewModel : ViewModelBase
             return true;
         }
 
-        foreach (var child in Children)
+        foreach (TreeNodeViewModel child in Children)
         {
             if (child.MatchesFilter(filter))
             {
@@ -52,7 +55,7 @@ public partial class TreeNodeViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(filter))
         {
             IsVisible = true;
-            foreach (var child in Children)
+            foreach (TreeNodeViewModel child in Children)
             {
                 child.ApplyFilter(filter);
             }
@@ -65,7 +68,7 @@ public partial class TreeNodeViewModel : ViewModelBase
 
         if (matches)
         {
-            foreach (var child in Children)
+            foreach (TreeNodeViewModel child in Children)
             {
                 child.ApplyFilter(filter);
             }

@@ -1,3 +1,4 @@
+using System.Windows;
 using Microsoft.Win32;
 
 namespace ReScene.NET.Services;
@@ -58,7 +59,7 @@ public class FileDialogService : IFileDialogService
 
     public Task<bool> ShowConfirmAsync(string title, string message)
     {
-        var result = System.Windows.MessageBox.Show(message, title,
+        MessageBoxResult result = System.Windows.MessageBox.Show(message, title,
             System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Warning);
         return Task.FromResult(result == System.Windows.MessageBoxResult.OK);
     }

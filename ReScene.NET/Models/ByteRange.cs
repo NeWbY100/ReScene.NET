@@ -9,8 +9,14 @@ public class ByteRange
     public string PropertyName { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the starting byte offset within the file.</summary>
-    public long Offset { get; set; }
+    public long Offset
+    {
+        get; set;
+    }
 
     /// <summary>Gets or sets the length of the byte range.</summary>
-    public long Length { get; set; }
+    public long Length
+    {
+        get; set;
+    }
 }

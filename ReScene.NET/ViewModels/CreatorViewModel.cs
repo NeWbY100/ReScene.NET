@@ -83,7 +83,7 @@ public partial class CreatorViewModel : ViewModelBase
             return "ReScene.NET";
         }
 
-        int plus = version.IndexOf('+');
+        int plus = version.IndexOf('+', StringComparison.Ordinal);
         return plus >= 0
             ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
             : $"ReScene.NET v{version}";
@@ -144,7 +144,7 @@ public partial class CreatorViewModel : ViewModelBase
     [RelayCommand]
     private async Task AddStoredFileAsync()
     {
-        var paths = await _fileDialog.OpenFilesAsync(
+        IReadOnlyList<string> paths = await _fileDialog.OpenFilesAsync(
             "Select Files to Store", ["NFO/SFV Files|*.nfo;*.sfv;*.txt", "All Files|*.*"]);
 
         foreach (string path in paths)
@@ -209,7 +209,7 @@ public partial class CreatorViewModel : ViewModelBase
             // Phase 1: Auto-create SRS files for samples
             if (AutoCreateSrs)
             {
-                tempDir = await CreateSrsForSamplesAsync(releaseDir, options, _cts.Token);
+                tempDir = await CreateSrsForSamplesAsync(releaseDir, _cts.Token);
             }
 
             // Phase 2: Create nested SRRs for subtitle archives
@@ -228,7 +228,7 @@ public partial class CreatorViewModel : ViewModelBase
             SrrCreationResult result;
 
             var storedFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var item in StoredFiles)
+            foreach (StoredFileItem item in StoredFiles)
             {
                 storedFiles[item.StoredName] = item.FullPath;
             }
@@ -242,7 +242,7 @@ public partial class CreatorViewModel : ViewModelBase
             }
             else
             {
-                var volumes = DiscoverRarVolumes(InputPath);
+                List<string> volumes = DiscoverRarVolumes(InputPath);
                 Log($"Found {volumes.Count} volume(s).");
 
                 result = await _srrService.CreateFromRarAsync(
@@ -311,8 +311,8 @@ public partial class CreatorViewModel : ViewModelBase
 
         try
         {
-            var scanned = ReleaseFileScanner.ScanReleaseDirectory(releaseDir);
-            foreach (var (fullPath, storedName) in scanned)
+            List<(string FullPath, string StoredName)> scanned = ReleaseFileScanner.ScanReleaseDirectory(releaseDir);
+            foreach ((string? fullPath, string? storedName) in scanned)
             {
                 StoredFiles.Add(new StoredFileItem
                 {
@@ -329,9 +329,9 @@ public partial class CreatorViewModel : ViewModelBase
 
     // ── SRS auto-creation ───────────────────────────────────
 
-    private async Task<string?> CreateSrsForSamplesAsync(string releaseDir, SrrCreationOptions options, CancellationToken ct)
+    private async Task<string?> CreateSrsForSamplesAsync(string releaseDir, CancellationToken ct)
     {
-        var samples = ReleaseFileScanner.FindSampleFiles(releaseDir);
+        List<string> samples = ReleaseFileScanner.FindSampleFiles(releaseDir);
         if (samples.Count == 0)
         {
             return null;
@@ -355,7 +355,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             try
             {
-                var result = await _srsService.CreateAsync(srsPath, samplePath, srsOptions, ct);
+                SrsCreationResult result = await _srsService.CreateAsync(srsPath, samplePath, srsOptions, ct);
                 if (result.Success)
                 {
                     string storedName = Path.GetRelativePath(releaseDir, samplePath).Replace('\\', '/');
@@ -387,7 +387,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     private async Task CreateVobsubSrrsAsync(string releaseDir, SrrCreationOptions options, string tempDir, CancellationToken ct)
     {
-        var subtitleSfvs = ReleaseFileScanner.FindSubtitleSfvFiles(releaseDir);
+        List<string> subtitleSfvs = ReleaseFileScanner.FindSubtitleSfvFiles(releaseDir);
         if (subtitleSfvs.Count == 0)
         {
             return;
@@ -405,7 +405,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             try
             {
-                var result = await _srrService.CreateFromSfvAsync(
+                SrrCreationResult result = await _srrService.CreateFromSfvAsync(
                     srrPath, sfvPath, null, options, ct);
 
                 if (result.Success)
@@ -451,7 +451,7 @@ public partial class CreatorViewModel : ViewModelBase
         }
 
         // Find RAR files referenced by the SFV
-        var rarFiles = ReleaseFileScanner.FindRarFilesFromSfv(sfvFiles[0]);
+        List<string> rarFiles = ReleaseFileScanner.FindRarFilesFromSfv(sfvFiles[0]);
         if (rarFiles.Count != 1)
         {
             return;
@@ -525,7 +525,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     private void UpdateStoredNames()
     {
-        foreach (var item in StoredFiles)
+        foreach (StoredFileItem item in StoredFiles)
         {
             item.StoredName = ComputeStoredName(item.FullPath);
         }
@@ -579,7 +579,10 @@ public partial class CreatorViewModel : ViewModelBase
             for (int i = 0; i < maxOldStyleVolumes; i++)
             {
                 int letterIndex = i / volumesPerLetter;
-                if (letterIndex > maxLetterIndex) break;
+                if (letterIndex > maxLetterIndex)
+                {
+                    break;
+                }
                 char letter = (char)('r' + letterIndex);
                 string ext = $".{letter}{i % volumesPerLetter:D2}";
 

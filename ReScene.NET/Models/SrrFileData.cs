@@ -32,15 +32,15 @@ public class SrrFileData
         {
             try
             {
-                using var fs = File.OpenRead(filePath);
-                foreach (var rarFile in srrFile.RarFiles)
+                using FileStream fs = File.OpenRead(filePath);
+                foreach (SrrRarFileBlock rarFile in srrFile.RarFiles)
                 {
                     try
                     {
                         long embeddedStart = rarFile.BlockPosition + rarFile.HeaderSize;
                         fs.Position = embeddedStart;
 
-                        var detailedBlocks = RARDetailedParser.ParseFromPosition(fs);
+                        List<RARDetailedBlock> detailedBlocks = RARDetailedParser.ParseFromPosition(fs);
                         volumeBlocks[rarFile.FileName] = detailedBlocks;
                     }
                     catch

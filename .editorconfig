@@ -159,8 +159,303 @@ dotnet_diagnostic.CA1816.severity = warning
 # IDE0005: Remove unnecessary using directives
 dotnet_diagnostic.IDE0005.severity = warning
 
+# ── Actionable warnings (fix these) ──────────────────────
+
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = warning
+
+# CA1868: Unnecessary Contains before Add/Remove
+dotnet_diagnostic.CA1868.severity = warning
+
+# CA1866: Use char overload instead of string
+dotnet_diagnostic.CA1866.severity = warning
+
+# CA1872: Prefer Convert.ToHexStringLower over chained ToHexString+ToLower
+dotnet_diagnostic.CA1872.severity = warning
+
+# CA1307: Specify StringComparison for clarity
+dotnet_diagnostic.CA1307.severity = warning
+
+# CA1310: Specify StringComparison for correctness
+dotnet_diagnostic.CA1310.severity = warning
+
+# ── Suppressed warnings (too noisy or design choices) ────
+
+# CS1591: Missing XML comment for public type/member (too noisy with GenerateDocumentationFile)
+dotnet_diagnostic.CS1591.severity = none
+
+# CA1305: Specify IFormatProvider (not needed for internal display formatting)
+dotnet_diagnostic.CA1305.severity = none
+
+# CA1515: Make class sealed (design choice — ViewModels are partial for source generators)
+dotnet_diagnostic.CA1515.severity = none
+
+# CA1031: Do not catch general exception (intentional for error handling patterns)
+dotnet_diagnostic.CA1031.severity = none
+
+# CA2007: ConfigureAwait (WPF app needs synchronization context)
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1062: Validate arguments of public methods (nullable reference types handle this)
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1002: Do not expose generic lists (internal API, ObservableCollection pattern)
+dotnet_diagnostic.CA1002.severity = none
+
+# CA2227: Collection properties should be read-only (MVVM pattern requires settable)
+dotnet_diagnostic.CA2227.severity = none
+
+# CA1308: Normalize to upper case (lower case is intentional)
+dotnet_diagnostic.CA1308.severity = none
+
+# CA1819: Properties should not return arrays (binary data properties)
+dotnet_diagnostic.CA1819.severity = none
+
+# CA1028: Enum storage should be Int32 (format-specific byte/ushort enums)
+dotnet_diagnostic.CA1028.severity = none
+
+# CA1024: Use properties instead of methods (design choice)
+dotnet_diagnostic.CA1024.severity = none
+
+# CA1814: Prefer jagged arrays (not applicable)
+dotnet_diagnostic.CA1814.severity = none
+
+# CA1852: Type can be sealed (design choice)
+dotnet_diagnostic.CA1852.severity = none
+
+# CA1034: Nested types should not be visible (ViewModel inner classes are intentional)
+dotnet_diagnostic.CA1034.severity = none
+
+# CA1711: Identifiers should not have incorrect suffix (EventArgs naming is correct)
+dotnet_diagnostic.CA1711.severity = none
+
+# CA1716: Identifiers should not match keywords (namespace names are intentional)
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1721: Property names should not match get methods (design choice)
+dotnet_diagnostic.CA1721.severity = none
+
+# CA1725: Parameter names should match base declaration (interface implementations)
+dotnet_diagnostic.CA1725.severity = none
+
+# CA1724: Type names should not match namespaces (project naming convention)
+dotnet_diagnostic.CA1724.severity = none
+
+# CA1051: Do not declare visible instance fields (ObservableProperty fields are source-generated)
+dotnet_diagnostic.CA1051.severity = none
+
+# CA1008: Enums should have zero value (format-specific enums)
+dotnet_diagnostic.CA1008.severity = none
+
+# CA5392: Use DefaultDllImportSearchPaths (P/Invoke for DWM is safe)
+dotnet_diagnostic.CA5392.severity = none
+
+# CA5350: Do not use weak cryptographic algorithms (SHA1/CRC32 are format requirements)
+dotnet_diagnostic.CA5350.severity = none
+
+# CA2201: Do not raise reserved exception types (acceptable in specific contexts)
+dotnet_diagnostic.CA2201.severity = none
+
+# CA1720: Identifier contains type name (acceptable for format-specific code)
+dotnet_diagnostic.CA1720.severity = none
+
+# CA1069: Enum values should not be duplicated (intentional for format-specific enums, e.g., DictSize64 = 0 = None)
+dotnet_diagnostic.CA1069.severity = none
+
+# CA1027: Mark enums with FlagsAttribute (EbmlLaceType values are not combinable flags)
+dotnet_diagnostic.CA1027.severity = none
+
+# CA1859: Use concrete type instead of interface (false positive on WPF coercion callbacks)
+dotnet_diagnostic.CA1859.severity = none
+
+# CA1849: Call async method (too risky to change synchronous Stream calls in reconstruction code)
+dotnet_diagnostic.CA1849.severity = none
+
+# CA1001: Types that own disposable fields should be disposable (complex ownership patterns)
+dotnet_diagnostic.CA1001.severity = none
+
+# CA1063: Implement IDisposable correctly (design choice for ViewModel patterns)
+dotnet_diagnostic.CA1063.severity = none
+
+# CA2000: Dispose objects before losing scope (complex async ownership)
+dotnet_diagnostic.CA2000.severity = none
+
+# CA2025: Do not pass 'T[]' with a non-zero lower bound to 'Span<T>' (not applicable)
+dotnet_diagnostic.CA2025.severity = none
+
+# CA1851: Possible multiple enumerations of IEnumerable (acceptable in specific contexts)
+dotnet_diagnostic.CA1851.severity = none
+
+# ── IDE code style rules (enforced on build) ────────────
+
+# Enable ALL IDE analyzers as warnings by default
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+
+# Downgrade some to suggestion (valid but not critical)
+# IDE0017: Use object initializers
+dotnet_diagnostic.IDE0017.severity = suggestion
+# IDE0018: Inline variable declaration
+dotnet_diagnostic.IDE0018.severity = suggestion
+# IDE0019: Use pattern matching
+dotnet_diagnostic.IDE0019.severity = suggestion
+# IDE0028: Use collection initializers
+dotnet_diagnostic.IDE0028.severity = suggestion
+# IDE0032: Use auto property
+dotnet_diagnostic.IDE0032.severity = suggestion
+# IDE0039: Use local function
+dotnet_diagnostic.IDE0039.severity = suggestion
+# IDE0044: Make field readonly
+dotnet_diagnostic.IDE0044.severity = suggestion
+# IDE0047: Remove unnecessary parentheses
+dotnet_diagnostic.IDE0047.severity = suggestion
+# IDE0055: Formatting rule
+dotnet_diagnostic.IDE0055.severity = suggestion
+# IDE0060: Remove unused parameter
+dotnet_diagnostic.IDE0060.severity = suggestion
+# IDE0062: Make local function static
+dotnet_diagnostic.IDE0062.severity = suggestion
+# IDE0063: Use simple using statement
+dotnet_diagnostic.IDE0063.severity = suggestion
+# IDE0066: Use switch expression
+dotnet_diagnostic.IDE0066.severity = suggestion
+# IDE0071: Simplify interpolation
+dotnet_diagnostic.IDE0071.severity = suggestion
+# IDE0074: Use compound assignment
+dotnet_diagnostic.IDE0074.severity = suggestion
+# IDE0078: Use pattern matching
+dotnet_diagnostic.IDE0078.severity = suggestion
+# IDE0090: Simplify new expression
+dotnet_diagnostic.IDE0090.severity = suggestion
+# IDE0058: Expression value is never used (too noisy for fire-and-forget patterns)
+dotnet_diagnostic.IDE0058.severity = none
+# IDE0048: Add required parentheses (style preference)
+dotnet_diagnostic.IDE0048.severity = none
+# IDE0046: Use conditional expression for return (style preference)
+dotnet_diagnostic.IDE0046.severity = none
+# IDE0045: Use conditional expression for assignment (style preference)
+dotnet_diagnostic.IDE0045.severity = none
+# IDE0010: Add missing cases to switch (has default case)
+dotnet_diagnostic.IDE0010.severity = none
+# IDE0072: Add missing cases to switch expression (has _ default)
+dotnet_diagnostic.IDE0072.severity = none
+# IDE0130: Namespace does not match folder structure
+dotnet_diagnostic.IDE0130.severity = none
+# IDE0270: Null check can be simplified
+dotnet_diagnostic.IDE0270.severity = suggestion
+# IDE0300: Use collection expression
+dotnet_diagnostic.IDE0300.severity = suggestion
+# IDE0301: Use collection expression for empty
+dotnet_diagnostic.IDE0301.severity = suggestion
+
 # IDE0011: Add braces
 dotnet_diagnostic.IDE0011.severity = warning
+
+# IDE0017: Use object initializers
+dotnet_diagnostic.IDE0017.severity = suggestion
+
+# IDE0018: Inline variable declaration
+dotnet_diagnostic.IDE0018.severity = suggestion
+
+# IDE0019: Use pattern matching to avoid 'as' followed by null check
+dotnet_diagnostic.IDE0019.severity = suggestion
+
+# IDE0020: Use pattern matching to avoid 'is' followed by cast
+dotnet_diagnostic.IDE0020.severity = suggestion
+
+# IDE0028: Use collection initializers
+dotnet_diagnostic.IDE0028.severity = suggestion
+
+# IDE0029: Use coalesce expression
+dotnet_diagnostic.IDE0029.severity = suggestion
+
+# IDE0031: Use null propagation
+dotnet_diagnostic.IDE0031.severity = suggestion
+
+# IDE0032: Use auto property
+dotnet_diagnostic.IDE0032.severity = suggestion
+
+# IDE0034: Simplify default expression
+dotnet_diagnostic.IDE0034.severity = suggestion
+
+# IDE0036: Order modifiers
+dotnet_diagnostic.IDE0036.severity = warning
+
+# IDE0039: Use local function instead of lambda
+dotnet_diagnostic.IDE0039.severity = suggestion
+
+# IDE0040: Accessibility modifiers required
+dotnet_diagnostic.IDE0040.severity = warning
+
+# IDE0041: Use is null check
+dotnet_diagnostic.IDE0041.severity = warning
+
+# IDE0044: Make field readonly
+dotnet_diagnostic.IDE0044.severity = suggestion
+
+# IDE0047: Remove unnecessary parentheses
+dotnet_diagnostic.IDE0047.severity = suggestion
+
+# IDE0049: Use language keywords instead of framework type names
+dotnet_diagnostic.IDE0049.severity = warning
+
+# IDE0051: Remove unused private members
+dotnet_diagnostic.IDE0051.severity = warning
+
+# IDE0052: Remove unread private members
+dotnet_diagnostic.IDE0052.severity = warning
+
+# IDE0055: Formatting rule
+dotnet_diagnostic.IDE0055.severity = suggestion
+
+# IDE0059: Unnecessary assignment of a value
+dotnet_diagnostic.IDE0059.severity = warning
+csharp_style_unused_value_assignment_preference = discard_variable:warning
+
+# IDE0060: Remove unused parameter
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_code_quality_unused_parameters = all:warning
+
+# IDE0062: Make local function static
+dotnet_diagnostic.IDE0062.severity = suggestion
+
+# IDE0063: Use simple using statement
+dotnet_diagnostic.IDE0063.severity = suggestion
+
+# IDE0065: Using directive placement
+dotnet_diagnostic.IDE0065.severity = warning
+
+# IDE0066: Use switch expression
+dotnet_diagnostic.IDE0066.severity = suggestion
+
+# IDE0071: Simplify interpolation
+dotnet_diagnostic.IDE0071.severity = suggestion
+
+# IDE0074: Use compound assignment
+dotnet_diagnostic.IDE0074.severity = suggestion
+
+# IDE0078: Use pattern matching
+dotnet_diagnostic.IDE0078.severity = suggestion
+
+# IDE0090: Simplify new expression
+dotnet_diagnostic.IDE0090.severity = suggestion
+
+# IDE0130: Namespace does not match folder structure
+dotnet_diagnostic.IDE0130.severity = none
+
+# IDE0160: Use file-scoped namespace
+dotnet_diagnostic.IDE0160.severity = warning
+
+# IDE0161: Use file-scoped namespace
+dotnet_diagnostic.IDE0161.severity = warning
+
+# IDE0270: Null check can be simplified
+dotnet_diagnostic.IDE0270.severity = suggestion
+
+# IDE0300: Use collection expression
+dotnet_diagnostic.IDE0300.severity = suggestion
+
+# IDE0301: Use collection expression for empty
+dotnet_diagnostic.IDE0301.severity = suggestion
 
 # CA1805: Do not initialize unnecessarily
 dotnet_diagnostic.CA1805.severity = suggestion

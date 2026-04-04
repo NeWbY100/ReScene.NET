@@ -8,7 +8,7 @@ namespace ReScene.NET.Services;
 public interface ISrrCreationService
 {
     /// <summary>Raised to report progress during SRR creation.</summary>
-    event EventHandler<SrrCreationProgressEventArgs>? Progress;
+    public event EventHandler<SrrCreationProgressEventArgs>? Progress;
 
     /// <summary>
     /// Creates an SRR file from a list of RAR volume paths.
@@ -19,7 +19,7 @@ public interface ISrrCreationService
     /// <param name="options">Creation options.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The creation result including success status and statistics.</returns>
-    Task<SrrCreationResult> CreateFromRarAsync(
+    public Task<SrrCreationResult> CreateFromRarAsync(
         string outputPath,
         IReadOnlyList<string> rarVolumePaths,
         IReadOnlyDictionary<string, string>? storedFiles,
@@ -35,7 +35,7 @@ public interface ISrrCreationService
     /// <param name="options">Creation options.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The creation result including success status and statistics.</returns>
-    Task<SrrCreationResult> CreateFromSfvAsync(
+    public Task<SrrCreationResult> CreateFromSfvAsync(
         string outputPath,
         string sfvFilePath,
         IReadOnlyDictionary<string, string>? additionalFiles,

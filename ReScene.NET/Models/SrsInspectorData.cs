@@ -15,5 +15,8 @@ public class SrsInspectorData
     /// <param name="filePath">Path to the SRS file.</param>
     /// <returns>A new <see cref="SrsInspectorData"/> wrapping the parsed file.</returns>
     public static SrsInspectorData Load(string filePath)
-        => new() { SrsFile = SRSFile.Load(filePath) };
+        => new()
+        {
+            SrsFile = SRSFile.Load(filePath)
+        };
 }

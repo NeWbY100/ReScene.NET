@@ -12,5 +12,8 @@ public class RecentFileEntry
     public string FileName { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the date and time the file was last opened.</summary>
-    public DateTime LastOpened { get; set; }
+    public DateTime LastOpened
+    {
+        get; set;
+    }
 }

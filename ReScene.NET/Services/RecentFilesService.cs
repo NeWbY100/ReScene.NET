@@ -6,21 +6,22 @@ namespace ReScene.NET.Services;
 public class RecentFilesService : IRecentFilesService
 {
     private const int MaxEntries = 10;
-    private static readonly string AppDataDir = Path.Combine(
+    private static readonly JsonSerializerOptions _serializerOptions = new() { WriteIndented = true };
+    private static readonly string _appDataDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "ReScene.NET");
-    private static readonly string FilePath = Path.Combine(AppDataDir, "recent.json");
+    private static readonly string _filePath = Path.Combine(_appDataDir, "recent.json");
 
     public List<RecentFileEntry> LoadEntries()
     {
         try
         {
-            if (!File.Exists(FilePath))
+            if (!File.Exists(_filePath))
             {
                 return [];
             }
 
-            string json = File.ReadAllText(FilePath);
+            string json = File.ReadAllText(_filePath);
             return JsonSerializer.Deserialize<List<RecentFileEntry>>(json) ?? [];
         }
         catch
@@ -31,7 +32,7 @@ public class RecentFilesService : IRecentFilesService
 
     public void AddEntry(string filePath)
     {
-        var entries = LoadEntries();
+        List<RecentFileEntry> entries = LoadEntries();
 
         entries.RemoveAll(e => string.Equals(e.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
 
@@ -52,7 +53,7 @@ public class RecentFilesService : IRecentFilesService
 
     public void RemoveEntry(string filePath)
     {
-        var entries = LoadEntries();
+        List<RecentFileEntry> entries = LoadEntries();
         entries.RemoveAll(e => string.Equals(e.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
         Save(entries);
     }
@@ -66,9 +67,9 @@ public class RecentFilesService : IRecentFilesService
     {
         try
         {
-            Directory.CreateDirectory(AppDataDir);
-            string json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(FilePath, json);
+            Directory.CreateDirectory(_appDataDir);
+            string json = JsonSerializer.Serialize(entries, _serializerOptions);
+            File.WriteAllText(_filePath, json);
         }
         catch
         {

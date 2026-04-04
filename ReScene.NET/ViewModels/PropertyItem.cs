@@ -6,10 +6,25 @@ public class PropertyItem
 {
     public string Name { get; set; } = string.Empty;
     public string Value { get; set; } = string.Empty;
-    public ByteRange? ByteRange { get; set; }
+    public ByteRange? ByteRange
+    {
+        get; set;
+    }
     public bool HasByteRange => ByteRange is not null;
-    public bool IsIndented { get; set; }
-    public bool IsDifferent { get; set; }
-    public bool IsWarning { get; set; }
-    public bool IsSeparator { get; set; }
+    public bool IsIndented
+    {
+        get; set;
+    }
+    public bool IsDifferent
+    {
+        get; set;
+    }
+    public bool IsWarning
+    {
+        get; set;
+    }
+    public bool IsSeparator
+    {
+        get; set;
+    }
 }

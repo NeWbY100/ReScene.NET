@@ -14,24 +14,24 @@ public class HexViewControl : UserControl
     private const double DefaultFontSize = 12;
     private const double ContentRightMargin = 20;
 
-    private static readonly Typeface MonoTypeface = new("Cascadia Mono, Consolas, Courier New, monospace");
-    private static readonly double Dpi = VisualTreeHelper.GetDpi(new DrawingVisual()).PixelsPerDip;
+    private static readonly Typeface _monoTypeface = new("Cascadia Mono, Consolas, Courier New, monospace");
+    private static readonly double _dpi = VisualTreeHelper.GetDpi(new DrawingVisual()).PixelsPerDip;
 
-    private static readonly double CharWidth = new FormattedText(
+    private static readonly double _charWidth = new FormattedText(
         "0000000000", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-        MonoTypeface, DefaultFontSize, Brushes.Black, Dpi).Width / 10;
+        _monoTypeface, DefaultFontSize, Brushes.Black, _dpi).Width / 10;
 
-    private static readonly double AddressWidth = 10 * CharWidth;
+    private static readonly double _addressWidth = 10 * _charWidth;
 
     // Computed from BytesPerLine: each byte is "XX " except the last which has no trailing space
-    private double HexWidth => (BytesPerLine * 3 - 1) * CharWidth;
-    private double AsciiWidth => BytesPerLine * CharWidth;
+    private double HexWidth => (BytesPerLine * 3 - 1) * _charWidth;
+    private double AsciiWidth => BytesPerLine * _charWidth;
 
-    private double _gap1 = CharWidth;
-    private double _gap2 = CharWidth;
+    private double _gap1 = _charWidth;
+    private double _gap2 = _charWidth;
 
-    private double HexStartX => AddressWidth + _gap1;
-    private double AsciiStartX => AddressWidth + _gap1 + HexWidth + _gap2;
+    private double HexStartX => _addressWidth + _gap1;
+    private double AsciiStartX => _addressWidth + _gap1 + HexWidth + _gap2;
     private double TotalContentWidth => AsciiStartX + AsciiWidth + ContentRightMargin;
 
     public static readonly DependencyProperty DataSourceProperty =
@@ -228,7 +228,7 @@ public class HexViewControl : UserControl
         private double _dragStartGap;
 
         private const double HitTolerance = 4;
-        private static readonly double MinGap = 0.5 * CharWidth;
+        private static readonly double _minGap = 0.5 * _charWidth;
 
         private double Divider1X => _owner.HexStartX;
         private double Divider2X => _owner.AsciiStartX;
@@ -237,29 +237,33 @@ public class HexViewControl : UserControl
         {
             base.OnRender(context);
 
-            var brush = GetBrush("ForegroundSecondary", Brushes.Gray);
+            Brush brush = GetBrush("ForegroundSecondary", Brushes.Gray);
 
             var offsetFmt = new FormattedText("Offset", CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, brush, Dpi);
+                FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, brush, _dpi);
             context.DrawText(offsetFmt, new Point(0, 2));
 
             int bytesPerLine = _owner.BytesPerLine;
             var sb = new StringBuilder();
             for (int i = 0; i < bytesPerLine; i++)
             {
-                if (i > 0) sb.Append(' ');
+                if (i > 0)
+                {
+                    sb.Append(' ');
+                }
+
                 sb.Append(i.ToString("X2"));
             }
 
             var hexFmt = new FormattedText(sb.ToString(), CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, brush, Dpi);
+                FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, brush, _dpi);
             context.DrawText(hexFmt, new Point(_owner.HexStartX, 2));
 
             var asciiFmt = new FormattedText("ASCII", CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, brush, Dpi);
+                FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, brush, _dpi);
             context.DrawText(asciiFmt, new Point(_owner.AsciiStartX, 2));
 
-            var dividerBrush = GetBrush("BorderMedium", Brushes.Gray);
+            Brush dividerBrush = GetBrush("BorderMedium", Brushes.Gray);
             var dividerPen = new Pen(dividerBrush, 1);
             double line1X = Divider1X - Math.Min(3, _owner._gap1 / 2);
             double line2X = Divider2X - Math.Min(3, _owner._gap2 / 2);
@@ -271,12 +275,12 @@ public class HexViewControl : UserControl
         {
             base.OnMouseMove(e);
 
-            var pos = e.GetPosition(this);
+            Point pos = e.GetPosition(this);
 
             if (_dragIndex != 0)
             {
                 double delta = pos.X - _dragStartX;
-                double newGap = Math.Max(MinGap, _dragStartGap + delta);
+                double newGap = Math.Max(_minGap, _dragStartGap + delta);
                 if (_dragIndex == 1)
                 {
                     _owner._gap1 = newGap;
@@ -306,7 +310,7 @@ public class HexViewControl : UserControl
         {
             base.OnMouseLeftButtonDown(e);
 
-            var pos = e.GetPosition(this);
+            Point pos = e.GetPosition(this);
 
             if (Math.Abs(pos.X - Divider1X) <= HitTolerance)
             {
@@ -403,7 +407,7 @@ public class HexViewControl : UserControl
             base.OnMouseLeftButtonDown(e);
 
             Focus();
-            var pos = e.GetPosition(this);
+            Point pos = e.GetPosition(this);
             long byteOffset = HitTestByte(pos, out bool isAscii);
 
             if (byteOffset >= 0)
@@ -425,7 +429,7 @@ public class HexViewControl : UserControl
 
             if (_isMouseSelecting)
             {
-                var pos = e.GetPosition(this);
+                Point pos = e.GetPosition(this);
                 long byteOffset = HitTestByte(pos, out _);
 
                 if (byteOffset >= 0 && byteOffset != _mouseSelCurrent)
@@ -498,7 +502,7 @@ public class HexViewControl : UserControl
         {
             GetActiveSelection(out long selStart, out long selLength);
 
-            var source = _owner.DataSource;
+            IHexDataSource? source = _owner.DataSource;
             if (selStart < 0 || selLength <= 0 || source is null)
             {
                 return;
@@ -538,7 +542,11 @@ public class HexViewControl : UserControl
                 var sb = new StringBuilder(read * 3);
                 for (int i = 0; i < read; i++)
                 {
-                    if (i > 0) sb.Append(' ');
+                    if (i > 0)
+                    {
+                        sb.Append(' ');
+                    }
+
                     sb.Append(buf[i].ToString("X2"));
                 }
 
@@ -576,12 +584,12 @@ public class HexViewControl : UserControl
 
             if (pos.X >= hexStartX && pos.X < hexEndX)
             {
-                byteInLine = (int)((pos.X - hexStartX) / (3 * CharWidth));
+                byteInLine = (int)((pos.X - hexStartX) / (3 * _charWidth));
                 byteInLine = Math.Clamp(byteInLine, 0, bytesPerLine - 1);
             }
             else if (pos.X >= asciiStartX && pos.X <= asciiEndX)
             {
-                byteInLine = (int)((pos.X - asciiStartX) / CharWidth);
+                byteInLine = (int)((pos.X - asciiStartX) / _charWidth);
                 byteInLine = Math.Clamp(byteInLine, 0, bytesPerLine - 1);
                 isAsciiArea = true;
             }
@@ -603,16 +611,16 @@ public class HexViewControl : UserControl
         {
             base.OnRender(context);
 
-            var source = _owner.DataSource;
+            IHexDataSource? source = _owner.DataSource;
             if (source is null || _owner.BlockLength <= 0)
             {
                 return;
             }
 
-            var addressBrush = GetBrush("HexOffsetForeground", Brushes.Gray);
-            var hexBrush = GetBrush("HexBytesForeground", Brushes.Black);
-            var asciiBrush = GetBrush("HexAsciiForeground", Brushes.DimGray);
-            var selectionBrush = GetBrush("HexSelectionBrush", new SolidColorBrush(Color.FromArgb(120, 60, 120, 220)));
+            Brush addressBrush = GetBrush("HexOffsetForeground", Brushes.Gray);
+            Brush hexBrush = GetBrush("HexBytesForeground", Brushes.Black);
+            Brush asciiBrush = GetBrush("HexAsciiForeground", Brushes.DimGray);
+            Brush selectionBrush = GetBrush("HexSelectionBrush", new SolidColorBrush(Color.FromArgb(120, 60, 120, 220)));
 
             long blockStart = _owner.BlockOffset;
             long blockLen = _owner.BlockLength;
@@ -662,12 +670,12 @@ public class HexViewControl : UserControl
                         int highlightStart = (int)Math.Max(0, selStart - lineFileOffset);
                         int highlightEnd = (int)Math.Min(bytesPerLine, selEnd - lineFileOffset);
 
-                        double hx1 = _owner.HexStartX + highlightStart * 3 * CharWidth;
-                        double hx2 = _owner.HexStartX + (highlightEnd * 3 - 1) * CharWidth;
+                        double hx1 = _owner.HexStartX + highlightStart * 3 * _charWidth;
+                        double hx2 = _owner.HexStartX + (highlightEnd * 3 - 1) * _charWidth;
                         context.DrawRectangle(selectionBrush, null, new Rect(hx1, y, hx2 - hx1, LineHeight));
 
-                        double ax1 = _owner.AsciiStartX + highlightStart * CharWidth;
-                        double ax2 = _owner.AsciiStartX + highlightEnd * CharWidth;
+                        double ax1 = _owner.AsciiStartX + highlightStart * _charWidth;
+                        double ax2 = _owner.AsciiStartX + highlightEnd * _charWidth;
                         context.DrawRectangle(selectionBrush, null, new Rect(ax1, y, ax2 - ax1, LineHeight));
                     }
                 }
@@ -675,7 +683,7 @@ public class HexViewControl : UserControl
                 // Address
                 string addr = lineFileOffset.ToString("X8");
                 var addrText = new FormattedText(addr, CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, addressBrush, Dpi);
+                    FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, addressBrush, _dpi);
                 context.DrawText(addrText, new Point(0, y + 2));
 
                 // Read this line's bytes from the data source
@@ -691,19 +699,23 @@ public class HexViewControl : UserControl
                 for (int i = 0; i < read; i++)
                 {
                     byte b = _lineBuffer[i];
-                    if (i > 0) hexBuilder.Append(' ');
+                    if (i > 0)
+                    {
+                        hexBuilder.Append(' ');
+                    }
+
                     hexBuilder.Append(b.ToString("X2"));
                     asciiBuilder.Append(b >= 0x20 && b <= 0x7E ? (char)b : '.');
                 }
 
                 var hexText = new FormattedText(hexBuilder.ToString(),
                     CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, hexBrush, Dpi);
+                    FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, hexBrush, _dpi);
                 context.DrawText(hexText, new Point(_owner.HexStartX, y + 2));
 
                 var asciiText = new FormattedText(asciiBuilder.ToString(),
                     CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, MonoTypeface, DefaultFontSize, asciiBrush, Dpi);
+                    FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, asciiBrush, _dpi);
                 context.DrawText(asciiText, new Point(_owner.AsciiStartX, y + 2));
             }
         }

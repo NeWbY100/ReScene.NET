@@ -4,11 +4,11 @@ namespace ReScene.NET.Services;
 
 public interface IBruteForceService
 {
-    Task<bool> RunAsync(BruteForceOptions options);
-    void Stop();
-    event EventHandler<BruteForceProgressEventArgs>? Progress;
-    event EventHandler<BruteForceStatusChangedEventArgs>? StatusChanged;
-    event EventHandler<LogEventArgs>? LogMessage;
-    event EventHandler<FileCopyProgressEventArgs>? FileCopyProgress;
-    event EventHandler<CrcValidationProgressEventArgs>? CrcValidationProgress;
+    public Task<bool> RunAsync(BruteForceOptions options);
+    public void Stop();
+    public event EventHandler<BruteForceProgressEventArgs>? Progress;
+    public event EventHandler<BruteForceStatusChangedEventArgs>? StatusChanged;
+    public event EventHandler<LogEventArgs>? LogMessage;
+    public event EventHandler<FileCopyProgressEventArgs>? FileCopyProgress;
+    public event EventHandler<CrcValidationProgressEventArgs>? CrcValidationProgress;
 }

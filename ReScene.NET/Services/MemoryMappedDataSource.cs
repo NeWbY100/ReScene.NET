@@ -11,7 +11,10 @@ public sealed class MemoryMappedDataSource : IHexDataSource
     private readonly MemoryMappedViewAccessor _accessor;
 
     /// <summary>Gets the total length of the mapped file in bytes.</summary>
-    public long Length { get; }
+    public long Length
+    {
+        get;
+    }
 
     /// <summary>
     /// Opens the specified file as a read-only memory-mapped data source.

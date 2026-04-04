@@ -13,14 +13,38 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialog;
     private readonly IRecentFilesService _recentFiles;
 
-    public HomeViewModel Home { get; }
-    public InspectorViewModel Inspector { get; }
-    public CreatorViewModel Creator { get; }
-    public SrsCreatorViewModel SrsCreator { get; }
-    public ReconstructorViewModel Reconstructor { get; }
-    public SrsReconstructorViewModel SrsReconstructor { get; }
-    public SampleRestorerViewModel SampleRestorer { get; }
-    public FileCompareViewModel FileCompare { get; }
+    public HomeViewModel Home
+    {
+        get;
+    }
+    public InspectorViewModel Inspector
+    {
+        get;
+    }
+    public CreatorViewModel Creator
+    {
+        get;
+    }
+    public SrsCreatorViewModel SrsCreator
+    {
+        get;
+    }
+    public ReconstructorViewModel Reconstructor
+    {
+        get;
+    }
+    public SrsReconstructorViewModel SrsReconstructor
+    {
+        get;
+    }
+    public SampleRestorerViewModel SampleRestorer
+    {
+        get;
+    }
+    public FileCompareViewModel FileCompare
+    {
+        get;
+    }
 
     [ObservableProperty]
     private int _selectedTabIndex;
@@ -47,7 +71,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // InformationalVersion is "1.0.0+abcdef1" — extract hash after '+'
-        int plus = version.IndexOf('+');
+        int plus = version.IndexOf('+', StringComparison.Ordinal);
         return plus >= 0 ? version[..plus] + " (" + version[(plus + 1)..] + ")" : version;
     }
 

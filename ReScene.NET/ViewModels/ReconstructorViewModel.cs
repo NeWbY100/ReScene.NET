@@ -473,13 +473,27 @@ public partial class ReconstructorViewModel : ViewModelBase
 
                 switch (srr.DictionarySize.Value)
                 {
-                    case 64: SwitchMD64K = true; break;
-                    case 128: SwitchMD128K = true; break;
-                    case 256: SwitchMD256K = true; break;
-                    case 512: SwitchMD512K = true; break;
-                    case 1024: SwitchMD1024K = true; break;
-                    case 2048: SwitchMD2048K = true; break;
-                    case 4096: SwitchMD4096K = true; break;
+                    case 64:
+                        SwitchMD64K = true;
+                        break;
+                    case 128:
+                        SwitchMD128K = true;
+                        break;
+                    case 256:
+                        SwitchMD256K = true;
+                        break;
+                    case 512:
+                        SwitchMD512K = true;
+                        break;
+                    case 1024:
+                        SwitchMD1024K = true;
+                        break;
+                    case 2048:
+                        SwitchMD2048K = true;
+                        break;
+                    case 4096:
+                        SwitchMD4096K = true;
+                        break;
                 }
 
                 Log(LogTarget.System, $"Dictionary: {srr.DictionarySize.Value} KB");
@@ -513,9 +527,9 @@ public partial class ReconstructorViewModel : ViewModelBase
             }
 
             // Timestamp precision
-            var mtimePrecision = srr.FileMtimePrecision ?? srr.CmtMtimePrecision;
-            var ctimePrecision = srr.FileCtimePrecision ?? srr.CmtCtimePrecision;
-            var atimePrecision = srr.FileAtimePrecision ?? srr.CmtAtimePrecision;
+            TimestampPrecision? mtimePrecision = srr.FileMtimePrecision ?? srr.CmtMtimePrecision;
+            TimestampPrecision? ctimePrecision = srr.FileCtimePrecision ?? srr.CmtCtimePrecision;
+            TimestampPrecision? atimePrecision = srr.FileAtimePrecision ?? srr.CmtAtimePrecision;
 
             if (mtimePrecision.HasValue)
             {
@@ -684,6 +698,54 @@ public partial class ReconstructorViewModel : ViewModelBase
             return;
         }
 
+        // ── Input file existence check ──
+
+        try
+        {
+            var missingFiles = new List<string>();
+
+            if (verificationExt == ".sfv")
+            {
+                var sfv = SFVFile.ReadFile(VerificationPath);
+                foreach (SFVFileEntry entry in sfv.Entries)
+                {
+                    string fullPath = Path.Combine(ReleasePath, entry.FileName);
+                    if (!File.Exists(fullPath))
+                    {
+                        missingFiles.Add(entry.FileName);
+                    }
+                }
+            }
+            else
+            {
+                var sha1 = SHA1File.ReadFile(VerificationPath);
+                foreach (SHA1FileEntry entry in sha1.Entries)
+                {
+                    string fullPath = Path.Combine(ReleasePath, entry.FileName);
+                    if (!File.Exists(fullPath))
+                    {
+                        missingFiles.Add(entry.FileName);
+                    }
+                }
+            }
+
+            if (missingFiles.Count > 0)
+            {
+                string fileList = string.Join("\n", missingFiles);
+                Log(LogTarget.System, $"Missing {missingFiles.Count} input file(s) in release directory.");
+                MessageBox.Show(
+                    $"The following {missingFiles.Count} file(s) are missing from the release directory:\n\n{fileList}\n\nEnsure all source files are present before starting.",
+                    "Missing Input Files",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log(LogTarget.System, $"Failed to validate input files: {ex.Message}");
+        }
+
         // ── Output directory validation & cleanup ──
 
         if (string.IsNullOrWhiteSpace(OutputPath))
@@ -773,7 +835,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
         try
         {
-            var options = BuildBruteForceOptions();
+            BruteForceOptions options = BuildBruteForceOptions();
 
             Log(LogTarget.System, "Starting brute-force...");
             Log(LogTarget.System, $"WinRAR: {WinRarPath}");
@@ -854,7 +916,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             if (ext == ".sfv")
             {
                 var sfv = SFVFile.ReadFile(VerificationPath);
-                foreach (var entry in sfv.Entries)
+                foreach (SFVFileEntry entry in sfv.Entries)
                 {
                     options.Hashes.Add(entry.CRC);
                 }
@@ -864,7 +926,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             else if (ext == ".sha1")
             {
                 var sha1 = SHA1File.ReadFile(VerificationPath);
-                foreach (var entry in sha1.Entries)
+                foreach (SHA1FileEntry entry in sha1.Entries)
                 {
                     options.Hashes.Add(entry.SHA1);
                 }
@@ -879,12 +941,35 @@ public partial class ReconstructorViewModel : ViewModelBase
     private RAROptions BuildRAROptions()
     {
         List<VersionRange> rarVersions = [];
-        if (Version2) rarVersions.Add(new(200, 300));
-        if (Version3) rarVersions.Add(new(300, 400));
-        if (Version4) rarVersions.Add(new(400, 500));
-        if (Version5) rarVersions.Add(new(500, 600));
-        if (Version6) rarVersions.Add(new(600, 700));
-        if (Version7) rarVersions.Add(new(700, 800));
+        if (Version2)
+        {
+            rarVersions.Add(new(200, 300));
+        }
+
+        if (Version3)
+        {
+            rarVersions.Add(new(300, 400));
+        }
+
+        if (Version4)
+        {
+            rarVersions.Add(new(400, 500));
+        }
+
+        if (Version5)
+        {
+            rarVersions.Add(new(500, 600));
+        }
+
+        if (Version6)
+        {
+            rarVersions.Add(new(600, 700));
+        }
+
+        if (Version7)
+        {
+            rarVersions.Add(new(700, 800));
+        }
 
         return new()
         {
@@ -929,54 +1014,200 @@ public partial class ReconstructorViewModel : ViewModelBase
     private List<RARCommandLineArgument[]> BuildCommandLineArguments()
     {
         List<RARCommandLineArgument> compressionLevels = [];
-        if (SwitchM0) compressionLevels.Add(new("-m0", 200));
-        if (SwitchM1) compressionLevels.Add(new("-m1", 200));
-        if (SwitchM2) compressionLevels.Add(new("-m2", 200));
-        if (SwitchM3) compressionLevels.Add(new("-m3", 200));
-        if (SwitchM4) compressionLevels.Add(new("-m4", 200));
-        if (SwitchM5) compressionLevels.Add(new("-m5", 200));
+        if (SwitchM0)
+        {
+            compressionLevels.Add(new("-m0", 200));
+        }
+
+        if (SwitchM1)
+        {
+            compressionLevels.Add(new("-m1", 200));
+        }
+
+        if (SwitchM2)
+        {
+            compressionLevels.Add(new("-m2", 200));
+        }
+
+        if (SwitchM3)
+        {
+            compressionLevels.Add(new("-m3", 200));
+        }
+
+        if (SwitchM4)
+        {
+            compressionLevels.Add(new("-m4", 200));
+        }
+
+        if (SwitchM5)
+        {
+            compressionLevels.Add(new("-m5", 200));
+        }
 
         List<RARCommandLineArgument> archiveFormats = [];
-        if (SwitchMA4) archiveFormats.Add(new("-ma4", 500, 699));
-        if (SwitchMA5) archiveFormats.Add(new("-ma5", 500, 699));
+        if (SwitchMA4)
+        {
+            archiveFormats.Add(new("-ma4", 500, 699));
+        }
+
+        if (SwitchMA5)
+        {
+            archiveFormats.Add(new("-ma5", 500, 699));
+        }
 
         List<RARCommandLineArgument> dictSizes = [];
-        if (SwitchMD64K) dictSizes.Add(new("-md64k", 200, RARArchiveVersion.RAR4));
-        if (SwitchMD128K) dictSizes.Add(new("-md128k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD256K) dictSizes.Add(new("-md256k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD512K) dictSizes.Add(new("-md512k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD1024K) dictSizes.Add(new("-md1024k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD2048K) dictSizes.Add(new("-md2048k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD4096K) dictSizes.Add(new("-md4096k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD8M) dictSizes.Add(new("-md8m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD16M) dictSizes.Add(new("-md16m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD32M) dictSizes.Add(new("-md32m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD64M) dictSizes.Add(new("-md64m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD128M) dictSizes.Add(new("-md128m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD256M) dictSizes.Add(new("-md256m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD512M) dictSizes.Add(new("-md512m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchMD1G) dictSizes.Add(new("-md1g", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        if (SwitchMD64K)
+        {
+            dictSizes.Add(new("-md64k", 200, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchMD128K)
+        {
+            dictSizes.Add(new("-md128k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD256K)
+        {
+            dictSizes.Add(new("-md256k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD512K)
+        {
+            dictSizes.Add(new("-md512k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD1024K)
+        {
+            dictSizes.Add(new("-md1024k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD2048K)
+        {
+            dictSizes.Add(new("-md2048k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD4096K)
+        {
+            dictSizes.Add(new("-md4096k", 200, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD8M)
+        {
+            dictSizes.Add(new("-md8m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD16M)
+        {
+            dictSizes.Add(new("-md16m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD32M)
+        {
+            dictSizes.Add(new("-md32m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD64M)
+        {
+            dictSizes.Add(new("-md64m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD128M)
+        {
+            dictSizes.Add(new("-md128m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD256M)
+        {
+            dictSizes.Add(new("-md256m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD512M)
+        {
+            dictSizes.Add(new("-md512m", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchMD1G)
+        {
+            dictSizes.Add(new("-md1g", 500, RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
 
         List<RARCommandLineArgument> mtimes = [];
-        if (SwitchTSM0) mtimes.Add(new("-tsm0", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchTSM1) mtimes.Add(new("-tsm1", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchTSM2) mtimes.Add(new("-tsm2", 320, RARArchiveVersion.RAR4));
-        if (SwitchTSM3) mtimes.Add(new("-tsm3", 320, RARArchiveVersion.RAR4));
-        if (SwitchTSM4) mtimes.Add(new("-tsm4", 320, RARArchiveVersion.RAR4));
+        if (SwitchTSM0)
+        {
+            mtimes.Add(new("-tsm0", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchTSM1)
+        {
+            mtimes.Add(new("-tsm1", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchTSM2)
+        {
+            mtimes.Add(new("-tsm2", 320, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchTSM3)
+        {
+            mtimes.Add(new("-tsm3", 320, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchTSM4)
+        {
+            mtimes.Add(new("-tsm4", 320, RARArchiveVersion.RAR4));
+        }
 
         List<RARCommandLineArgument> ctimes = [];
-        if (SwitchTSC0) ctimes.Add(new("-tsc0", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchTSC1) ctimes.Add(new("-tsc1", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchTSC2) ctimes.Add(new("-tsc2", 320, RARArchiveVersion.RAR4));
-        if (SwitchTSC3) ctimes.Add(new("-tsc3", 320, RARArchiveVersion.RAR4));
-        if (SwitchTSC4) ctimes.Add(new("-tsc4", 320, RARArchiveVersion.RAR4));
+        if (SwitchTSC0)
+        {
+            ctimes.Add(new("-tsc0", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchTSC1)
+        {
+            ctimes.Add(new("-tsc1", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchTSC2)
+        {
+            ctimes.Add(new("-tsc2", 320, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchTSC3)
+        {
+            ctimes.Add(new("-tsc3", 320, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchTSC4)
+        {
+            ctimes.Add(new("-tsc4", 320, RARArchiveVersion.RAR4));
+        }
 
         List<RARCommandLineArgument> atimes = [];
-        if (SwitchTSA0) atimes.Add(new("-tsa0", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchTSA1) atimes.Add(new("-tsa1", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
-        if (SwitchTSA2) atimes.Add(new("-tsa2", 320, RARArchiveVersion.RAR4));
-        if (SwitchTSA3) atimes.Add(new("-tsa3", 320, RARArchiveVersion.RAR4));
-        if (SwitchTSA4) atimes.Add(new("-tsa4", 320, RARArchiveVersion.RAR4));
+        if (SwitchTSA0)
+        {
+            atimes.Add(new("-tsa0", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchTSA1)
+        {
+            atimes.Add(new("-tsa1", 320, RARArchiveVersion.RAR4 | RARArchiveVersion.RAR5 | RARArchiveVersion.RAR7));
+        }
+
+        if (SwitchTSA2)
+        {
+            atimes.Add(new("-tsa2", 320, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchTSA3)
+        {
+            atimes.Add(new("-tsa3", 320, RARArchiveVersion.RAR4));
+        }
+
+        if (SwitchTSA4)
+        {
+            atimes.Add(new("-tsa4", 320, RARArchiveVersion.RAR4));
+        }
 
         List<RARCommandLineArgument[]> result = [];
 
@@ -1127,7 +1358,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             CopyRemainingText = $"Items remaining: {remaining} ({FormatSize(remainingBytes)})";
 
             // Timing stats
-            var elapsed = _copyStopwatch.Elapsed;
+            TimeSpan elapsed = _copyStopwatch.Elapsed;
             CopyElapsedText = FormatTimeSpan(elapsed);
             if (e.BytesCopied > 0 && elapsed.TotalSeconds >= 0.5)
             {
@@ -1193,7 +1424,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             VerifyRemainingText = $"Items remaining: {remaining} ({FormatSize(remainingBytes)})";
 
             // Timing stats
-            var elapsed = _verifyStopwatch.Elapsed;
+            TimeSpan elapsed = _verifyStopwatch.Elapsed;
             VerifyElapsedText = FormatTimeSpan(elapsed);
             if (e.BytesVerified > 0 && elapsed.TotalSeconds >= 0.5)
             {
@@ -1380,9 +1611,21 @@ public partial class ReconstructorViewModel : ViewModelBase
             Version6 = true;
 
             List<string> selected = [];
-            if (isRar2) selected.Add("2.x");
-            if (isRar3) selected.Add("3.x");
-            if (isRar4) selected.Add("4.x");
+            if (isRar2)
+            {
+                selected.Add("2.x");
+            }
+
+            if (isRar3)
+            {
+                selected.Add("3.x");
+            }
+
+            if (isRar4)
+            {
+                selected.Add("4.x");
+            }
+
             selected.Add("5.x");
             selected.Add("6.x");
             Log(LogTarget.System, $"RAR versions: {string.Join(", ", selected)}");

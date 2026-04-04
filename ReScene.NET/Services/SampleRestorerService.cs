@@ -22,7 +22,7 @@ public class SampleRestorerService : ISampleRestorerService
 
         try
         {
-            foreach (var stored in srr.StoredFiles)
+            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
             {
                 if (!stored.FileName.EndsWith(".srs", StringComparison.OrdinalIgnoreCase))
                 {
