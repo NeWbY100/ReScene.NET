@@ -22,7 +22,8 @@
       </Grid.ColumnDefinitions>
 
       <!-- Left file -->
-      <DockPanel Grid.Column="0" Margin="6,4,2,4">
+      <DockPanel Grid.Column="0" Margin="6,4,2,4"
+                 x:Name="LeftDropZone">
         <Button DockPanel.Dock="Right"
                 Content="Close"
                 Command="{Binding CloseLeftCommand}"
@@ -38,6 +39,7 @@
                 Padding="8,4" />
         <TextBox Text="{Binding LeftFilePath}"
                  IsReadOnly="True"
+                 AllowDrop="False"
                  FontSize="{DynamicResource FontSizeBody}" />
       </DockPanel>
 
@@ -51,7 +53,8 @@
               Padding="8,4" />
 
       <!-- Right file -->
-      <DockPanel Grid.Column="2" Margin="2,4,6,4">
+      <DockPanel Grid.Column="2" Margin="2,4,6,4"
+                 x:Name="RightDropZone">
         <Button DockPanel.Dock="Right"
                 Content="Close"
                 Command="{Binding CloseRightCommand}"
@@ -67,6 +70,7 @@
                 Padding="8,4" />
         <TextBox Text="{Binding RightFilePath}"
                  IsReadOnly="True"
+                 AllowDrop="False"
                  FontSize="{DynamicResource FontSizeBody}" />
       </DockPanel>
     </Grid>
@@ -419,6 +423,41 @@
 
         </Grid>
       </Grid>
+
+      <!-- Drop zone overlays (shown during drag) -->
+      <Border x:Name="LeftDropOverlay"
+              Grid.Column="0"
+              Background="#400078D4"
+              BorderBrush="#800078D4"
+              BorderThickness="2"
+              CornerRadius="4"
+              Margin="2"
+              Visibility="Collapsed"
+              IsHitTestVisible="False">
+        <TextBlock Text="Drop here for Left"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="{DynamicResource FontSizeH1}"
+                   FontWeight="Bold"
+                   Foreground="White" />
+      </Border>
+
+      <Border x:Name="RightDropOverlay"
+              Grid.Column="2"
+              Background="#400078D4"
+              BorderBrush="#800078D4"
+              BorderThickness="2"
+              CornerRadius="4"
+              Margin="2"
+              Visibility="Collapsed"
+              IsHitTestVisible="False">
+        <TextBlock Text="Drop here for Right"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="{DynamicResource FontSizeH1}"
+                   FontWeight="Bold"
+                   Foreground="White" />
+      </Border>
 
     </Grid>
 

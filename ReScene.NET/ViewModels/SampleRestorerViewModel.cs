@@ -292,10 +292,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
     }
 
-    private void OnEntryPropertyChanged(object? _, PropertyChangedEventArgs e)
-    {
-        RestoreCommand.NotifyCanExecuteChanged();
-    }
+    private void OnEntryPropertyChanged(object? _, PropertyChangedEventArgs e) => RestoreCommand.NotifyCanExecuteChanged();
 
     private void OnProgress(object? _, SrsReconstructionProgressEventArgs e)
     {

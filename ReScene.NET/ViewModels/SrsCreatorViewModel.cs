@@ -13,6 +13,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
     private readonly ISrsCreationService _srsService;
     private readonly IFileDialogService _fileDialog;
     private CancellationTokenSource? _cts;
+    private string? _extractedTempFile;
 
     public SrsCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog)
     {
@@ -26,6 +27,53 @@ public partial class SrsCreatorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
     private string _inputPath = string.Empty;
+
+    // ISO support
+    [ObservableProperty]
+    private bool _isIsoSource;
+
+    [ObservableProperty]
+    private string _isoFilePath = string.Empty;
+
+    public ObservableCollection<string> IsoMediaFiles { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
+    private string? _selectedIsoMediaFile;
+
+    // ISO progress (for modal window)
+    [ObservableProperty]
+    private string _isoProgressHeading = string.Empty;
+
+    [ObservableProperty]
+    private int _isoOverallPercent;
+
+    [ObservableProperty]
+    private string _isoFileCountText = string.Empty;
+
+    [ObservableProperty]
+    private int _isoCurrentPercent;
+
+    [ObservableProperty]
+    private string _isoCurrentFileText = string.Empty;
+
+    [ObservableProperty]
+    private string _isoProcessedText = string.Empty;
+
+    [ObservableProperty]
+    private string _isoRemainingText = string.Empty;
+
+    [ObservableProperty]
+    private string _isoCurrentSizeText = string.Empty;
+
+    [ObservableProperty]
+    private string _isoSpeedText = string.Empty;
+
+    [ObservableProperty]
+    private string _isoEtaText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isoProcessing;
 
     // Output
     [ObservableProperty]
@@ -77,11 +125,43 @@ public partial class SrsCreatorViewModel : ViewModelBase
             "Video Samples|*.avi;*.mkv;*.mp4;*.wmv;*.m4v",
             "Audio Samples|*.flac;*.mp3",
             "Stream Samples|*.vob;*.m2ts;*.ts;*.mpg;*.mpeg;*.evo",
+            "ISO Images|*.iso;*.img",
             "All Files|*.*"
         ]);
 
-        if (path is not null)
+        if (path is null)
         {
+            return;
+        }
+
+        if (IsoMediaExtractor.IsIsoFile(path))
+        {
+            IsIsoSource = true;
+            IsoFilePath = path;
+            InputPath = path;
+
+            IsoMediaFiles.Clear();
+            SelectedIsoMediaFile = null;
+
+            List<string> files = IsoMediaExtractor.ListMediaFiles(path);
+            foreach (string file in files)
+            {
+                IsoMediaFiles.Add(file);
+            }
+
+            if (IsoMediaFiles.Count > 0)
+            {
+                SelectedIsoMediaFile = IsoMediaFiles[0];
+            }
+
+            AutoSetOutputPath(path);
+        }
+        else
+        {
+            IsIsoSource = false;
+            IsoFilePath = string.Empty;
+            IsoMediaFiles.Clear();
+            SelectedIsoMediaFile = null;
             InputPath = path;
             AutoSetOutputPath(path);
         }
@@ -98,9 +178,20 @@ public partial class SrsCreatorViewModel : ViewModelBase
         }
     }
 
-    private bool CanCreateSrs() => !IsCreating
-        && !string.IsNullOrWhiteSpace(InputPath)
-        && !string.IsNullOrWhiteSpace(OutputPath);
+    private bool CanCreateSrs()
+    {
+        if (IsCreating || string.IsNullOrWhiteSpace(InputPath) || string.IsNullOrWhiteSpace(OutputPath))
+        {
+            return false;
+        }
+
+        if (IsIsoSource)
+        {
+            return !string.IsNullOrWhiteSpace(SelectedIsoMediaFile);
+        }
+
+        return true;
+    }
 
     [RelayCommand(CanExecute = nameof(CanCreateSrs))]
     private async Task CreateSrsAsync()
@@ -121,11 +212,60 @@ public partial class SrsCreatorViewModel : ViewModelBase
             };
 
             Log("Starting SRS creation...");
-            Log($"Input: {InputPath}");
+
+            string samplePath;
+
+            if (IsIsoSource)
+            {
+                Log($"ISO image: {IsoFilePath}");
+                Log($"ISO file:  {SelectedIsoMediaFile}");
+
+                string tempDir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N")[..8]);
+                Directory.CreateDirectory(tempDir);
+                string tempFile = Path.Combine(tempDir, Path.GetFileName(SelectedIsoMediaFile!));
+                _extractedTempFile = tempFile;
+
+                // Show ISO progress modal
+                IsoProgressHeading = "Extracting from ISO";
+                IsoOverallPercent = 0;
+                IsoCurrentPercent = 0;
+                IsoFileCountText = "Extracting file...";
+                IsoCurrentFileText = SelectedIsoMediaFile!;
+                IsoCurrentSizeText = string.Empty;
+                IsoProcessedText = string.Empty;
+                IsoRemainingText = string.Empty;
+                IsoSpeedText = string.Empty;
+                IsoEtaText = string.Empty;
+                IsoProcessing = true;
+
+                Log($"Extracting {SelectedIsoMediaFile} from ISO...");
+
+                await IsoMediaExtractor.ExtractFileAsync(
+                    IsoFilePath, SelectedIsoMediaFile!,
+                    tempFile,
+                    percent => Application.Current.Dispatcher.BeginInvoke(() =>
+                    {
+                        IsoOverallPercent = percent;
+                        IsoCurrentPercent = percent;
+                    }),
+                    _cts.Token);
+
+                IsoProcessing = false;
+
+                long size = new FileInfo(tempFile).Length;
+                Log($"Extracted ({size:N0} bytes).");
+                samplePath = tempFile;
+            }
+            else
+            {
+                samplePath = InputPath;
+            }
+
+            Log($"Input:  {samplePath}");
             Log($"Output: {OutputPath}");
 
             SrsCreationResult result = await _srsService.CreateAsync(
-                OutputPath, InputPath, options, _cts.Token);
+                OutputPath, samplePath, options, _cts.Token);
 
             if (result.Success)
             {
@@ -149,6 +289,11 @@ public partial class SrsCreatorViewModel : ViewModelBase
                 Log($"WARNING: {warning}");
             }
         }
+        catch (OperationCanceledException)
+        {
+            ProgressMessage = "Cancelled.";
+            Log("Cancelled.");
+        }
         catch (Exception ex)
         {
             ProgressMessage = "Error.";
@@ -156,9 +301,11 @@ public partial class SrsCreatorViewModel : ViewModelBase
         }
         finally
         {
+            IsoProcessing = false;
             IsCreating = false;
             _cts?.Dispose();
             _cts = null;
+            CleanupTempFile();
         }
     }
 
@@ -183,6 +330,38 @@ public partial class SrsCreatorViewModel : ViewModelBase
         string entry = $"{DateTime.Now:HH:mm:ss} {message}";
         LogEntries.Add(entry);
     }
+
+    #region ISO Support
+
+    private void CleanupTempFile()
+    {
+        if (_extractedTempFile is null)
+        {
+            return;
+        }
+
+        try
+        {
+            string? tempDir = Path.GetDirectoryName(_extractedTempFile);
+            if (File.Exists(_extractedTempFile))
+            {
+                File.Delete(_extractedTempFile);
+            }
+
+            if (tempDir is not null && Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup
+        }
+
+        _extractedTempFile = null;
+    }
+
+    #endregion
 
     private void AutoSetOutputPath(string inputPath)
     {

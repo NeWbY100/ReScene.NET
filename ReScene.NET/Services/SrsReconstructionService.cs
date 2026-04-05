@@ -12,9 +12,12 @@ public class SrsReconstructionService : ISrsReconstructionService
         remove => _rebuilder.Progress -= value;
     }
 
-    public Task<SrsReconstructionResult> RebuildAsync(
-        string srsFilePath, string mediaFilePath, string outputPath, CancellationToken ct)
+    public event EventHandler<SrsScanProgressEventArgs>? ScanProgress
     {
-        return _rebuilder.RebuildAsync(srsFilePath, mediaFilePath, outputPath, ct);
+        add => _rebuilder.ScanProgress += value;
+        remove => _rebuilder.ScanProgress -= value;
     }
+
+    public Task<SrsReconstructionResult> RebuildAsync(
+        string srsFilePath, string mediaFilePath, string outputPath, CancellationToken ct) => _rebuilder.RebuildAsync(srsFilePath, mediaFilePath, outputPath, ct);
 }

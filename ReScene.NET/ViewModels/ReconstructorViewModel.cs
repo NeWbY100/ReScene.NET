@@ -5,13 +5,13 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ReScene.RAR;
-using ReScene.NET.Services;
-using ReScene.SRR;
 using ReScene.Core;
 using ReScene.Core.Cryptography;
 using ReScene.Core.Diagnostics;
 using ReScene.Core.IO;
+using ReScene.NET.Services;
+using ReScene.RAR;
+using ReScene.SRR;
 
 namespace ReScene.NET.ViewModels;
 
@@ -1533,10 +1533,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         });
     }
 
-    private void OnLogMessage(object? _, LogEventArgs e)
-    {
-        Application.Current.Dispatcher.Invoke(() => AppendLog(e.Target, e.Message));
-    }
+    private void OnLogMessage(object? _, LogEventArgs e) => Application.Current.Dispatcher.Invoke(() => AppendLog(e.Target, e.Message));
 
     private void Log(LogTarget target, string message) => AppendLog(target, message);
 

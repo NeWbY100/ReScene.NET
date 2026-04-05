@@ -18,7 +18,7 @@
               Command="{Binding BrowseSrsCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding SrsFilePath}" />
+      <TextBox x:Name="SrsFileTextBox" Text="{Binding SrsFilePath}" />
     </DockPanel>
 
     <!-- separator -->
@@ -31,18 +31,7 @@
               Command="{Binding BrowseMediaCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsIsoSource}" />
-    </DockPanel>
-
-    <!-- ── ISO File Selection (visible only when ISO is loaded) ── -->
-    <DockPanel DockPanel.Dock="Top" Margin="0,4,0,0"
-               Visibility="{Binding IsIsoSource, Converter={StaticResource BoolToVisibility}}">
-      <TextBlock DockPanel.Dock="Left" Text="File in ISO:"
-                 VerticalAlignment="Center" Margin="0,0,8,0" />
-      <ComboBox ItemsSource="{Binding IsoMediaFiles}"
-                SelectedItem="{Binding SelectedIsoMediaFile}"
-                FontFamily="{DynamicResource MonoFontFamily}"
-                FontSize="{DynamicResource FontSizeCaption}" />
+      <TextBox x:Name="MediaFileTextBox" Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsIsoSource}" />
     </DockPanel>
 
     <!-- separator -->
@@ -55,36 +44,20 @@
               Command="{Binding BrowseOutputCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding OutputPath}" />
+      <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
     </DockPanel>
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
     <!-- ── Action row ──────────────────────────────────────── -->
-    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-        <Button Content="Rebuild Sample"
-                Command="{Binding RebuildCommand}"
-                Style="{StaticResource PrimaryButton}"
-                Padding="16,4" Margin="0,0,4,0" />
-        <Button Content="Cancel"
-                Command="{Binding CancelRebuildCommand}"
-                Style="{StaticResource CancelButton}"
-                Visibility="{Binding IsRebuilding, Converter={StaticResource BoolToVisibility}}"
-                Padding="16,4" />
-      </StackPanel>
-      <TextBlock Text="{Binding ProgressMessage}"
-                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
-                 VerticalAlignment="Center" />
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+      <Button DockPanel.Dock="Right"
+              Content="Rebuild Sample"
+              Command="{Binding RebuildCommand}"
+              Style="{StaticResource PrimaryButton}"
+              Padding="16,4" />
     </DockPanel>
-
-    <!-- Progress bar -->
-    <ProgressBar DockPanel.Dock="Top"
-                 Value="{Binding ProgressPercent}"
-                 Maximum="100" Height="18"
-                 Margin="0,0,0,4"
-                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
 
     <!-- ── Result ──────────────────────────────────────────── -->
     <Border DockPanel.Dock="Top"

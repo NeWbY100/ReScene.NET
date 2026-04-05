@@ -22,10 +22,7 @@ public class SrrCreationService : ISrrCreationService
         IReadOnlyList<string> rarVolumePaths,
         IReadOnlyDictionary<string, string>? storedFiles,
         SrrCreationOptions options,
-        CancellationToken ct)
-    {
-        return _writer.CreateAsync(outputPath, rarVolumePaths, storedFiles, options, ct);
-    }
+        CancellationToken ct) => _writer.CreateAsync(outputPath, rarVolumePaths, storedFiles, options, ct);
 
     /// <inheritdoc />
     public Task<SrrCreationResult> CreateFromSfvAsync(
@@ -33,8 +30,5 @@ public class SrrCreationService : ISrrCreationService
         string sfvFilePath,
         IReadOnlyDictionary<string, string>? additionalFiles,
         SrrCreationOptions options,
-        CancellationToken ct)
-    {
-        return _writer.CreateFromSfvAsync(outputPath, sfvFilePath, additionalFiles, options, ct);
-    }
+        CancellationToken ct) => _writer.CreateFromSfvAsync(outputPath, sfvFilePath, additionalFiles, options, ct);
 }

@@ -28,7 +28,7 @@
                 Command="{Binding BrowseInputCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0" MinWidth="75" />
-        <TextBox Text="{Binding InputPath}" />
+        <TextBox x:Name="InputTextBox" Text="{Binding InputPath}" />
       </DockPanel>
     </StackPanel>
 
@@ -95,7 +95,7 @@
                   Command="{Binding BrowseOutputCommand}"
                   Style="{StaticResource GhostButton}"
                   Margin="4,0,0,0" MinWidth="75" />
-          <TextBox Text="{Binding OutputPath}" />
+          <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
         </DockPanel>
       </StackPanel>
 

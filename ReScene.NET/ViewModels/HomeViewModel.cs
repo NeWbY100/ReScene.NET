@@ -46,16 +46,10 @@ public partial class HomeViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task OpenInspectAsync()
-    {
-        await _openDialog();
-    }
+    private async Task OpenInspectAsync() => await _openDialog();
 
     [RelayCommand]
-    private void SwitchToCreator()
-    {
-        _switchToCreator();
-    }
+    private void SwitchToCreator() => _switchToCreator();
 
     [RelayCommand]
     private void OpenRecentFile(RecentFileEntry entry)

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using System.Windows.Threading;
+using ReScene.NET.Helpers;
 using ReScene.NET.ViewModels;
 
 namespace ReScene.NET.Views;
@@ -14,6 +15,20 @@ public partial class ReconstructorView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object _, RoutedEventArgs e)
+    {
+        if (DataContext is not ReconstructorViewModel vm)
+        {
+            return;
+        }
+
+        TextBoxDropHelper.SetupFolderDrop(WinRarTextBox, path => vm.WinRarPath = path);
+        TextBoxDropHelper.SetupFolderDrop(ReleaseTextBox, path => vm.ReleasePath = path);
+        TextBoxDropHelper.SetupFileDrop(VerifyTextBox, path => vm.VerificationPath = path);
+        TextBoxDropHelper.SetupFolderDrop(OutputTextBox, path => vm.OutputPath = path);
     }
 
     private void OnDataContextChanged(object _, DependencyPropertyChangedEventArgs e)

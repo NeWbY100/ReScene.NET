@@ -18,7 +18,7 @@
               Command="{Binding BrowseSrrCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding SrrFilePath}" />
+      <TextBox x:Name="SrrFileTextBox" Text="{Binding SrrFilePath}" />
     </DockPanel>
 
     <!-- separator -->
@@ -31,7 +31,7 @@
               Command="{Binding BrowseMediaDirectoryCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding MediaDirectoryPath}" />
+      <TextBox x:Name="MediaDirTextBox" Text="{Binding MediaDirectoryPath}" />
     </DockPanel>
 
     <!-- separator -->
@@ -44,7 +44,7 @@
               Command="{Binding BrowseOutputDirectoryCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox Text="{Binding OutputDirectoryPath}" />
+      <TextBox x:Name="OutputDirTextBox" Text="{Binding OutputDirectoryPath}" />
     </DockPanel>
 
     <!-- separator -->

@@ -59,15 +59,13 @@ public class FileDialogService : IFileDialogService
 
     public Task<bool> ShowConfirmAsync(string title, string message)
     {
-        MessageBoxResult result = System.Windows.MessageBox.Show(message, title,
-            System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Warning);
-        return Task.FromResult(result == System.Windows.MessageBoxResult.OK);
+        MessageBoxResult result = MessageBox.Show(message, title,
+            MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+        return Task.FromResult(result == MessageBoxResult.OK);
     }
 
-    private static string BuildFilter(IReadOnlyList<string> filters)
-    {
+    private static string BuildFilter(IReadOnlyList<string> filters) =>
         // Avalonia filters: "Description|*.ext1;*.ext2"
         // WPF filters: "Description|*.ext1;*.ext2" (same format)
-        return string.Join("|", filters);
-    }
+        string.Join("|", filters);
 }

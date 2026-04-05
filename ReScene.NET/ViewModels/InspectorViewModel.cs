@@ -3,9 +3,9 @@ using System.Text;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ReScene.RAR;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
+using ReScene.RAR;
 using ReScene.SRR;
 using ReScene.SRS;
 

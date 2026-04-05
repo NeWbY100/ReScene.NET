@@ -42,6 +42,11 @@ public partial class MainWindow : Window
 
     private void OnDragOver(object _, DragEventArgs e)
     {
+        if (e.Handled)
+        {
+            return;
+        }
+
         e.Effects = DragDropEffects.None;
 
         if (e.Data.GetDataPresent(DataFormats.FileDrop)
@@ -62,6 +67,11 @@ public partial class MainWindow : Window
 
     private void OnDrop(object _, DragEventArgs e)
     {
+        if (e.Handled)
+        {
+            return;
+        }
+
         if (!e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             return;
@@ -92,10 +102,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void OnExitClick(object _, RoutedEventArgs e)
-    {
-        Close();
-    }
+    private void OnExitClick(object _, RoutedEventArgs e) => Close();
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {

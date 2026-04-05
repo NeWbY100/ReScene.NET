@@ -21,8 +21,5 @@ public class SrsCreationService : ISrsCreationService
         string outputPath,
         string sampleFilePath,
         SrsCreationOptions options,
-        CancellationToken ct)
-    {
-        return _writer.CreateAsync(outputPath, sampleFilePath, options, ct);
-    }
+        CancellationToken ct) => _writer.CreateAsync(outputPath, sampleFilePath, options, ct);
 }

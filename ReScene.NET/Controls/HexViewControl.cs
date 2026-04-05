@@ -390,10 +390,7 @@ public class HexViewControl : UserControl
             ContextMenu = menu;
         }
 
-        protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters)
-        {
-            return new PointHitTestResult(this, hitTestParameters.HitPoint);
-        }
+        protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters) => new PointHitTestResult(this, hitTestParameters.HitPoint);
 
         public void ClearMouseSelection()
         {

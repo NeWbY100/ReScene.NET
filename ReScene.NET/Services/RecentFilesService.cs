@@ -58,10 +58,7 @@ public class RecentFilesService : IRecentFilesService
         Save(entries);
     }
 
-    public void Clear()
-    {
-        Save([]);
-    }
+    public void Clear() => Save([]);
 
     private static void Save(List<RecentFileEntry> entries)
     {

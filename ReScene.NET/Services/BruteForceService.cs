@@ -29,8 +29,5 @@ public class BruteForceService : IBruteForceService
         return await _manager.BruteForceRARVersionAsync(options);
     }
 
-    public void Stop()
-    {
-        _manager?.Stop();
-    }
+    public void Stop() => _manager?.Stop();
 }

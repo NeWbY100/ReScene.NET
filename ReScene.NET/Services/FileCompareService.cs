@@ -1,5 +1,5 @@
-using ReScene.RAR;
 using ReScene.Core.Comparison;
+using ReScene.RAR;
 using ReScene.SRS;
 
 namespace ReScene.NET.Services;
@@ -42,8 +42,5 @@ public class FileCompareService : IFileCompareService
 
     /// <inheritdoc />
     public CompareResult Compare(object? leftData, object? rightData,
-        List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null)
-    {
-        return FileComparer.Compare(leftData, rightData, leftBlocks, rightBlocks);
-    }
+        List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null) => FileComparer.Compare(leftData, rightData, leftBlocks, rightBlocks);
 }
