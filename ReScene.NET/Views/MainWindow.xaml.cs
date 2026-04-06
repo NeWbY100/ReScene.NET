@@ -116,11 +116,13 @@ public partial class MainWindow : Window
 
     private void OnAboutClick(object _, RoutedEventArgs e)
     {
+        string version = DataContext is ViewModels.MainWindowViewModel vm ? vm.AppVersion : "?";
+
         var panel = new StackPanel { Margin = new Thickness(20) };
 
         panel.Children.Add(new TextBlock { Text = "ReScene.NET", FontSize = 18, FontWeight = FontWeights.Bold });
-        panel.Children.Add(new TextBlock { Text = "SRR/SRS File Inspector and Creator", Margin = new Thickness(0, 8, 0, 0) });
-        panel.Children.Add(new TextBlock { Text = "Built with WPF", Foreground = System.Windows.Media.Brushes.Gray, Margin = new Thickness(0, 8, 0, 0) });
+        panel.Children.Add(new TextBlock { Text = $"Version {version}", Foreground = System.Windows.Media.Brushes.Gray, Margin = new Thickness(0, 4, 0, 0) });
+        panel.Children.Add(new TextBlock { Text = "Inspect, create, and reconstruct ReScene (SRR/SRS) files", Margin = new Thickness(0, 8, 0, 0) });
 
         // Links
         var linksPanel = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
@@ -132,8 +134,8 @@ public partial class MainWindow : Window
         var dialog = new Window
         {
             Title = "About ReScene.NET",
-            Width = 370,
-            Height = 230,
+            Width = 400,
+            Height = 250,
             ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
