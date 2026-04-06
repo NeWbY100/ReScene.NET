@@ -69,6 +69,7 @@ jobs:
         if: env.LIB_PAT != ''
         shell: bash
         env:
+          LIB_PAT: ${{ secrets.LIB_PAT }}
           GH_TOKEN: ${{ secrets.LIB_PAT }}
         run: |
           TAG="v${{ steps.version.outputs.version }}"
