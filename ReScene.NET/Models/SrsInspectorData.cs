@@ -12,8 +12,12 @@ public class SrsInspectorData
     /// <summary>
     /// Loads and parses an SRS file from disk.
     /// </summary>
-    /// <param name="filePath">Path to the SRS file.</param>
-    /// <returns>A new <see cref="SrsInspectorData"/> wrapping the parsed file.</returns>
+    /// <param name="filePath">
+    /// Path to the SRS file.
+    /// </param>
+    /// <returns>
+    /// A new <see cref="SrsInspectorData"/> wrapping the parsed file.
+    /// </returns>
     public static SrsInspectorData Load(string filePath)
         => new()
         {

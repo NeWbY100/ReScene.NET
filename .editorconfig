@@ -463,6 +463,14 @@ dotnet_diagnostic.CA1805.severity = suggestion
 # CA1802: Use literals where appropriate
 dotnet_diagnostic.CA1802.severity = suggestion
 
+# NOTE: No built-in Roslyn rule for multi-line XML doc comments.
+# Convention: Always use multi-line format for XML doc comments:
+#   /// <summary>
+#   /// Description here.
+#   /// </summary>
+# Never use single-line: /// <summary>Description here.</summary>
+# Always add a blank line before each XML doc comment block.
+
 # NOTE: No built-in Roslyn rule for magic numbers.
 # Convention: Extract repeated or non-obvious numeric literals to named constants.
 # Acceptable inline values: 0, 1, -1, 2, 4, 8, 16, 32, 64, 100, 1024.

@@ -5,13 +5,19 @@ namespace ReScene.NET.Models;
 /// </summary>
 public class RecentFileEntry
 {
-    /// <summary>Gets or sets the absolute path to the file.</summary>
+    /// <summary>
+    /// Gets or sets the absolute path to the file.
+    /// </summary>
     public string FilePath { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the display-friendly file name.</summary>
+    /// <summary>
+    /// Gets or sets the display-friendly file name.
+    /// </summary>
     public string FileName { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the date and time the file was last opened.</summary>
+    /// <summary>
+    /// Gets or sets the date and time the file was last opened.
+    /// </summary>
     public DateTime LastOpened
     {
         get; set;

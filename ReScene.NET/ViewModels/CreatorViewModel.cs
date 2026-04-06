@@ -564,10 +564,14 @@ public partial class CreatorViewModel : ViewModelBase
     /// </summary>
     public class StoredFileItem
     {
-        /// <summary>Gets or sets the absolute path to the file on disk.</summary>
+        /// <summary>
+        /// Gets or sets the absolute path to the file on disk.
+        /// </summary>
         public string FullPath { get; set; } = string.Empty;
 
-        /// <summary>Gets or sets the relative name used when storing the file in the SRR.</summary>
+        /// <summary>
+        /// Gets or sets the relative name used when storing the file in the SRR.
+        /// </summary>
         public string StoredName { get; set; } = string.Empty;
     }
 }

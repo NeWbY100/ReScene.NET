@@ -5,7 +5,9 @@ namespace ReScene.NET.Services;
 /// </summary>
 public sealed class HexDataSourceSlice(IHexDataSource inner, long offset, long length) : IHexDataSource
 {
-    /// <summary>Gets the length of this slice in bytes.</summary>
+    /// <summary>
+    /// Gets the length of this slice in bytes.
+    /// </summary>
     public long Length { get; } = length;
 
     /// <inheritdoc />

@@ -82,8 +82,12 @@ internal static partial class ReleaseFileScanner
     /// Scans the release directory for files that should be stored in the SRR.
     /// Returns (FullPath, StoredName) tuples sorted appropriately.
     /// </summary>
-    /// <param name="releaseDir">The root directory of the scene release.</param>
-    /// <returns>A sorted list of file paths and their stored names for the SRR.</returns>
+    /// <param name="releaseDir">
+    /// The root directory of the scene release.
+    /// </param>
+    /// <returns>
+    /// A sorted list of file paths and their stored names for the SRR.
+    /// </returns>
     public static List<(string FullPath, string StoredName)> ScanReleaseDirectory(string releaseDir)
     {
         var files = new List<(string FullPath, string StoredName)>();
@@ -110,8 +114,12 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Finds sample media files in the release directory (Sample/ subdir or files with "sample" in name).
     /// </summary>
-    /// <param name="releaseDir">The root directory of the scene release.</param>
-    /// <returns>A list of sample media file paths.</returns>
+    /// <param name="releaseDir">
+    /// The root directory of the scene release.
+    /// </param>
+    /// <returns>
+    /// A list of sample media file paths.
+    /// </returns>
     public static List<string> FindSampleFiles(string releaseDir)
     {
         var samples = new List<string>();
@@ -147,8 +155,12 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Finds subtitle SFV files in subtitle subdirectories.
     /// </summary>
-    /// <param name="releaseDir">The root directory of the scene release.</param>
-    /// <returns>A list of SFV file paths found in subtitle subdirectories.</returns>
+    /// <param name="releaseDir">
+    /// The root directory of the scene release.
+    /// </param>
+    /// <returns>
+    /// A list of SFV file paths found in subtitle subdirectories.
+    /// </returns>
     public static List<string> FindSubtitleSfvFiles(string releaseDir)
     {
         var sfvFiles = new List<string>();
@@ -171,8 +183,12 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Detects if the release is a fix/patch release by its name.
     /// </summary>
-    /// <param name="releaseName">The release directory or folder name to check.</param>
-    /// <returns><see langword="true"/> if the name matches a fix/patch pattern.</returns>
+    /// <param name="releaseName">
+    /// The release directory or folder name to check.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the name matches a fix/patch pattern.
+    /// </returns>
     public static bool IsFixRelease(string releaseName)
     {
         return FixPattern1().IsMatch(releaseName)
@@ -183,8 +199,12 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Checks if the release directory contains music files.
     /// </summary>
-    /// <param name="releaseDir">The root directory of the scene release.</param>
-    /// <returns><see langword="true"/> if music files are found in the release.</returns>
+    /// <param name="releaseDir">
+    /// The root directory of the scene release.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if music files are found in the release.
+    /// </returns>
     public static bool IsMusicRelease(string releaseDir)
     {
         foreach (string file in Directory.GetFiles(releaseDir))
@@ -216,8 +236,12 @@ internal static partial class ReleaseFileScanner
     /// <summary>
     /// Finds all RAR files referenced by an SFV (lines with .rNN or .rar extensions).
     /// </summary>
-    /// <param name="sfvPath">The path to the SFV file.</param>
-    /// <returns>A list of existing RAR file paths referenced by the SFV.</returns>
+    /// <param name="sfvPath">
+    /// The path to the SFV file.
+    /// </param>
+    /// <returns>
+    /// A list of existing RAR file paths referenced by the SFV.
+    /// </returns>
     public static List<string> FindRarFilesFromSfv(string sfvPath)
     {
         string dir = Path.GetDirectoryName(sfvPath) ?? ".";

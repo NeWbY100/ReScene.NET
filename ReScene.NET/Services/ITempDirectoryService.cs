@@ -8,7 +8,9 @@ public interface ITempDirectoryService
     /// <summary>
     /// Creates a new temporary directory under the application's temp folder.
     /// </summary>
-    /// <returns>The full path to the created directory.</returns>
+    /// <returns>
+    /// The full path to the created directory.
+    /// </returns>
     public string CreateTempDirectory();
 
     /// <summary>

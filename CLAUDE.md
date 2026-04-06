@@ -111,22 +111,22 @@ var entry = new VersionEntry
 
 ### XML Doc Comments
 
-Use multi-line format for all XML doc comments. Single-line `/// <summary>Text</summary>` is acceptable only for very short property descriptions:
+**Always** use multi-line format for XML doc comments. Never use single-line `/// <summary>Text</summary>`:
 
 ```csharp
-// CORRECT — multi-line format (preferred)
+// CORRECT — always multi-line
 /// <summary>
 /// Gets or sets the block CRC value.
 /// </summary>
 public ushort Crc { get; set; }
 
-// ACCEPTABLE — single-line for short property docs
+// WRONG — never use single-line format
 /// <summary>Gets or sets the absolute path to the file on disk.</summary>
 public string FullPath { get; set; } = string.Empty;
 ```
 
-- `<param>` and `<returns>` tags go on their own lines
-- Blank line before each XML doc block
+- `<param>` and `<returns>` tags also use multi-line format
+- **Always** add a blank line before each XML doc comment block
 - Do not add XML doc comments to private members
 
 ### Blank Lines

@@ -17,33 +17,74 @@ namespace ReScene.NET.ViewModels;
 /// </summary>
 public enum CompareNodeType
 {
-    /// <summary>Root node of the comparison tree.</summary>
+    /// <summary>
+    /// Root node of the comparison tree.
+    /// </summary>
     Root,
-    /// <summary>Archive-level information node.</summary>
+
+    /// <summary>
+    /// Archive-level information node.
+    /// </summary>
     ArchiveInfo,
-    /// <summary>Container node for RAR volume entries.</summary>
+
+    /// <summary>
+    /// Container node for RAR volume entries.
+    /// </summary>
     RarVolumes,
-    /// <summary>Individual RAR volume entry.</summary>
+
+    /// <summary>
+    /// Individual RAR volume entry.
+    /// </summary>
     RarVolume,
-    /// <summary>Container node for stored file entries.</summary>
+
+    /// <summary>
+    /// Container node for stored file entries.
+    /// </summary>
     StoredFiles,
-    /// <summary>Individual stored file entry.</summary>
+
+    /// <summary>
+    /// Individual stored file entry.
+    /// </summary>
     StoredFile,
-    /// <summary>Container node for archived file entries.</summary>
+
+    /// <summary>
+    /// Container node for archived file entries.
+    /// </summary>
     ArchivedFiles,
-    /// <summary>Individual archived file entry.</summary>
+
+    /// <summary>
+    /// Individual archived file entry.
+    /// </summary>
     ArchivedFile,
-    /// <summary>Container node for OSO hash entries.</summary>
+
+    /// <summary>
+    /// Container node for OSO hash entries.
+    /// </summary>
     OsoHashes,
-    /// <summary>Individual OSO hash entry.</summary>
+
+    /// <summary>
+    /// Individual OSO hash entry.
+    /// </summary>
     OsoHash,
-    /// <summary>Detailed RAR block header entry.</summary>
+
+    /// <summary>
+    /// Detailed RAR block header entry.
+    /// </summary>
     DetailedBlock,
-    /// <summary>SRS file-level information node.</summary>
+
+    /// <summary>
+    /// SRS file-level information node.
+    /// </summary>
     SrsFileInfo,
-    /// <summary>SRS track data entry.</summary>
+
+    /// <summary>
+    /// SRS track data entry.
+    /// </summary>
     SrsTrack,
-    /// <summary>Container node for SRS container chunk entries.</summary>
+
+    /// <summary>
+    /// Container node for SRS container chunk entries.
+    /// </summary>
     SrsContainerChunks
 }
 
@@ -52,25 +93,33 @@ public enum CompareNodeType
 /// </summary>
 public class CompareNodeData
 {
-    /// <summary>Gets or sets the type of tree node this data represents.</summary>
+    /// <summary>
+    /// Gets or sets the type of tree node this data represents.
+    /// </summary>
     public CompareNodeType NodeType
     {
         get; set;
     }
 
-    /// <summary>Gets or sets the underlying block or file data associated with this node.</summary>
+    /// <summary>
+    /// Gets or sets the underlying block or file data associated with this node.
+    /// </summary>
     public object? Data
     {
         get; set;
     }
 
-    /// <summary>Gets or sets the file name associated with this node, if applicable.</summary>
+    /// <summary>
+    /// Gets or sets the file name associated with this node, if applicable.
+    /// </summary>
     public string? FileName
     {
         get; set;
     }
 
-    /// <summary>Gets or sets whether this node belongs to the left comparison pane.</summary>
+    /// <summary>
+    /// Gets or sets whether this node belongs to the left comparison pane.
+    /// </summary>
     public bool IsLeft
     {
         get; set;
@@ -256,7 +305,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     /// <summary>
     /// Loads and parses a file into the left comparison pane.
     /// </summary>
-    /// <param name="filePath">Absolute path to the file.</param>
+    /// <param name="filePath">
+    /// Absolute path to the file.
+    /// </param>
     public void LoadLeftFile(string filePath)
     {
         try
@@ -289,7 +340,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     /// <summary>
     /// Loads and parses a file into the right comparison pane.
     /// </summary>
-    /// <param name="filePath">Absolute path to the file.</param>
+    /// <param name="filePath">
+    /// Absolute path to the file.
+    /// </param>
     public void LoadRightFile(string filePath)
     {
         try

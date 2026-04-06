@@ -11,8 +11,12 @@ internal static class TextBoxDropHelper
     /// <summary>
     /// Configures a TextBox to accept dropped files and set the path via the provided setter.
     /// </summary>
-    /// <param name="textBox">The TextBox to configure.</param>
-    /// <param name="setter">Action to call with the dropped file path.</param>
+    /// <param name="textBox">
+    /// The TextBox to configure.
+    /// </param>
+    /// <param name="setter">
+    /// Action to call with the dropped file path.
+    /// </param>
     public static void SetupFileDrop(TextBox textBox, Action<string> setter)
     {
         textBox.AllowDrop = true;
@@ -44,8 +48,12 @@ internal static class TextBoxDropHelper
     /// <summary>
     /// Configures a TextBox to accept dropped folders and set the path via the provided setter.
     /// </summary>
-    /// <param name="textBox">The TextBox to configure.</param>
-    /// <param name="setter">Action to call with the dropped folder path.</param>
+    /// <param name="textBox">
+    /// The TextBox to configure.
+    /// </param>
+    /// <param name="setter">
+    /// Action to call with the dropped folder path.
+    /// </param>
     public static void SetupFolderDrop(TextBox textBox, Action<string> setter)
     {
         textBox.AllowDrop = true;

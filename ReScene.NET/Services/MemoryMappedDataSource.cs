@@ -10,7 +10,9 @@ public sealed class MemoryMappedDataSource : IHexDataSource
     private readonly MemoryMappedFile _mmf;
     private readonly MemoryMappedViewAccessor _accessor;
 
-    /// <summary>Gets the total length of the mapped file in bytes.</summary>
+    /// <summary>
+    /// Gets the total length of the mapped file in bytes.
+    /// </summary>
     public long Length
     {
         get;
@@ -19,7 +21,9 @@ public sealed class MemoryMappedDataSource : IHexDataSource
     /// <summary>
     /// Opens the specified file as a read-only memory-mapped data source.
     /// </summary>
-    /// <param name="filePath">Path to the file to map.</param>
+    /// <param name="filePath">
+    /// Path to the file to map.
+    /// </param>
     public MemoryMappedDataSource(string filePath)
     {
         Length = new FileInfo(filePath).Length;

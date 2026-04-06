@@ -170,7 +170,9 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// Opens a scene file (SRR/SRS) in the Inspector tab and updates the window title.
     /// </summary>
-    /// <param name="filePath">Absolute path to the scene file.</param>
+    /// <param name="filePath">
+    /// Absolute path to the scene file.
+    /// </param>
     public void OpenSceneFile(string filePath)
     {
         Inspector.LoadFile(filePath);
