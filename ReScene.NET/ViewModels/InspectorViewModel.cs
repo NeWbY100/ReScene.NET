@@ -67,10 +67,22 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HasFile = false;
         HasProperties = false;
         StatusMessage = "No file loaded";
+        OnPropertyChanged(nameof(IsSrrLoaded));
+        OnPropertyChanged(nameof(IsStoredFileSelected));
     }
 
     public ObservableCollection<TreeNodeViewModel> TreeRoots { get; } = [];
     public ObservableCollection<PropertyItem> Properties { get; } = [];
+
+    /// <summary>
+    /// Gets whether the currently loaded file is an SRR file.
+    /// </summary>
+    public bool IsSrrLoaded => IsSrrFileLoaded();
+
+    /// <summary>
+    /// Gets whether the selected tree node is a stored file block.
+    /// </summary>
+    public bool IsStoredFileSelected => IsSrrFileLoaded() && SelectedTreeNode?.Tag is SrrStoredFileBlock;
 
     [ObservableProperty]
     private TreeNodeViewModel? _selectedTreeNode;
@@ -160,6 +172,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
             BuildTree();
             HasFile = true;
+            OnPropertyChanged(nameof(IsSrrLoaded));
+            OnPropertyChanged(nameof(IsStoredFileSelected));
 
             if (isSrs)
             {
@@ -217,6 +231,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HexSelectionLength = 0;
         ExportBlockCommand.NotifyCanExecuteChanged();
         RemoveStoredFileFromSrrCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(IsStoredFileSelected));
 
         if (value?.Tag is RARDetailedBlock detailedBlock)
         {
@@ -416,6 +431,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
         try
         {
+            ReleaseFileHandles();
             string storedName = Path.GetFileName(filePath);
             _srrEditingService.AddStoredFiles(_loadedFilePathInternal!,
                 [(storedName, filePath)]);
@@ -427,6 +443,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         {
             StatusMessage = $"Error adding stored file: {ex.Message}";
         }
+    }
+
+    private void ReleaseFileHandles()
+    {
+        HexDataSource = null;
+        _fileDataSource?.Dispose();
+        _fileDataSource = null;
     }
 
     private bool CanRemoveStoredFile()
@@ -442,6 +465,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
         try
         {
+            ReleaseFileHandles();
             _srrEditingService.RemoveStoredFiles(_loadedFilePathInternal!,
                 [stored.FileName]);
 

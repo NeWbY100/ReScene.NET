@@ -86,11 +86,13 @@
               <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                 <MenuItem Header="Export..."
                           Command="{Binding ExportBlockCommand}" />
-                <Separator />
+                <Separator Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Add Stored File..."
-                          Command="{Binding AddStoredFileToSrrCommand}" />
+                          Command="{Binding AddStoredFileToSrrCommand}"
+                          Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Remove Stored File"
-                          Command="{Binding RemoveStoredFileFromSrrCommand}" />
+                          Command="{Binding RemoveStoredFileFromSrrCommand}"
+                          Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
               </ContextMenu>
             </TreeView.ContextMenu>
           </TreeView>
