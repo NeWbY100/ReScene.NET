@@ -5,6 +5,7 @@
         x:Class="ReScene.NET.Views.MainWindow"
         Title="{Binding WindowTitle}"
         MinWidth="700" MinHeight="450"
+        Background="{DynamicResource WindowBackground}"
         FontSize="{DynamicResource FontSizeBody}"
         Icon="/Resources/app_icon.png"
         AllowDrop="True"

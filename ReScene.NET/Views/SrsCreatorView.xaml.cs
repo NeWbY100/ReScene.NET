@@ -43,35 +43,6 @@ public partial class SrsCreatorView : UserControl
         }
     }
 
-    private void OnBatchDragOver(object _, DragEventArgs e)
-    {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            e.Effects = DragDropEffects.Copy;
-        }
-        else
-        {
-            e.Effects = DragDropEffects.None;
-        }
-
-        e.Handled = true;
-    }
-
-    private void OnBatchDrop(object _, DragEventArgs e)
-    {
-        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0)
-        {
-            return;
-        }
-
-        if (DataContext is SrsCreatorViewModel vm)
-        {
-            vm.AddBatchFilePaths(files);
-        }
-
-        e.Handled = true;
-    }
-
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(SrsCreatorViewModel.IsoProcessing))

@@ -11,17 +11,9 @@
                Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
                TextWrapping="Wrap" Margin="0,0,0,6" />
 
-    <!-- ── Batch Mode Toggle ─────────────────────────────────── -->
-    <CheckBox DockPanel.Dock="Top"
-              Content="Batch Mode"
-              IsChecked="{Binding IsBatchMode}"
-              Margin="0,0,0,4" />
-
-    <!-- ── Single-file input (hidden in batch mode) ──────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="Sample File" FontWeight="SemiBold" Margin="0,0,0,2"
-               Visibility="{Binding IsBatchMode, Converter={StaticResource InverseBoolToVisibility}}" />
-    <DockPanel DockPanel.Dock="Top"
-               Visibility="{Binding IsBatchMode, Converter={StaticResource InverseBoolToVisibility}}">
+    <!-- ── Sample File ─────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Sample File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseInputCommand}"
               Style="{StaticResource GhostButton}"
@@ -41,51 +33,12 @@
                 FontSize="{DynamicResource FontSizeCaption}" />
     </DockPanel>
 
-    <!-- ── Batch file list (visible in batch mode) ───────────── -->
-    <DockPanel DockPanel.Dock="Top"
-               Visibility="{Binding IsBatchMode, Converter={StaticResource BoolToVisibility}}"
-               MaxHeight="250">
-      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,4,0,0">
-        <Button Content="Add Files..."
-                Command="{Binding AddBatchFilesCommand}"
-                Style="{StaticResource GhostButton}"
-                MinWidth="75" Margin="0,0,4,0" />
-        <Button Content="Remove"
-                Command="{Binding RemoveBatchFileCommand}"
-                Style="{StaticResource GhostButton}"
-                MinWidth="75" Margin="0,0,4,0" />
-        <Button Content="Clear"
-                Command="{Binding ClearBatchFilesCommand}"
-                Style="{StaticResource GhostButton}"
-                MinWidth="75" />
-      </StackPanel>
-      <DataGrid x:Name="BatchDataGrid"
-                ItemsSource="{Binding BatchFiles}"
-                SelectedItem="{Binding SelectedBatchFile}"
-                AutoGenerateColumns="False"
-                IsReadOnly="True"
-                SelectionMode="Single"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource BorderSeparator}"
-                AllowDrop="True"
-                PreviewDragOver="OnBatchDragOver"
-                PreviewDrop="OnBatchDrop">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="*" />
-          <DataGridTextColumn Header="Output Path" Binding="{Binding OutputPath}" Width="2*" />
-          <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
-        </DataGrid.Columns>
-      </DataGrid>
-    </DockPanel>
-
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
-    <!-- ── Output (hidden in batch mode) ─────────────────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2"
-               Visibility="{Binding IsBatchMode, Converter={StaticResource InverseBoolToVisibility}}" />
-    <DockPanel DockPanel.Dock="Top"
-               Visibility="{Binding IsBatchMode, Converter={StaticResource InverseBoolToVisibility}}">
+    <!-- ── Output ────────────────────────────────────────────── -->
+    <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseOutputCommand}"
               Style="{StaticResource GhostButton}"

@@ -17,16 +17,22 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        SourceInitialized += (_, _) => DarkTitleBar.Enable(this);
+        SourceInitialized += OnSourceInitialized;
 
         Drop += OnDrop;
         DragOver += OnDragOver;
     }
 
+    private void OnSourceInitialized(object? _, EventArgs e)
+    {
+        DarkTitleBar.Enable(this);
+        RestoreWindowState();
+    }
+
     protected override void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);
-        RestoreWindowState();
+        Opacity = 1;
 
         // Handle command-line arguments
         var args = Environment.GetCommandLineArgs();
