@@ -51,9 +51,9 @@ Create `.srs` sample reconstruction files from media files across 7 container fo
 | ASF | WMV |
 | FLAC | FLAC |
 | MP3 | MP3 |
-| Stream | VOB, M2TS, TS, MPG, MPEG, EVO |
+| Stream | VOB, M2TS, TS, MPG, MPEG, EVO, M2V |
 
-Automatic container detection, track parsing, 256-byte signature capture, and CRC32 computation.
+Automatic container detection, track parsing, 256-byte signature capture, and CRC32 computation. Supports ISO/IMG images as input — browse media files inside the ISO and extract them for SRS creation.
 
 ### RAR Reconstructor
 
@@ -76,7 +76,7 @@ Reconstruct RAR archives from SRR metadata using brute-force WinRAR version and 
 
 ![RAR Reconstructor](docs/resources/srs_reconstructor.png)
 
-Rebuild media samples from `.srs` metadata and a source media file. Extracts track signatures, reconstructs the sample byte-for-byte, and verifies the result against the expected CRC32 and file size. Supports the same container formats as the SRS Creator.
+Rebuild media samples from `.srs` metadata and a source media file. Extracts track signatures, reconstructs the sample byte-for-byte, and verifies the result against the expected CRC32 and file size. Supports the same container formats as the SRS Creator. ISO/IMG images can be used as the media source — for VOB-based samples, the matching title set is automatically detected using track signatures.
 
 ### SRS Restorer
 
