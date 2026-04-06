@@ -68,6 +68,13 @@
                     PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
                     Margin="{DynamicResource TreeViewMargin}"
                     FontSize="{DynamicResource FontSizeBody}">
+            <TreeView.ItemContainerStyle>
+              <Style TargetType="TreeViewItem"
+                     BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                <Setter Property="IsExpanded"
+                        Value="{Binding IsExpanded, Mode=TwoWay}" />
+              </Style>
+            </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>
               <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                 <TextBlock Text="{Binding Text}"

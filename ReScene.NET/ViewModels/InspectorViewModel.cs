@@ -477,8 +477,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             var osoNode = new TreeNodeViewModel
             {
                 Text = $"OSO Hashes ({srr.OsoHashBlocks.Count})",
-                Tag = "container",
-                IsExpanded = true
+                Tag = "container"
             };
             foreach (SrrOsoHashBlock oso in srr.OsoHashBlocks)
             {
@@ -508,8 +507,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             var volumesNode = new TreeNodeViewModel
             {
                 Text = $"RAR Volumes ({srr.RarFiles.Count})",
-                Tag = "container",
-                IsExpanded = true
+                Tag = "container"
             };
             foreach (SrrRarFileBlock rar in srr.RarFiles)
             {
@@ -542,8 +540,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             var storedNode = new TreeNodeViewModel
             {
                 Text = $"Stored Files ({srr.StoredFiles.Count})",
-                Tag = "container",
-                IsExpanded = true
+                Tag = "container"
             };
             foreach (SrrStoredFileBlock stored in srr.StoredFiles)
             {
@@ -601,8 +598,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             var tracksNode = new TreeNodeViewModel
             {
                 Text = $"Tracks ({srs.Tracks.Count})",
-                Tag = "container",
-                IsExpanded = true
+                Tag = "container"
             };
             foreach (SrsTrackDataBlock track in srs.Tracks)
             {
