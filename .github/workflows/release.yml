@@ -50,6 +50,18 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path publish/* -DestinationPath ReScene.NET-${{ steps.version.outputs.version }}-win-x64.zip
 
+      - name: Tag ReScene.Lib submodule
+        if: env.LIB_PAT != ''
+        shell: bash
+        env:
+          LIB_PAT: ${{ secrets.LIB_PAT }}
+        run: |
+          cd ReScene.Lib
+          SUBMODULE_SHA=$(git rev-parse HEAD)
+          echo "Tagging ReScene.Lib commit $SUBMODULE_SHA as v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}" "$SUBMODULE_SHA"
+          git push "https://x-access-token:${LIB_PAT}@github.com/NeWbY100/ReScene.Lib.git" "v${{ steps.version.outputs.version }}"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
