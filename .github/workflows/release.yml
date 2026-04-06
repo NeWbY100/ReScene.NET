@@ -65,6 +65,18 @@ jobs:
           git remote set-url origin "https://x-access-token:${LIB_PAT}@github.com/NeWbY100/ReScene.Lib.git"
           git push origin "$TAG"
 
+      - name: Create ReScene.Lib GitHub Release
+        if: env.LIB_PAT != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.LIB_PAT }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          gh release create "$TAG" \
+            --repo NeWbY100/ReScene.Lib \
+            --title "ReScene.Lib $TAG" \
+            --generate-notes
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
