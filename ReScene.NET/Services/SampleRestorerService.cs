@@ -3,9 +3,10 @@ using ReScene.SRS;
 
 namespace ReScene.NET.Services;
 
-public class SampleRestorerService : ISampleRestorerService
+public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleRestorerService
 {
     private readonly SRSRebuilder _rebuilder = new();
+    private readonly ITempDirectoryService _tempDir = tempDir;
 
     public event EventHandler<SrsReconstructionProgressEventArgs>? Progress
     {
@@ -18,7 +19,7 @@ public class SampleRestorerService : ISampleRestorerService
         var srr = SRRFile.Load(srrFilePath);
         var entries = new List<SrsEntryInfo>();
 
-        string tempDir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N"));
+        string tempDir = _tempDir.CreateTempDirectory();
 
         try
         {
@@ -62,14 +63,7 @@ public class SampleRestorerService : ISampleRestorerService
         }
         finally
         {
-            try
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
-                }
-            }
-            catch { /* cleanup best-effort */ }
+            _tempDir.Cleanup(tempDir);
         }
 
         return entries;
@@ -80,7 +74,7 @@ public class SampleRestorerService : ISampleRestorerService
         string mediaFilePath, string outputPath, CancellationToken ct)
     {
         var srr = SRRFile.Load(srrFilePath);
-        string tempDir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N"));
+        string tempDir = _tempDir.CreateTempDirectory();
 
         try
         {
@@ -100,14 +94,7 @@ public class SampleRestorerService : ISampleRestorerService
         }
         finally
         {
-            try
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
-                }
-            }
-            catch { /* cleanup best-effort */ }
+            _tempDir.Cleanup(tempDir);
         }
     }
 }

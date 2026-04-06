@@ -3,6 +3,7 @@ using System.Text;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.NET.Helpers;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.RAR;
@@ -30,7 +31,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
     private async Task BrowseFileAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Open File to Inspect",
-            ["Scene Files|*.srr;*.srs;*.rar", "SRR Files|*.srr", "SRS Files|*.srs", "RAR Files|*.rar", "All Files|*.*"]);
+            FileDialogFilters.SceneFilesWithRar);
 
         if (path is not null)
         {
@@ -330,7 +331,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         string? outputPath = await _fileDialog.SaveFileAsync(
             "Export Block Data",
             Path.GetExtension(defaultName),
-            ["All Files|*.*"],
+            FileDialogFilters.AllFiles,
             defaultName);
 
         if (outputPath is null)
@@ -607,7 +608,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             {
                 tracksNode.Children.Add(new TreeNodeViewModel
                 {
-                    Text = $"Track {track.TrackNumber} ({FormatSize((long)track.DataLength)})",
+                    Text = $"Track {track.TrackNumber} ({FormatUtilities.FormatSize((long)track.DataLength)})",
                     Tag = track
                 });
             }
@@ -636,7 +637,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         if (srs.FileData is not null)
         {
             AddProperty("Sample File", srs.FileData.FileName);
-            AddProperty("Sample Size", $"{srs.FileData.SampleSize:N0} bytes ({FormatSize((long)srs.FileData.SampleSize)})");
+            AddProperty("Sample Size", $"{srs.FileData.SampleSize:N0} bytes ({FormatUtilities.FormatSize((long)srs.FileData.SampleSize)})");
             AddProperty("Sample CRC32", $"0x{srs.FileData.Crc32:X8}");
             if (!string.IsNullOrEmpty(srs.FileData.AppName))
             {
@@ -670,7 +671,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             new ByteRange { Offset = block.FileNameSizeOffset, Length = 2 });
         AddProperty("File Name", block.FileName,
             new ByteRange { Offset = block.FileNameOffset, Length = block.FileNameSize });
-        AddProperty("Sample Size", $"{block.SampleSize:N0} bytes ({FormatSize((long)block.SampleSize)})",
+        AddProperty("Sample Size", $"{block.SampleSize:N0} bytes ({FormatUtilities.FormatSize((long)block.SampleSize)})",
             new ByteRange { Offset = block.SampleSizeOffset, Length = 8 });
         AddProperty("CRC-32", $"0x{block.Crc32:X8}",
             new ByteRange { Offset = block.Crc32Offset, Length = 4 });
@@ -692,7 +693,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             new ByteRange { Offset = block.TrackNumberOffset, Length = block.TrackNumberFieldSize });
 
         string dataLabel = (block.Flags & 0x4) != 0 ? "Data Length (64-bit)" : "Data Length (32-bit)";
-        AddProperty(dataLabel, $"{block.DataLength:N0} bytes ({FormatSize((long)block.DataLength)})",
+        AddProperty(dataLabel, $"{block.DataLength:N0} bytes ({FormatUtilities.FormatSize((long)block.DataLength)})",
             new ByteRange { Offset = block.DataLengthOffset, Length = block.DataLengthFieldSize });
 
         AddProperty("Match Offset", $"0x{block.MatchOffset:X}",
@@ -719,9 +720,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         AddProperty("Chunk ID", chunk.ChunkId);
         AddProperty("Position", $"0x{chunk.BlockPosition:X8}",
             new ByteRange { Offset = chunk.BlockPosition, Length = chunk.HeaderSize });
-        AddProperty("Total Size", $"{chunk.BlockSize:N0} bytes ({FormatSize(chunk.BlockSize)})");
-        AddProperty("Header Size", $"{chunk.HeaderSize:N0} bytes ({FormatSize(chunk.HeaderSize)})");
-        AddProperty("Payload Size", $"{chunk.PayloadSize:N0} bytes ({FormatSize(chunk.PayloadSize)})");
+        AddProperty("Total Size", $"{chunk.BlockSize:N0} bytes ({FormatUtilities.FormatSize(chunk.BlockSize)})");
+        AddProperty("Header Size", $"{chunk.HeaderSize:N0} bytes ({FormatUtilities.FormatSize(chunk.HeaderSize)})");
+        AddProperty("Payload Size", $"{chunk.PayloadSize:N0} bytes ({FormatUtilities.FormatSize(chunk.PayloadSize)})");
     }
 
     private void SetHexBlock(long offset, long size)
@@ -836,7 +837,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
         if (stored.FileLength > 0)
         {
-            AddProperty("File Data", $"{stored.FileLength:N0} bytes ({FormatSize(stored.FileLength)})",
+            AddProperty("File Data", $"{stored.FileLength:N0} bytes ({FormatUtilities.FormatSize(stored.FileLength)})",
                 new ByteRange { Offset = stored.DataOffset, Length = (int)Math.Min(stored.FileLength, int.MaxValue) });
         }
     }
@@ -892,7 +893,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         }
 
         // Binary order: FileSize(8), OsoHash(8), NameLen(2), FileName(var)
-        AddProperty("File Size", $"{oso.FileSize:N0} bytes ({FormatSize((long)oso.FileSize)})",
+        AddProperty("File Size", $"{oso.FileSize:N0} bytes ({FormatUtilities.FormatSize((long)oso.FileSize)})",
             new ByteRange { Offset = p, Length = 8 });
         p += 8;
         AddProperty("OSO Hash", Convert.ToHexString(oso.OsoHash),
@@ -1017,7 +1018,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
         if (srr.VolumeSizeBytes.HasValue)
         {
-            AddProperty("Volume Size", $"{srr.VolumeSizeBytes.Value:N0} bytes ({FormatSize(srr.VolumeSizeBytes.Value)})");
+            AddProperty("Volume Size", $"{srr.VolumeSizeBytes.Value:N0} bytes ({FormatUtilities.FormatSize(srr.VolumeSizeBytes.Value)})");
         }
 
         if (srr.RarVolumeSizes.Count > 0)
@@ -1027,7 +1028,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
             for (int i = 0; i < Math.Min(uniqueSizes.Count, 5); i++)
             {
                 AddProperty($"  Unique Size {i + 1}",
-                    $"{uniqueSizes[i]:N0} bytes ({FormatSize(uniqueSizes[i])})", indented: true);
+                    $"{uniqueSizes[i]:N0} bytes ({FormatUtilities.FormatSize(uniqueSizes[i])})", indented: true);
             }
 
             if (uniqueSizes.Count > 5)
@@ -1080,7 +1081,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
 
             var node = new TreeNodeViewModel
             {
-                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
+                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatUtilities.FormatSize(chunk.BlockSize)})",
                 Tag = chunk
             };
             nodeStack.Peek().Children.Add(node);
@@ -1090,19 +1091,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         }
     }
 
-    private static string FormatSize(long bytes)
-    {
-        string[] suffixes = ["B", "KB", "MB", "GB", "TB"];
-        int i = 0;
-        double size = bytes;
-        while (size >= 1024 && i < suffixes.Length - 1)
-        {
-            size /= 1024;
-            i++;
-        }
-
-        return $"{size:0.##} {suffixes[i]}";
-    }
 
     private static string GetCompressionMethodName(byte method) => method switch
     {

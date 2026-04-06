@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
-using System.Reflection;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.NET.Helpers;
 using ReScene.NET.Services;
 using ReScene.SRS;
 
@@ -12,13 +12,15 @@ public partial class SrsCreatorViewModel : ViewModelBase
 {
     private readonly ISrsCreationService _srsService;
     private readonly IFileDialogService _fileDialog;
+    private readonly ITempDirectoryService _tempDir;
     private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
-    public SrsCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog)
+    public SrsCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir)
     {
         _srsService = srsService;
         _fileDialog = fileDialog;
+        _tempDir = tempDir;
 
         _srsService.Progress += OnProgress;
     }
@@ -82,23 +84,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     // Options
     [ObservableProperty]
-    private string _appName = GetDefaultAppName();
-
-    private static string GetDefaultAppName()
-    {
-        string? version = Assembly.GetEntryAssembly()?
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-
-        if (version is null)
-        {
-            return "ReScene.NET";
-        }
-
-        int plus = version.IndexOf('+', StringComparison.Ordinal);
-        return plus >= 0
-            ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
-            : $"ReScene.NET v{version}";
-    }
+    private string _appName = FormatUtilities.GetDefaultAppName();
 
     // Progress
     [ObservableProperty]
@@ -121,13 +107,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
     private async Task BrowseInputAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select Sample File",
-        [
-            "Video Samples|*.avi;*.mkv;*.mp4;*.wmv;*.m4v",
-            "Audio Samples|*.flac;*.mp3",
-            "Stream Samples|*.vob;*.m2ts;*.ts;*.mpg;*.mpeg;*.evo",
-            "ISO Images|*.iso;*.img",
-            "All Files|*.*"
-        ]);
+            FileDialogFilters.MediaSamples);
 
         if (path is null)
         {
@@ -171,7 +151,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
     private async Task BrowseOutputAsync()
     {
         string? path = await _fileDialog.SaveFileAsync(
-            "Save SRS File", ".srs", ["SRS Files|*.srs"]);
+            "Save SRS File", ".srs", FileDialogFilters.SrsSave);
         if (path is not null)
         {
             OutputPath = path;
@@ -208,7 +188,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
         {
             var options = new SrsCreationOptions
             {
-                AppName = string.IsNullOrWhiteSpace(AppName) ? GetDefaultAppName() : AppName
+                AppName = string.IsNullOrWhiteSpace(AppName) ? FormatUtilities.GetDefaultAppName() : AppName
             };
 
             Log("Starting SRS creation...");
@@ -220,8 +200,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
                 Log($"ISO image: {IsoFilePath}");
                 Log($"ISO file:  {SelectedIsoMediaFile}");
 
-                string tempDir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N")[..8]);
-                Directory.CreateDirectory(tempDir);
+                string tempDir = _tempDir.CreateTempDirectory();
                 string tempFile = Path.Combine(tempDir, Path.GetFileName(SelectedIsoMediaFile!));
                 _extractedTempFile = tempFile;
 
@@ -325,11 +304,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
         });
     }
 
-    private void Log(string message)
-    {
-        string entry = $"{DateTime.Now:HH:mm:ss} {message}";
-        LogEntries.Add(entry);
-    }
+    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     #region ISO Support
 
@@ -340,24 +315,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
             return;
         }
 
-        try
-        {
-            string? tempDir = Path.GetDirectoryName(_extractedTempFile);
-            if (File.Exists(_extractedTempFile))
-            {
-                File.Delete(_extractedTempFile);
-            }
-
-            if (tempDir is not null && Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
-        }
-        catch
-        {
-            // Best-effort cleanup
-        }
-
+        _tempDir.Cleanup(Path.GetDirectoryName(_extractedTempFile));
         _extractedTempFile = null;
     }
 

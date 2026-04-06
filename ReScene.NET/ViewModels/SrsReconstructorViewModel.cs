@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.NET.Helpers;
 using ReScene.NET.Services;
 using ReScene.SRS;
 
@@ -12,13 +13,15 @@ public partial class SrsReconstructorViewModel : ViewModelBase
 {
     private readonly ISrsReconstructionService _service;
     private readonly IFileDialogService _fileDialog;
+    private readonly ITempDirectoryService _tempDir;
     private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
-    public SrsReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog)
+    public SrsReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog, ITempDirectoryService tempDir)
     {
         _service = service;
         _fileDialog = fileDialog;
+        _tempDir = tempDir;
 
         _service.Progress += OnProgress;
         _service.ScanProgress += OnScanProgress;
@@ -114,7 +117,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private async Task BrowseSrsAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRS File",
-            ["SRS Files|*.srs", "All Files|*.*"]);
+            FileDialogFilters.SrsFiles);
 
         if (path is not null)
         {
@@ -127,13 +130,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private async Task BrowseMediaAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select Media File",
-        [
-            "Video Files|*.avi;*.mkv;*.mp4;*.wmv;*.m4v;*.mov",
-            "Audio Files|*.flac;*.mp3",
-            "Stream Files|*.vob;*.m2ts;*.ts;*.mpg;*.mpeg;*.evo;*.m2v",
-            "ISO Images|*.iso;*.img",
-            "All Files|*.*"
-        ]);
+            FileDialogFilters.MediaFiles);
 
         if (path is null)
         {
@@ -159,7 +156,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     {
         string? path = await _fileDialog.SaveFileAsync(
             "Save Reconstructed Sample", ".*",
-            ["All Files|*.*"],
+            FileDialogFilters.AllFiles,
             string.IsNullOrWhiteSpace(OutputPath) ? null : Path.GetFileName(OutputPath));
 
         if (path is not null)
@@ -208,8 +205,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             {
                 Log($"ISO image:  {IsoFilePath}");
 
-                string tempDir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N")[..8]);
-                Directory.CreateDirectory(tempDir);
+                string tempDir = _tempDir.CreateTempDirectory();
                 string tempFile = Path.Combine(tempDir, "media.vob");
                 _extractedTempFile = tempFile;
 
@@ -238,7 +234,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
                         IsoCurrentFileText = p.CurrentFile;
                         if (p.CurrentBytesTotal > 0)
                         {
-                            IsoCurrentSizeText = $"{FormatSize(p.CurrentBytesProcessed)} / {FormatSize(p.CurrentBytesTotal)}";
+                            IsoCurrentSizeText = $"{FormatUtilities.FormatSize(p.CurrentBytesProcessed)} / {FormatUtilities.FormatSize(p.CurrentBytesTotal)}";
                         }
                         else
                         {
@@ -357,15 +353,15 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         }
 
         double elapsed = _isoStopwatch.Elapsed.TotalSeconds;
-        IsoProcessedText = $"{FormatSize(processed)} / {FormatSize(total)}";
+        IsoProcessedText = $"{FormatUtilities.FormatSize(processed)} / {FormatUtilities.FormatSize(total)}";
 
         long remaining = total - processed;
-        IsoRemainingText = FormatSize(remaining);
+        IsoRemainingText = FormatUtilities.FormatSize(remaining);
 
         if (elapsed > 0.5 && processed > 0)
         {
             double bytesPerSec = processed / elapsed;
-            IsoSpeedText = $"{FormatSize((long)bytesPerSec)}/s";
+            IsoSpeedText = $"{FormatUtilities.FormatSize((long)bytesPerSec)}/s";
 
             double secondsRemaining = remaining / bytesPerSec;
             if (secondsRemaining < 60)
@@ -379,20 +375,6 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         }
     }
 
-    private static string FormatSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double size = bytes;
-        int i = 0;
-
-        while (size >= 1024 && i < units.Length - 1)
-        {
-            size /= 1024;
-            i++;
-        }
-
-        return $"{size:0.##} {units[i]}";
-    }
 
     #region ISO Support
 
@@ -403,24 +385,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             return;
         }
 
-        try
-        {
-            string? tempDir = Path.GetDirectoryName(_extractedTempFile);
-            if (File.Exists(_extractedTempFile))
-            {
-                File.Delete(_extractedTempFile);
-            }
-
-            if (tempDir is not null && Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
-        }
-        catch
-        {
-            // Best-effort cleanup
-        }
-
+        _tempDir.Cleanup(Path.GetDirectoryName(_extractedTempFile));
         _extractedTempFile = null;
     }
 
@@ -463,11 +428,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         });
     }
 
-    private void Log(string message)
-    {
-        string entry = $"{DateTime.Now:HH:mm:ss} {message}";
-        LogEntries.Add(entry);
-    }
+    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     private void AutoSetOutputPath(string srsPath)
     {

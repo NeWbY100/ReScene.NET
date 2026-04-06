@@ -688,28 +688,7 @@ private void CancelCreation()
 - Catch `OperationCanceledException` specifically for cancellation — log a simple "Cancelled." message
 - Catch general `Exception ex` for everything else — log `ex.Message` to the UI
 - Do not silently swallow exceptions — always log or display them
-- Use try-catch in all `[RelayCommand]` async methods that call services
-
-```csharp
-try
-{
-    await _service.DoWorkAsync(_cts.Token);
-}
-catch (OperationCanceledException)
-{
-    Log("Cancelled.");
-}
-catch (Exception ex)
-{
-    Log($"Error: {ex.Message}");
-}
-finally
-{
-    IsProcessing = false;
-    _cts?.Dispose();
-    _cts = null;
-}
-```
+- Use try-catch in all `[RelayCommand]` async methods that call services (see Cancellation Pattern above)
 
 ---
 
@@ -1135,63 +1114,11 @@ All tokens defined in `Resources/Tokens.xaml`. Always use tokens — never hardc
 
 ### DataGrid Pattern
 
-```xml
-<DataGrid ItemsSource="{Binding Properties}"
-          SelectedItem="{Binding SelectedProperty}"
-          IsReadOnly="True"
-          AutoGenerateColumns="False"
-          CanUserReorderColumns="False"
-          CanUserSortColumns="False"
-          GridLinesVisibility="Horizontal"
-          HeadersVisibility="Column"
-          SelectionMode="Single"
-          BorderThickness="0">
-  <DataGrid.RowStyle>
-    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding IsDifferent}" Value="True">
-          <Setter Property="Background" Value="{DynamicResource DiffRowBackground}" />
-          <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-  </DataGrid.RowStyle>
-  <DataGrid.Columns>
-    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200" />
-    <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" />
-  </DataGrid.Columns>
-</DataGrid>
-```
+Standard settings: `IsReadOnly="True"`, `AutoGenerateColumns="False"`, `SelectionMode="Single"`, `BorderThickness="0"`. Use `DataTrigger` on row style for conditional formatting (e.g., `IsDifferent` → `DiffRowBackground`/`AccentError`). Base row styles on `{StaticResource {x:Type DataGridRow}}`.
 
-### TreeView with HierarchicalDataTemplate
+### TreeView Pattern
 
-```xml
-<TreeView ItemsSource="{Binding TreeRoots}"
-          SelectedItemChanged="TreeView_SelectedItemChanged"
-          FontSize="{DynamicResource FontSizeBody}">
-  <TreeView.ItemContainerStyle>
-    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-      <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
-      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-    </Style>
-  </TreeView.ItemContainerStyle>
-  <TreeView.ItemTemplate>
-    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-      <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis">
-        <TextBlock.Style>
-          <Style TargetType="TextBlock">
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding IsDifferent}" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </TextBlock.Style>
-      </TextBlock>
-    </HierarchicalDataTemplate>
-  </TreeView.ItemTemplate>
-</TreeView>
-```
+Use `HierarchicalDataTemplate` with `ItemsSource="{Binding Children}"`. Bind `IsSelected`/`IsExpanded` as `TwoWay` in `ItemContainerStyle`. Base on `{StaticResource {x:Type TreeViewItem}}`. Use `DataTrigger` for conditional foreground (e.g., `IsDifferent` → `AccentError`).
 
 ### Window Definitions
 
@@ -1251,58 +1178,7 @@ private void Log(string message)
 
 ## Helper Classes
 
-Static utility classes go in `Helpers/`. Use `internal static`:
-
-```csharp
-internal static class DarkTitleBar
-{
-    [DllImport("dwmapi.dll", PreserveSig = true)]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
-    public static void Enable(Window window)
-    {
-        if (PresentationSource.FromVisual(window) is HwndSource source)
-        {
-            int value = 1;
-            DwmSetWindowAttribute(source.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
-        }
-    }
-}
-```
-
----
-
-## Event Handler Patterns
-
-### PropertyChanged Forwarding
-
-MainWindowViewModel subscribes to child ViewModel property changes for status/busy aggregation:
-
-```csharp
-Inspector.PropertyChanged += (_, e) =>
-{
-    if (e.PropertyName == nameof(InspectorViewModel.StatusMessage))
-        StatusMessage = Inspector.StatusMessage;
-    else if (e.PropertyName == nameof(InspectorViewModel.IsExporting))
-        IsBusy = Inspector.IsExporting || Creator.IsCreating;
-};
-```
-
-### DispatcherTimer for Periodic Updates
-
-```csharp
-private readonly DispatcherTimer _elapsedTimer;
-
-// In constructor
-_elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-_elapsedTimer.Tick += OnElapsedTimerTick;
-
-// Start/stop with operations
-_elapsedTimer.Start();
-_elapsedTimer.Stop();
-```
+Static utility classes go in `Helpers/`. Use `internal static` (e.g., `DarkTitleBar`).
 
 ---
 
@@ -1312,27 +1188,6 @@ _elapsedTimer.Stop();
 - Do not commit `.env`, credentials, or user-specific files
 - Submodule (`ReScene.Lib`): update with `git submodule update --remote` when needed
 - Line endings: CRLF (Windows project)
-
----
-
-## Modern C# Features
-
-Use the latest C# language features available in .NET 10:
-
-- **`is null` / `is not null`** instead of `== null` / `!= null`
-- **Pattern matching** — `is { }`, property patterns, switch expressions
-- **Collection expressions** — `[]` for empty collections and inline arrays
-- **Target-typed `new`** — `FileStream stream = new(...)` when type is on the left
-- **File-scoped namespaces** — `namespace X;` (never block-scoped)
-- **Primary constructors** — for simple dependency injection in ViewModels
-- **Expression-bodied members** — for one-line methods, properties, operators
-- **`[GeneratedRegex]`** — compile-time regex via source generator
-- **`[ObservableProperty]` / `[RelayCommand]`** — CommunityToolkit.Mvvm source generators
-- **Discards `_`** — for unused parameters (`sender`, `e`)
-- **`using` declarations** — `using var stream = ...;` without braces where appropriate
-- **Raw string literals** — `"""..."""` for multi-line strings if needed
-- **`string.IsNullOrEmpty` / `string.IsNullOrWhiteSpace`** — prefer over manual null + length checks
-- **`GC.SuppressFinalize(this)`** — always call in `Dispose()`, even without a finalizer (CA1816)
 
 ---
 

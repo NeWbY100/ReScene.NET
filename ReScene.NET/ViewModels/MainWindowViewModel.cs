@@ -1,6 +1,7 @@
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.NET.Helpers;
 using ReScene.NET.Services;
 
 namespace ReScene.NET.ViewModels;
@@ -76,20 +77,20 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService())
+        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), new TempDirectoryService())
     {
     }
 
-    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles)
+    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir)
     {
         _fileDialog = fileDialog;
         _recentFiles = recentFiles;
 
         Inspector = new InspectorViewModel(fileDialog);
-        Creator = new CreatorViewModel(srrService, srsService, fileDialog);
-        SrsCreator = new SrsCreatorViewModel(srsService, fileDialog);
+        Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir);
+        SrsCreator = new SrsCreatorViewModel(srsService, fileDialog, tempDir);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
-        SrsReconstructor = new SrsReconstructorViewModel(srsReconService, fileDialog);
+        SrsReconstructor = new SrsReconstructorViewModel(srsReconService, fileDialog, tempDir);
         SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
         FileCompare = new FileCompareViewModel(fileCompareService, fileDialog);
         Home = new HomeViewModel(
@@ -158,7 +159,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task OpenFileAsync()
     {
         string? path = await _fileDialog.OpenFileAsync(
-            "Open Scene File", ["Scene Files|*.srr;*.srs", "SRR Files|*.srr", "SRS Files|*.srs", "All Files|*.*"]);
+            "Open Scene File", FileDialogFilters.SceneFiles);
 
         if (path is not null)
         {

@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Reflection;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,13 +17,15 @@ public partial class CreatorViewModel : ViewModelBase
     private readonly ISrrCreationService _srrService;
     private readonly ISrsCreationService _srsService;
     private readonly IFileDialogService _fileDialog;
+    private readonly ITempDirectoryService _tempDir;
     private CancellationTokenSource? _cts;
 
-    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog)
+    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir)
     {
         _srrService = srrService;
         _srsService = srsService;
         _fileDialog = fileDialog;
+        _tempDir = tempDir;
 
         _srrService.Progress += OnProgress;
     }
@@ -71,23 +72,7 @@ public partial class CreatorViewModel : ViewModelBase
     private bool _generateLanguagesDiz = true;
 
     [ObservableProperty]
-    private string _appName = GetDefaultAppName();
-
-    private static string GetDefaultAppName()
-    {
-        string? version = Assembly.GetEntryAssembly()?
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-
-        if (version is null)
-        {
-            return "ReScene.NET";
-        }
-
-        int plus = version.IndexOf('+', StringComparison.Ordinal);
-        return plus >= 0
-            ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
-            : $"ReScene.NET v{version}";
-    }
+    private string _appName = FormatUtilities.GetDefaultAppName();
 
     // Progress
     [ObservableProperty]
@@ -110,7 +95,7 @@ public partial class CreatorViewModel : ViewModelBase
     private async Task BrowseInputAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select Input File",
-            ["SFV Files|*.sfv", "RAR Files|*.rar", "All Files|*.*"]);
+            FileDialogFilters.SfvAndRar);
 
         if (path is not null)
         {
@@ -134,7 +119,7 @@ public partial class CreatorViewModel : ViewModelBase
     private async Task BrowseOutputAsync()
     {
         string? path = await _fileDialog.SaveFileAsync(
-            "Save SRR File", ".srr", ["SRR Files|*.srr"]);
+            "Save SRR File", ".srr", FileDialogFilters.SrrSave);
         if (path is not null)
         {
             OutputPath = path;
@@ -145,7 +130,7 @@ public partial class CreatorViewModel : ViewModelBase
     private async Task AddStoredFileAsync()
     {
         IReadOnlyList<string> paths = await _fileDialog.OpenFilesAsync(
-            "Select Files to Store", ["NFO/SFV Files|*.nfo;*.sfv;*.txt", "All Files|*.*"]);
+            "Select Files to Store", FileDialogFilters.StoredFiles);
 
         foreach (string path in paths)
         {
@@ -215,7 +200,7 @@ public partial class CreatorViewModel : ViewModelBase
             // Phase 2: Create nested SRRs for subtitle archives
             if (CreateVobsubSrr)
             {
-                await CreateVobsubSrrsAsync(releaseDir, options, tempDir ??= CreateTempDir(), _cts.Token);
+                await CreateVobsubSrrsAsync(releaseDir, options, tempDir ??= _tempDir.CreateTempDirectory(), _cts.Token);
             }
 
             // Phase 3: Store fix RAR if applicable
@@ -281,7 +266,7 @@ public partial class CreatorViewModel : ViewModelBase
             IsCreating = false;
             _cts?.Dispose();
             _cts = null;
-            CleanupTempDir(tempDir);
+            _tempDir.Cleanup(tempDir);
         }
     }
 
@@ -337,7 +322,7 @@ public partial class CreatorViewModel : ViewModelBase
             return null;
         }
 
-        string tempDir = CreateTempDir();
+        string tempDir = _tempDir.CreateTempDirectory();
         var srsOptions = new SrsCreationOptions
         {
             AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene.NET" : AppName
@@ -487,11 +472,7 @@ public partial class CreatorViewModel : ViewModelBase
         });
     }
 
-    private void Log(string message)
-    {
-        string entry = $"{DateTime.Now:HH:mm:ss} {message}";
-        LogEntries.Add(entry);
-    }
+    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     // ── Helpers ─────────────────────────────────────────────
 
@@ -529,30 +510,6 @@ public partial class CreatorViewModel : ViewModelBase
         {
             item.StoredName = ComputeStoredName(item.FullPath);
         }
-    }
-
-    private static string CreateTempDir()
-    {
-        string dir = Path.Combine(Path.GetTempPath(), "ReScene.NET", Guid.NewGuid().ToString("N")[..8]);
-        Directory.CreateDirectory(dir);
-        return dir;
-    }
-
-    private static void CleanupTempDir(string? tempDir)
-    {
-        if (tempDir is null)
-        {
-            return;
-        }
-
-        try
-        {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
-        }
-        catch { /* best-effort cleanup */ }
     }
 
     private static List<string> DiscoverRarVolumes(string firstRarPath)
@@ -598,7 +555,7 @@ public partial class CreatorViewModel : ViewModelBase
             }
         }
 
-        volumes.Sort(SRRWriter.CompareRarVolumeNames);
+        volumes.Sort(RarVolumeNameComparer.Instance);
         return volumes;
     }
 

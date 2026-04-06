@@ -9,6 +9,7 @@ using ReScene.Core;
 using ReScene.Core.Cryptography;
 using ReScene.Core.Diagnostics;
 using ReScene.Core.IO;
+using ReScene.NET.Helpers;
 using ReScene.NET.Services;
 using ReScene.RAR;
 using ReScene.SRR;
@@ -328,7 +329,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private async Task BrowseVerificationAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select Verification File",
-            ["SFV Files|*.sfv", "SHA1 Files|*.sha1", "All Files|*.*"]);
+            FileDialogFilters.VerificationFiles);
         if (path is not null)
         {
             VerificationPath = path;
@@ -351,7 +352,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private async Task ImportSrrAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
-            ["SRR Files|*.srr", "All Files|*.*"]);
+            FileDialogFilters.SrrFiles);
         if (path is null)
         {
             return;
@@ -1346,7 +1347,7 @@ public partial class ReconstructorViewModel : ViewModelBase
                 _copyStopwatch.Restart();
             }
 
-            CopyHeadingText = $"Copying {e.TotalFiles} items ({FormatSize(e.TotalBytes)})";
+            CopyHeadingText = $"Copying {e.TotalFiles} items ({FormatUtilities.FormatSize(e.TotalBytes)})";
             CopySourceText = e.SourceDirectory;
             CopyDestText = e.DestinationDirectory;
             CopyProgressPercent = e.TotalBytes > 0 ? (double)e.BytesCopied / e.TotalBytes * 100.0 : 0;
@@ -1355,7 +1356,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
             int remaining = e.TotalFiles - e.FilesCopied;
             long remainingBytes = e.TotalBytes - e.BytesCopied;
-            CopyRemainingText = $"Items remaining: {remaining} ({FormatSize(remainingBytes)})";
+            CopyRemainingText = $"Items remaining: {remaining} ({FormatUtilities.FormatSize(remainingBytes)})";
 
             // Timing stats
             TimeSpan elapsed = _copyStopwatch.Elapsed;
@@ -1380,19 +1381,6 @@ public partial class ReconstructorViewModel : ViewModelBase
         });
     }
 
-    private static string FormatSize(long bytes)
-    {
-        string[] suffixes = ["B", "KB", "MB", "GB", "TB"];
-        int i = 0;
-        double size = bytes;
-        while (size >= 1024 && i < suffixes.Length - 1)
-        {
-            size /= 1024;
-            i++;
-        }
-
-        return $"{size:0.##} {suffixes[i]}";
-    }
 
     private static string FormatSpeed(double bytesPerSec)
     {
@@ -1414,14 +1402,14 @@ public partial class ReconstructorViewModel : ViewModelBase
                 _verifyStopwatch.Restart();
             }
 
-            VerifyHeadingText = $"Verifying {e.TotalFiles} items ({FormatSize(e.TotalBytes)})";
+            VerifyHeadingText = $"Verifying {e.TotalFiles} items ({FormatUtilities.FormatSize(e.TotalBytes)})";
             VerifyProgressPercent = e.TotalBytes > 0 ? (double)e.BytesVerified / e.TotalBytes * 100.0 : 0;
             VerifyProgressPercentText = $"{VerifyProgressPercent:F0}%";
             VerifyCurrentFileText = e.FileName;
 
             int remaining = e.TotalFiles - e.FilesVerified;
             long remainingBytes = e.TotalBytes - e.BytesVerified;
-            VerifyRemainingText = $"Items remaining: {remaining} ({FormatSize(remainingBytes)})";
+            VerifyRemainingText = $"Items remaining: {remaining} ({FormatUtilities.FormatSize(remainingBytes)})";
 
             // Timing stats
             TimeSpan elapsed = _verifyStopwatch.Elapsed;

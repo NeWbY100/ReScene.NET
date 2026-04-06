@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.NET.Helpers;
 using ReScene.NET.Services;
 using ReScene.SRS;
 
@@ -65,7 +66,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
     private async Task BrowseSrrAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
-            ["SRR Files|*.srr", "All Files|*.*"]);
+            FileDialogFilters.SrrFiles);
 
         if (path is null)
         {
@@ -306,11 +307,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
         });
     }
 
-    private void Log(string message)
-    {
-        string entry = $"{DateTime.Now:HH:mm:ss} {message}";
-        LogEntries.Add(entry);
-    }
+    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     public partial class SrsFileEntry : ObservableObject
     {

@@ -3,6 +3,7 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.Core.Comparison;
+using ReScene.NET.Helpers;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.RAR;
@@ -183,7 +184,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private async Task BrowseLeftAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Open Left File",
-            ["Scene Files|*.rar;*.srr;*.srs", "RAR Files|*.rar", "SRR Files|*.srr", "SRS Files|*.srs", "All Files|*.*"]);
+            FileDialogFilters.SceneFilesWithRar);
 
         if (path is not null)
         {
@@ -195,7 +196,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private async Task BrowseRightAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Open Right File",
-            ["Scene Files|*.rar;*.srr;*.srs", "RAR Files|*.rar", "SRR Files|*.srr", "SRS Files|*.srs", "All Files|*.*"]);
+            FileDialogFilters.SceneFilesWithRar);
 
         if (path is not null)
         {
@@ -1674,9 +1675,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "Label", Value = chunk.Label });
         properties.Add(new PropertyItem { Name = "Chunk ID", Value = chunk.ChunkId });
         properties.Add(new PropertyItem { Name = "Position", Value = $"0x{chunk.BlockPosition:X8}" });
-        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{chunk.HeaderSize:N0} bytes ({FormatSize(chunk.HeaderSize)})" });
-        properties.Add(new PropertyItem { Name = "Payload Size", Value = $"{chunk.PayloadSize:N0} bytes ({FormatSize(chunk.PayloadSize)})" });
-        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes ({FormatSize(chunk.BlockSize)})" });
+        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{chunk.HeaderSize:N0} bytes ({FormatUtilities.FormatSize(chunk.HeaderSize)})" });
+        properties.Add(new PropertyItem { Name = "Payload Size", Value = $"{chunk.PayloadSize:N0} bytes ({FormatUtilities.FormatSize(chunk.PayloadSize)})" });
+        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes ({FormatUtilities.FormatSize(chunk.BlockSize)})" });
     }
 
     private static void ShowOsoHashProperties(ObservableCollection<PropertyItem> properties, SrrOsoHashBlock oso)
@@ -1782,7 +1783,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
             var node = new TreeNodeViewModel
             {
-                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatSize(chunk.BlockSize)})",
+                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatUtilities.FormatSize(chunk.BlockSize)})",
                 Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = chunk, IsLeft = isLeft }
             };
             nodeStack.Peek().Children.Add(node);
@@ -1792,19 +1793,6 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
     }
 
-    private static string FormatSize(long bytes)
-    {
-        string[] suffixes = ["B", "KB", "MB", "GB", "TB"];
-        int i = 0;
-        double size = bytes;
-        while (size >= 1024 && i < suffixes.Length - 1)
-        {
-            size /= 1024;
-            i++;
-        }
-
-        return $"{size:0.##} {suffixes[i]}";
-    }
 
     public void Dispose()
     {
