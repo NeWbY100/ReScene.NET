@@ -4,12 +4,16 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
 using ReScene.NET.Helpers;
+using ReScene.NET.Models;
+using ReScene.NET.Services;
 using ReScene.NET.ViewModels;
 
 namespace ReScene.NET.Views;
 
 public partial class MainWindow : Window
 {
+    public IWindowStateService? WindowStateService { get; set; }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -22,6 +26,7 @@ public partial class MainWindow : Window
     protected override void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);
+        RestoreWindowState();
 
         // Handle command-line arguments
         var args = Environment.GetCommandLineArgs();
@@ -37,7 +42,8 @@ public partial class MainWindow : Window
     private static bool IsSceneFile(string path)
     {
         return path.EndsWith(".srr", StringComparison.OrdinalIgnoreCase)
-            || path.EndsWith(".srs", StringComparison.OrdinalIgnoreCase);
+            || path.EndsWith(".srs", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".rar", StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnDragOver(object _, DragEventArgs e)
@@ -106,6 +112,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        SaveWindowState();
         base.OnClosing(e);
 
         if (DataContext is MainWindowViewModel vm)
@@ -113,6 +120,66 @@ public partial class MainWindow : Window
             vm.Cleanup();
         }
     }
+
+    #region Window State Persistence
+
+    private void RestoreWindowState()
+    {
+        WindowStateModel? state = WindowStateService?.Load();
+        if (state is null)
+        {
+            // First launch defaults
+            Width = 1280;
+            Height = 900;
+            WindowState = System.Windows.WindowState.Maximized;
+            return;
+        }
+
+        // Validate position is on-screen
+        if (state.Left >= SystemParameters.VirtualScreenLeft
+            && state.Top >= SystemParameters.VirtualScreenTop
+            && state.Left + state.Width <= SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth
+            && state.Top + state.Height <= SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight)
+        {
+            Left = state.Left;
+            Top = state.Top;
+        }
+
+        Width = Math.Max(MinWidth, state.Width);
+        Height = Math.Max(MinHeight, state.Height);
+        WindowState = state.IsMaximized ? System.Windows.WindowState.Maximized : System.Windows.WindowState.Normal;
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedTabIndex = state.SelectedTabIndex;
+        }
+    }
+
+    private void SaveWindowState()
+    {
+        // Use RestoreBounds for position/size when maximized
+        var bounds = WindowState == System.Windows.WindowState.Maximized
+            ? RestoreBounds
+            : new Rect(Left, Top, Width, Height);
+
+        var state = new WindowStateModel
+        {
+            Left = bounds.Left,
+            Top = bounds.Top,
+            Width = bounds.Width,
+            Height = bounds.Height,
+            IsMaximized = WindowState == System.Windows.WindowState.Maximized
+        };
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            state.SelectedTabIndex = vm.SelectedTabIndex;
+        }
+
+        WindowStateService?.Save(state);
+    }
+
+    #endregion
 
     private void OnAboutClick(object _, RoutedEventArgs e)
     {

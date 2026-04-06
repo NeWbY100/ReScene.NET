@@ -147,6 +147,26 @@ public partial class CreatorViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Adds files to the stored files list, skipping duplicates. Called from code-behind drag-drop.
+    /// </summary>
+    public void AddStoredFiles(IEnumerable<string> paths)
+    {
+        foreach (string path in paths)
+        {
+            if (StoredFiles.Any(f => f.FullPath.Equals(path, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            StoredFiles.Add(new StoredFileItem
+            {
+                FullPath = path,
+                StoredName = ComputeStoredName(path)
+            });
+        }
+    }
+
     [RelayCommand]
     private void RemoveStoredFile()
     {

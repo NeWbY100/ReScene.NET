@@ -25,6 +25,98 @@ public partial class SrsCreatorViewModel : ViewModelBase
         _srsService.Progress += OnProgress;
     }
 
+    #region Batch Mode
+
+    /// <summary>
+    /// Gets or sets whether batch mode is enabled.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowIsoSelection))]
+    private bool _isBatchMode;
+
+    /// <summary>
+    /// Gets or sets the currently selected batch file item.
+    /// </summary>
+    [ObservableProperty]
+    private BatchSrsItem? _selectedBatchFile;
+
+    /// <summary>
+    /// Gets the collection of files to process in batch mode.
+    /// </summary>
+    public ObservableCollection<BatchSrsItem> BatchFiles { get; } = [];
+
+    /// <summary>
+    /// Represents a single file entry in the batch SRS creation list.
+    /// </summary>
+    public partial class BatchSrsItem : ObservableObject
+    {
+        [ObservableProperty]
+        private string _filePath = string.Empty;
+
+        [ObservableProperty]
+        private string _outputPath = string.Empty;
+
+        [ObservableProperty]
+        private string _status = "Pending";
+
+        public string FileName => Path.GetFileName(FilePath);
+    }
+
+    [RelayCommand]
+    private async Task AddBatchFilesAsync()
+    {
+        IReadOnlyList<string> paths = await _fileDialog.OpenFilesAsync(
+            "Select Sample Files", FileDialogFilters.MediaSamples);
+
+        AddBatchFilePaths(paths);
+    }
+
+    /// <summary>
+    /// Adds the specified file paths to the batch list.
+    /// Called from both the command and drag-drop handler.
+    /// </summary>
+    public void AddBatchFilePaths(IReadOnlyList<string> paths)
+    {
+        foreach (string path in paths)
+        {
+            if (BatchFiles.Any(f => f.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            string dir = Path.GetDirectoryName(path) ?? ".";
+            string name = Path.GetFileNameWithoutExtension(path);
+
+            BatchFiles.Add(new BatchSrsItem
+            {
+                FilePath = path,
+                OutputPath = Path.Combine(dir, name + ".srs")
+            });
+        }
+
+        CreateSrsCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand]
+    private void RemoveBatchFile()
+    {
+        if (SelectedBatchFile is not null)
+        {
+            BatchFiles.Remove(SelectedBatchFile);
+            CreateSrsCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    [RelayCommand]
+    private void ClearBatchFiles()
+    {
+        BatchFiles.Clear();
+        CreateSrsCommand.NotifyCanExecuteChanged();
+    }
+
+    #endregion
+
     // Input
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
@@ -32,6 +124,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     // ISO support
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowIsoSelection))]
     private bool _isIsoSource;
 
     [ObservableProperty]
@@ -42,6 +135,12 @@ public partial class SrsCreatorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
     private string? _selectedIsoMediaFile;
+
+    /// <summary>
+    /// Gets whether the ISO file selection combo should be visible.
+    /// Only shown when an ISO source is loaded and batch mode is off.
+    /// </summary>
+    public bool ShowIsoSelection => IsIsoSource && !IsBatchMode;
 
     // ISO progress (for modal window)
     [ObservableProperty]
@@ -160,7 +259,17 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     private bool CanCreateSrs()
     {
-        if (IsCreating || string.IsNullOrWhiteSpace(InputPath) || string.IsNullOrWhiteSpace(OutputPath))
+        if (IsCreating)
+        {
+            return false;
+        }
+
+        if (IsBatchMode)
+        {
+            return BatchFiles.Count > 0;
+        }
+
+        if (string.IsNullOrWhiteSpace(InputPath) || string.IsNullOrWhiteSpace(OutputPath))
         {
             return false;
         }
@@ -175,6 +284,17 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanCreateSrs))]
     private async Task CreateSrsAsync()
+    {
+        if (IsBatchMode)
+        {
+            await CreateBatchSrsAsync();
+            return;
+        }
+
+        await CreateSingleSrsAsync();
+    }
+
+    private async Task CreateSingleSrsAsync()
     {
         IsCreating = true;
         ShowProgress = true;
@@ -285,6 +405,107 @@ public partial class SrsCreatorViewModel : ViewModelBase
             _cts?.Dispose();
             _cts = null;
             CleanupTempFile();
+        }
+    }
+
+    private async Task CreateBatchSrsAsync()
+    {
+        IsCreating = true;
+        ShowProgress = true;
+        ProgressPercent = 0;
+        ProgressMessage = "Starting batch...";
+        LogEntries.Clear();
+
+        _cts = new CancellationTokenSource();
+
+        int total = BatchFiles.Count;
+        int completed = 0;
+        int succeeded = 0;
+        int failed = 0;
+
+        try
+        {
+            var options = new SrsCreationOptions
+            {
+                AppName = string.IsNullOrWhiteSpace(AppName) ? FormatUtilities.GetDefaultAppName() : AppName
+            };
+
+            Log($"Starting batch SRS creation ({total} files)...");
+
+            foreach (BatchSrsItem item in BatchFiles)
+            {
+                _cts.Token.ThrowIfCancellationRequested();
+
+                item.Status = "Creating...";
+                ProgressMessage = $"Processing {completed + 1} of {total}: {item.FileName}";
+                Log($"Processing: {item.FileName}");
+
+                try
+                {
+                    SrsCreationResult result = await _srsService.CreateAsync(
+                        item.OutputPath, item.FilePath, options, _cts.Token);
+
+                    if (result.Success)
+                    {
+                        item.Status = "Done";
+                        succeeded++;
+                        Log($"  OK — {result.ContainerType}, {result.TrackCount} track(s), CRC {result.SampleCrc32:X8}");
+                    }
+                    else
+                    {
+                        item.Status = $"Error: {result.ErrorMessage}";
+                        failed++;
+                        Log($"  ERROR: {result.ErrorMessage}");
+                    }
+
+                    foreach (string warning in result.Warnings)
+                    {
+                        Log($"  WARNING: {warning}");
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    item.Status = $"Error: {ex.Message}";
+                    failed++;
+                    Log($"  ERROR: {ex.Message}");
+                }
+
+                completed++;
+                ProgressPercent = (int)((double)completed / total * 100);
+            }
+
+            ProgressPercent = 100;
+            ProgressMessage = $"Batch complete — {succeeded} succeeded, {failed} failed.";
+            Log($"Batch complete: {succeeded} succeeded, {failed} failed out of {total}.");
+        }
+        catch (OperationCanceledException)
+        {
+            ProgressMessage = "Cancelled.";
+            Log("Cancelled.");
+
+            // Mark remaining items as cancelled
+            foreach (BatchSrsItem item in BatchFiles)
+            {
+                if (item.Status == "Pending" || item.Status == "Creating...")
+                {
+                    item.Status = "Cancelled";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ProgressMessage = "Error.";
+            Log($"ERROR: {ex.Message}");
+        }
+        finally
+        {
+            IsCreating = false;
+            _cts?.Dispose();
+            _cts = null;
         }
     }
 

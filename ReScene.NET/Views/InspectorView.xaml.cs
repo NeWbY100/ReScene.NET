@@ -39,6 +39,30 @@ public partial class InspectorView : UserControl
         }
     }
 
+    private void OnCopyPropertyNameClick(object _, RoutedEventArgs e)
+    {
+        if (PropertiesGrid.SelectedItem is PropertyItem item)
+        {
+            Clipboard.SetText(item.Name);
+        }
+    }
+
+    private void OnCopyPropertyValueClick(object _, RoutedEventArgs e)
+    {
+        if (PropertiesGrid.SelectedItem is PropertyItem item)
+        {
+            Clipboard.SetText(item.Value);
+        }
+    }
+
+    private void OnCopyPropertyClick(object _, RoutedEventArgs e)
+    {
+        if (PropertiesGrid.SelectedItem is PropertyItem item)
+        {
+            Clipboard.SetText($"{item.Name}: {item.Value}");
+        }
+    }
+
     private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
     {
         DependencyObject? current = child;

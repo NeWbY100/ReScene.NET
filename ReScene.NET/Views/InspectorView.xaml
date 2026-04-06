@@ -86,6 +86,11 @@
               <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                 <MenuItem Header="Export..."
                           Command="{Binding ExportBlockCommand}" />
+                <Separator />
+                <MenuItem Header="Add Stored File..."
+                          Command="{Binding AddStoredFileToSrrCommand}" />
+                <MenuItem Header="Remove Stored File"
+                          Command="{Binding RemoveStoredFileFromSrrCommand}" />
               </ContextMenu>
             </TreeView.ContextMenu>
           </TreeView>
@@ -116,7 +121,8 @@
 
             <Grid>
               <!-- DataGrid -->
-              <DataGrid ItemsSource="{Binding Properties}"
+              <DataGrid x:Name="PropertiesGrid"
+                        ItemsSource="{Binding Properties}"
                         SelectedItem="{Binding SelectedProperty}"
                         IsReadOnly="True"
                         CanUserResizeColumns="True"
@@ -127,6 +133,17 @@
                         SelectionMode="Single"
                         BorderThickness="0"
                         AutoGenerateColumns="False">
+                <DataGrid.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Copy Name"
+                              Click="OnCopyPropertyNameClick" />
+                    <MenuItem Header="Copy Value"
+                              Click="OnCopyPropertyValueClick" />
+                    <Separator />
+                    <MenuItem Header="Copy Name: Value"
+                              Click="OnCopyPropertyClick" />
+                  </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.Columns>
                   <DataGridTemplateColumn Header="Property" Width="200">
                     <DataGridTemplateColumn.CellTemplate>

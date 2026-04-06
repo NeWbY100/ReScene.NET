@@ -12,11 +12,12 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewModelBase, IDisposable
+public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService) : ViewModelBase, IDisposable
 {
     private const int ExportBufferSize = 80 * 1024;
 
     private readonly IFileDialogService _fileDialog = fileDialog;
+    private readonly ISrrEditingService _srrEditingService = srrEditingService;
     private SrrFileData? _srrData;
     private SrsInspectorData? _srsData;
     private List<RARDetailedBlock>? _rarDetailedBlocks;
@@ -215,6 +216,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         HexSelectionOffset = -1;
         HexSelectionLength = 0;
         ExportBlockCommand.NotifyCanExecuteChanged();
+        RemoveStoredFileFromSrrCommand.NotifyCanExecuteChanged();
 
         if (value?.Tag is RARDetailedBlock detailedBlock)
         {
@@ -380,6 +382,75 @@ public partial class InspectorViewModel(IFileDialogService fileDialog) : ViewMod
         finally
         {
             IsExporting = false;
+        }
+    }
+
+    private bool IsSrrFileLoaded()
+    {
+        if (string.IsNullOrEmpty(_loadedFilePathInternal))
+        {
+            return false;
+        }
+
+        return Path.GetExtension(_loadedFilePathInternal)
+            .Equals(".srr", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool CanAddStoredFile() => IsSrrFileLoaded();
+
+    [RelayCommand(CanExecute = nameof(CanAddStoredFile))]
+    private async Task AddStoredFileToSrrAsync()
+    {
+        if (!IsSrrFileLoaded())
+        {
+            return;
+        }
+
+        string? filePath = await _fileDialog.OpenFileAsync("Select File to Add",
+            FileDialogFilters.AllFiles);
+
+        if (filePath is null)
+        {
+            return;
+        }
+
+        try
+        {
+            string storedName = Path.GetFileName(filePath);
+            _srrEditingService.AddStoredFiles(_loadedFilePathInternal!,
+                [(storedName, filePath)]);
+
+            StatusMessage = $"Added stored file: {storedName}";
+            LoadFile(_loadedFilePathInternal!);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error adding stored file: {ex.Message}";
+        }
+    }
+
+    private bool CanRemoveStoredFile()
+        => IsSrrFileLoaded() && SelectedTreeNode?.Tag is SrrStoredFileBlock;
+
+    [RelayCommand(CanExecute = nameof(CanRemoveStoredFile))]
+    private void RemoveStoredFileFromSrr()
+    {
+        if (!IsSrrFileLoaded() || SelectedTreeNode?.Tag is not SrrStoredFileBlock stored)
+        {
+            return;
+        }
+
+        try
+        {
+            _srrEditingService.RemoveStoredFiles(_loadedFilePathInternal!,
+                [stored.FileName]);
+
+            StatusMessage = $"Removed stored file: {stored.FileName}";
+            LoadFile(_loadedFilePathInternal!);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error removing stored file: {ex.Message}";
         }
     }
 

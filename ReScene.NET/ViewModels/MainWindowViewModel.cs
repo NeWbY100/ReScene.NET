@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Windows.Shell;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
@@ -59,6 +60,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isBusy;
 
+    [ObservableProperty]
+    private TaskbarItemProgressState _taskbarProgressState = TaskbarItemProgressState.None;
+
+    [ObservableProperty]
+    private double _taskbarProgressValue;
+
     public string AppVersion { get; } = GetAppVersion();
 
     private static string GetAppVersion()
@@ -77,16 +84,16 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), new TempDirectoryService())
+        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), new TempDirectoryService(), new SrrEditingService())
     {
     }
 
-    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir)
+    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService)
     {
         _fileDialog = fileDialog;
         _recentFiles = recentFiles;
 
-        Inspector = new InspectorViewModel(fileDialog);
+        Inspector = new InspectorViewModel(fileDialog, srrEditingService);
         Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir);
         SrsCreator = new SrsCreatorViewModel(srsService, fileDialog, tempDir);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
@@ -113,41 +120,46 @@ public partial class MainWindowViewModel : ViewModelBase
 
         Creator.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(CreatorViewModel.IsCreating))
+            if (e.PropertyName is nameof(CreatorViewModel.IsCreating) or nameof(CreatorViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
+                UpdateTaskbarProgress();
             }
         };
 
         SrsCreator.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SrsCreatorViewModel.IsCreating))
+            if (e.PropertyName is nameof(SrsCreatorViewModel.IsCreating) or nameof(SrsCreatorViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
+                UpdateTaskbarProgress();
             }
         };
 
         Reconstructor.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(ReconstructorViewModel.IsRunning))
+            if (e.PropertyName is nameof(ReconstructorViewModel.IsRunning) or nameof(ReconstructorViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
+                UpdateTaskbarProgress();
             }
         };
 
         SrsReconstructor.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SrsReconstructorViewModel.IsRebuilding))
+            if (e.PropertyName is nameof(SrsReconstructorViewModel.IsRebuilding) or nameof(SrsReconstructorViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
+                UpdateTaskbarProgress();
             }
         };
 
         SampleRestorer.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SampleRestorerViewModel.IsRestoring))
+            if (e.PropertyName is nameof(SampleRestorerViewModel.IsRestoring) or nameof(SampleRestorerViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
+                UpdateTaskbarProgress();
             }
         };
     }
@@ -192,6 +204,40 @@ public partial class MainWindowViewModel : ViewModelBase
             || Reconstructor.IsRunning
             || SrsReconstructor.IsRebuilding
             || SampleRestorer.IsRestoring;
+    }
+
+    private void UpdateTaskbarProgress()
+    {
+        if (Creator.IsCreating)
+        {
+            TaskbarProgressState = TaskbarItemProgressState.Normal;
+            TaskbarProgressValue = Creator.ProgressPercent / 100.0;
+        }
+        else if (SrsCreator.IsCreating)
+        {
+            TaskbarProgressState = TaskbarItemProgressState.Normal;
+            TaskbarProgressValue = SrsCreator.ProgressPercent / 100.0;
+        }
+        else if (Reconstructor.IsRunning)
+        {
+            TaskbarProgressState = TaskbarItemProgressState.Normal;
+            TaskbarProgressValue = Reconstructor.ProgressPercent / 100.0;
+        }
+        else if (SrsReconstructor.IsRebuilding)
+        {
+            TaskbarProgressState = TaskbarItemProgressState.Normal;
+            TaskbarProgressValue = SrsReconstructor.ProgressPercent / 100.0;
+        }
+        else if (SampleRestorer.IsRestoring)
+        {
+            TaskbarProgressState = TaskbarItemProgressState.Normal;
+            TaskbarProgressValue = SampleRestorer.ProgressPercent / 100.0;
+        }
+        else
+        {
+            TaskbarProgressState = TaskbarItemProgressState.None;
+            TaskbarProgressValue = 0;
+        }
     }
 
     /// <summary>

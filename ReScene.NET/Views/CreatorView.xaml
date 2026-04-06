@@ -51,7 +51,8 @@
     </StackPanel>
 
     <!-- ── Stored Files list (resizable) ─────────────────────── -->
-    <DataGrid Grid.Row="4"
+    <DataGrid x:Name="StoredFilesGrid"
+              Grid.Row="4"
               ItemsSource="{Binding StoredFiles}"
               SelectedItem="{Binding SelectedStoredFile}"
               AutoGenerateColumns="False"
@@ -61,7 +62,10 @@
               GridLinesVisibility="Horizontal"
               HeadersVisibility="Column"
               SelectionMode="Single"
-              BorderThickness="0">
+              BorderThickness="0"
+              AllowDrop="True"
+              PreviewDragOver="OnStoredFilesDragOver"
+              PreviewDrop="OnStoredFilesDrop">
       <DataGrid.Columns>
         <DataGridTextColumn Header="File Path" Binding="{Binding FullPath}" IsReadOnly="True" Width="*" />
         <DataGridTextColumn Header="Stored As" Binding="{Binding StoredName, UpdateSourceTrigger=PropertyChanged}" Width="450" />

@@ -171,6 +171,17 @@
                         SelectionMode="Single"
                         BorderThickness="0"
                         AutoGenerateColumns="False">
+                <DataGrid.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Copy Name"
+                              Click="OnCopyPropertyNameClick" />
+                    <MenuItem Header="Copy Value"
+                              Click="OnCopyPropertyValueClick" />
+                    <Separator />
+                    <MenuItem Header="Copy Name: Value"
+                              Click="OnCopyPropertyClick" />
+                  </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.RowStyle>
                   <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                     <Style.Triggers>
@@ -338,6 +349,17 @@
                         SelectionMode="Single"
                         BorderThickness="0"
                         AutoGenerateColumns="False">
+                <DataGrid.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Copy Name"
+                              Click="OnCopyPropertyNameClick" />
+                    <MenuItem Header="Copy Value"
+                              Click="OnCopyPropertyValueClick" />
+                    <Separator />
+                    <MenuItem Header="Copy Name: Value"
+                              Click="OnCopyPropertyClick" />
+                  </ContextMenu>
+                </DataGrid.ContextMenu>
                 <DataGrid.RowStyle>
                   <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                     <Style.Triggers>

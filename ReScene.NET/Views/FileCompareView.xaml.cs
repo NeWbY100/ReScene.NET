@@ -115,6 +115,40 @@ public partial class FileCompareView : UserControl
         return IsSupportedFile(files[0]) ? files[0] : null;
     }
 
+    private static DataGrid? GetSourceDataGrid(object sender)
+    {
+        if (sender is MenuItem { Parent: ContextMenu { PlacementTarget: DataGrid grid } })
+        {
+            return grid;
+        }
+
+        return null;
+    }
+
+    private void OnCopyPropertyNameClick(object sender, RoutedEventArgs e)
+    {
+        if (GetSourceDataGrid(sender)?.SelectedItem is PropertyItem item)
+        {
+            Clipboard.SetText(item.Name);
+        }
+    }
+
+    private void OnCopyPropertyValueClick(object sender, RoutedEventArgs e)
+    {
+        if (GetSourceDataGrid(sender)?.SelectedItem is PropertyItem item)
+        {
+            Clipboard.SetText(item.Value);
+        }
+    }
+
+    private void OnCopyPropertyClick(object sender, RoutedEventArgs e)
+    {
+        if (GetSourceDataGrid(sender)?.SelectedItem is PropertyItem item)
+        {
+            Clipboard.SetText($"{item.Name}: {item.Value}");
+        }
+    }
+
     private static bool IsSupportedFile(string path)
     {
         string ext = Path.GetExtension(path);

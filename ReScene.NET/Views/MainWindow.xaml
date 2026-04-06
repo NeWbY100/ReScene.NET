@@ -4,13 +4,16 @@
         xmlns:v="clr-namespace:ReScene.NET.Views"
         x:Class="ReScene.NET.Views.MainWindow"
         Title="{Binding WindowTitle}"
-        Width="1280" Height="900"
         MinWidth="700" MinHeight="450"
-        WindowState="Maximized"
         FontSize="{DynamicResource FontSizeBody}"
         Icon="/Resources/app_icon.png"
         AllowDrop="True"
         PreviewKeyDown="OnPreviewKeyDown">
+
+  <Window.TaskbarItemInfo>
+    <TaskbarItemInfo ProgressState="{Binding TaskbarProgressState}"
+                     ProgressValue="{Binding TaskbarProgressValue}" />
+  </Window.TaskbarItemInfo>
 
   <Window.InputBindings>
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
