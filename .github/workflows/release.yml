@@ -75,7 +75,7 @@ jobs:
           TAG="v${{ steps.version.outputs.version }}"
           gh release create "$TAG" \
             --repo NeWbY100/ReScene.Lib \
-            --title "ReScene.Lib $TAG" \
+            --title "$TAG" \
             --generate-notes
 
       - name: Create GitHub Release
