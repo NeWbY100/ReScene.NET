@@ -345,6 +345,33 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         Log("Cancellation requested...");
     }
 
+    [RelayCommand]
+    private async Task SaveLogAsync()
+    {
+        if (LogEntries.Count == 0)
+        {
+            return;
+        }
+
+        string? path = await _fileDialog.SaveFileAsync(
+            "Save log", ".txt", ["Text Files|*.txt"], "log.txt");
+
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await LogExporter.SaveAsync(LogEntries, path);
+            Log($"Log saved to {Path.GetFileName(path)}");
+        }
+        catch (Exception ex)
+        {
+            Log($"ERROR saving log: {ex.Message}");
+        }
+    }
+
     private void UpdateIsoStats(long processed, long total)
     {
         if (total <= 0 || _isoStopwatch is null)

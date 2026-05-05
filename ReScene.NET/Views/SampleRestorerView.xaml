@@ -109,7 +109,13 @@
 
     <!-- ── Log (fills remaining space) ───────────────────────── -->
     <DockPanel>
-      <TextBlock DockPanel.Dock="Top" Text="Log" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Save log..."
+                Command="{Binding SaveLogCommand}"
+                Style="{StaticResource GhostButton}"
+                Padding="8,2" />
+        <TextBlock Text="Log" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </DockPanel>
       <ListBox ItemsSource="{Binding LogEntries}"
                Style="{StaticResource CompactLogListBox}"
                FontFamily="{DynamicResource MonoFontFamily}"

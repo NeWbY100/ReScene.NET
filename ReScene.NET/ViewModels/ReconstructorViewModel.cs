@@ -901,6 +901,65 @@ public partial class ReconstructorViewModel : ViewModelBase
         Log(LogTarget.System, "Cancellation requested...");
     }
 
+    [RelayCommand]
+    private async Task SaveLogAsync()
+    {
+        bool hasContent = SystemLog.Length > 0 || Phase1Log.Length > 0 || Phase2Log.Length > 0;
+
+        if (!hasContent)
+        {
+            return;
+        }
+
+        string? path = await _fileDialog.SaveFileAsync(
+            "Save log", ".txt", ["Text Files|*.txt"], "log.txt");
+
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var lines = new List<string>();
+
+            if (SystemLog.Length > 0)
+            {
+                lines.Add("=== System ===");
+                lines.AddRange(SystemLog.Split(Environment.NewLine));
+            }
+
+            if (Phase1Log.Length > 0)
+            {
+                if (lines.Count > 0)
+                {
+                    lines.Add(string.Empty);
+                }
+
+                lines.Add("=== Phase 1 ===");
+                lines.AddRange(Phase1Log.Split(Environment.NewLine));
+            }
+
+            if (Phase2Log.Length > 0)
+            {
+                if (lines.Count > 0)
+                {
+                    lines.Add(string.Empty);
+                }
+
+                lines.Add("=== Phase 2 ===");
+                lines.AddRange(Phase2Log.Split(Environment.NewLine));
+            }
+
+            await LogExporter.SaveAsync(lines, path);
+            Log(LogTarget.System, $"Log saved to {Path.GetFileName(path)}");
+        }
+        catch (Exception ex)
+        {
+            Log(LogTarget.System, $"ERROR saving log: {ex.Message}");
+        }
+    }
+
     // ── Build Options ──
 
     private BruteForceOptions BuildBruteForceOptions()
