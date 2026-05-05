@@ -38,7 +38,7 @@ public sealed class PropertyExportService : IPropertyExportService
     /// <inheritdoc />
     public Task ExportTreeAsync(string outputPath, IEnumerable<TreeNodeViewModel> roots, CancellationToken ct = default)
     {
-        List<PropertyExportNode> list = roots.Select(r => ToExport(r, includeChildren: true)).ToList();
+        var list = roots.Select(r => ToExport(r, includeChildren: true)).ToList();
         string json = JsonSerializer.Serialize(list, _options);
         return File.WriteAllTextAsync(outputPath, json, ct);
     }

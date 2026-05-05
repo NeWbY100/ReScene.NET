@@ -8,8 +8,5 @@ public abstract class ViewModelBase : ObservableObject
     /// <summary>
     /// Appends a timestamped log entry to the specified collection.
     /// </summary>
-    protected static void AppendLogEntry(ObservableCollection<string> entries, string message)
-    {
-        entries.Add($"{DateTime.Now:HH:mm:ss} {message}");
-    }
+    protected static void AppendLogEntry(ObservableCollection<string> entries, string message) => entries.Add($"{DateTime.Now:HH:mm:ss} {message}");
 }

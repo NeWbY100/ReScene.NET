@@ -34,7 +34,7 @@ public static class InspectCommand
 
         try
         {
-            SRRFile srr = SRRFile.Load(path);
+            var srr = SRRFile.Load(path);
 
             List<(long Offset, string Type, long Size, string Name)> rows = [];
 
@@ -68,7 +68,7 @@ public static class InspectCommand
             Console.WriteLine($"{"Offset",-12} {"Type",-20} {"Size",10}  Name");
             Console.WriteLine(new string('-', 60));
 
-            foreach (var row in rows)
+            foreach ((long Offset, string Type, long Size, string Name) row in rows)
             {
                 PrintRow(row.Offset, row.Type, row.Size, row.Name);
             }
@@ -82,8 +82,5 @@ public static class InspectCommand
         }
     }
 
-    private static void PrintRow(long offset, string type, long size, string name)
-    {
-        Console.WriteLine($"0x{offset:X8}   {type,-20} {size,10:N0}  {name}");
-    }
+    private static void PrintRow(long offset, string type, long size, string name) => Console.WriteLine($"0x{offset:X8}   {type,-20} {size,10:N0}  {name}");
 }

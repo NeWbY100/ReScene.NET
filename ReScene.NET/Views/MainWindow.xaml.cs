@@ -164,7 +164,7 @@ public partial class MainWindow : Window
     private void SaveWindowState()
     {
         // Use RestoreBounds for position/size when maximized
-        var bounds = WindowState == System.Windows.WindowState.Maximized
+        Rect bounds = WindowState == System.Windows.WindowState.Maximized
             ? RestoreBounds
             : new Rect(Left, Top, Width, Height);
 

@@ -632,16 +632,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     }
 
     [RelayCommand(CanExecute = nameof(CanMoveStoredFileUp))]
-    private async Task MoveStoredFileUpAsync()
-    {
-        await MoveStoredFileByOffsetAsync(-1);
-    }
+    private async Task MoveStoredFileUpAsync() => await MoveStoredFileByOffsetAsync(-1);
 
     [RelayCommand(CanExecute = nameof(CanMoveStoredFileDown))]
-    private async Task MoveStoredFileDownAsync()
-    {
-        await MoveStoredFileByOffsetAsync(+1);
-    }
+    private async Task MoveStoredFileDownAsync() => await MoveStoredFileByOffsetAsync(+1);
 
     private bool CanVerifyIntegrity() => IsSrrFileLoaded();
 
@@ -682,16 +676,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     }
 
     [RelayCommand]
-    private void DismissVerifyResult()
-    {
-        IsVerifyResultVisible = false;
-    }
+    private void DismissVerifyResult() => IsVerifyResultVisible = false;
 
     [RelayCommand]
-    private void ShowHexSearch()
-    {
-        IsHexSearchVisible = true;
-    }
+    private void ShowHexSearch() => IsHexSearchVisible = true;
 
     [RelayCommand]
     private void HideHexSearch()
@@ -701,16 +689,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     }
 
     [RelayCommand(CanExecute = nameof(CanRunHexSearch))]
-    private void FindNext()
-    {
-        RunHexSearch(forward: true);
-    }
+    private void FindNext() => RunHexSearch(forward: true);
 
     [RelayCommand(CanExecute = nameof(CanRunHexSearch))]
-    private void FindPrevious()
-    {
-        RunHexSearch(forward: false);
-    }
+    private void FindPrevious() => RunHexSearch(forward: false);
 
     private void BuildTree()
     {
@@ -1061,7 +1043,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
-        HexSearchPattern? pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
+        var pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
 
         if (pattern is null)
         {
@@ -1101,7 +1083,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
-        HexSearchPattern? pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
+        var pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
 
         if (pattern is null)
         {

@@ -29,9 +29,9 @@ public static class ExtractCommand
             {
                 outDir = args[++i];
             }
-            else if (srrPath is null)
+            else
             {
-                srrPath = args[i];
+                srrPath ??= args[i];
             }
         }
 
@@ -50,12 +50,12 @@ public static class ExtractCommand
         try
         {
             Directory.CreateDirectory(outDir);
-            SRRFile srr = SRRFile.Load(srrPath);
+            var srr = SRRFile.Load(srrPath);
 
             using FileStream input = File.OpenRead(srrPath);
             byte[] buffer = new byte[CopyBufferSize];
 
-            foreach (var stored in srr.StoredFiles)
+            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
             {
                 string outPath = ResolveSafeOutputPath(outDir, stored.FileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
