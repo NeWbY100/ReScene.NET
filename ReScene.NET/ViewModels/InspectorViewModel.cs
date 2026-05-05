@@ -1077,6 +1077,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
+        long matchEnd = match + pattern.Bytes.Length;
+        if (match < HexBlockOffset || matchEnd > HexBlockOffset + HexBlockLength)
+        {
+            HexBlockOffset = 0;
+            HexBlockLength = HexDataSource.Length;
+        }
+
         HexSelectionOffset = match;
         HexSelectionLength = pattern.Bytes.Length;
         HexSearchStatus = $"Match at 0x{match:X}.";
