@@ -1097,6 +1097,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         if (string.IsNullOrWhiteSpace(HexSearchText))
         {
             HexSearchStatus = string.Empty;
+            HexMatchRanges = null;
             return;
         }
 
@@ -1106,6 +1107,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         {
             // Stay quiet during typing — error message only on explicit Next/Prev.
             HexSearchStatus = string.Empty;
+            HexMatchRanges = null;
             return;
         }
 
@@ -1156,6 +1158,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
 
         IReadOnlyList<long> offsets = HexSearcher.FindAll(HexDataSource, pattern);
+        if (offsets.Count == 0)
+        {
+            HexMatchRanges = null;
+            return;
+        }
+
         var ranges = new List<HexMatchRange>(offsets.Count);
         foreach (long offset in offsets)
         {
