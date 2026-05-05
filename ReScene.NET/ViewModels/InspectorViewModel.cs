@@ -480,6 +480,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private bool CanRemoveStoredFile()
         => IsSrrFileLoaded() && SelectedTreeNode?.Tag is SrrStoredFileBlock;
 
+    private bool CanVerifyIntegrity() => IsSrrFileLoaded();
+
     [RelayCommand(CanExecute = nameof(CanRemoveStoredFile))]
     private void RemoveStoredFileFromSrr()
     {
@@ -503,7 +505,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
     }
 
-    [RelayCommand(CanExecute = nameof(IsSrrLoaded))]
+    [RelayCommand(CanExecute = nameof(CanVerifyIntegrity))]
     private async Task VerifyIntegrityAsync()
     {
         if (string.IsNullOrEmpty(LoadedFilePath))
@@ -949,33 +951,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             : null;
     }
 
-    private bool _disposed;
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            // dispose managed resources
-            _fileDataSource?.Dispose();
-            _fileDataSource = null;
-        }
-
-        // note: no unmanaged resources to release here
-
-        _disposed = true;
-    }
-
     private static string FormatVerifyResult(SrrVerifyResult result)
     {
         var sb = new StringBuilder();
@@ -1315,4 +1290,31 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         0x05 or 0x35 => "Best",
         _ => $"Unknown (0x{method:X2})"
     };
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            // dispose managed resources
+            _fileDataSource?.Dispose();
+            _fileDataSource = null;
+        }
+
+        // note: no unmanaged resources to release here
+
+        _disposed = true;
+    }
 }
