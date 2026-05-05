@@ -249,7 +249,8 @@
                       Background="{DynamicResource SurfaceBackground}"
                       BorderBrush="{DynamicResource BorderSeparator}"
                       BorderThickness="0,0,0,1"
-                      Padding="4">
+                      Padding="4"
+                      FocusManager.FocusedElement="{Binding ElementName=HexSearchBox}">
                 <DockPanel>
                   <Button DockPanel.Dock="Right" Content="Close"
                           Command="{Binding HideHexSearchCommand}"
@@ -263,16 +264,17 @@
                           Command="{Binding FindNextCommand}"
                           Style="{StaticResource PrimaryButton}"
                           MinWidth="55" Margin="4,0,0,0" />
-                  <CheckBox DockPanel.Dock="Right" Content="Hex"
-                            IsChecked="{Binding HexSearchAsHex}"
-                            VerticalAlignment="Center"
-                            Margin="4,0,0,0" />
                   <TextBlock DockPanel.Dock="Right"
                              Text="{Binding HexSearchStatus}"
                              Foreground="{DynamicResource ForegroundSecondary}"
                              VerticalAlignment="Center"
                              Margin="8,0" />
-                  <TextBox Text="{Binding HexSearchText, UpdateSourceTrigger=PropertyChanged}"
+                  <CheckBox DockPanel.Dock="Right" Content="Hex"
+                            IsChecked="{Binding HexSearchAsHex}"
+                            VerticalAlignment="Center"
+                            Margin="4,0,0,0" />
+                  <TextBox x:Name="HexSearchBox"
+                           Text="{Binding HexSearchText, UpdateSourceTrigger=PropertyChanged}"
                            FontFamily="{DynamicResource MonoFontFamily}"
                            VerticalAlignment="Center">
                     <TextBox.InputBindings>
