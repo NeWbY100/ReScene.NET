@@ -298,7 +298,7 @@
                       BorderBrush="{DynamicResource BorderSeparator}"
                       BorderThickness="0,0,0,1"
                       Padding="4"
-                      FocusManager.FocusedElement="{Binding ElementName=HexSearchBox}">
+                      IsVisibleChanged="OnHexSearchBarVisibleChanged">
                 <DockPanel>
                   <Button DockPanel.Dock="Right" Content="Close"
                           Command="{Binding HideHexSearchCommand}"

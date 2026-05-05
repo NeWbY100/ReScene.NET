@@ -39,6 +39,18 @@ public partial class InspectorView : UserControl
         }
     }
 
+    private void OnHexSearchBarVisibleChanged(object _, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                HexSearchBox.Focus();
+                HexSearchBox.SelectAll();
+            });
+        }
+    }
+
     private void OnCopyPropertyNameClick(object _, RoutedEventArgs e)
     {
         if (PropertiesGrid.SelectedItem is PropertyItem item)
