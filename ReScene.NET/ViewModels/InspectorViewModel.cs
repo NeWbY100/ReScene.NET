@@ -1077,7 +1077,56 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
-        long matchEnd = match + pattern.Bytes.Length;
+        ApplyHexMatch(match, pattern.Bytes.Length);
+    }
+
+    private void RunLiveHexSearch()
+    {
+        if (!IsHexSearchVisible || HexDataSource is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(HexSearchText))
+        {
+            HexSearchStatus = string.Empty;
+            return;
+        }
+
+        HexSearchPattern? pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
+
+        if (pattern is null)
+        {
+            // Stay quiet during typing — error message only on explicit Next/Prev.
+            HexSearchStatus = string.Empty;
+            return;
+        }
+
+        long start = HexSelectionOffset >= 0 ? HexSelectionOffset : 0;
+        long match = HexSearcher.FindForward(HexDataSource, pattern, start);
+
+        if (match < 0 && start > 0)
+        {
+            match = HexSearcher.FindForward(HexDataSource, pattern, 0);
+        }
+
+        if (match < 0)
+        {
+            HexSearchStatus = "Not found.";
+            return;
+        }
+
+        ApplyHexMatch(match, pattern.Bytes.Length);
+    }
+
+    private void ApplyHexMatch(long match, int length)
+    {
+        if (HexDataSource is null)
+        {
+            return;
+        }
+
+        long matchEnd = match + length;
         if (match < HexBlockOffset || matchEnd > HexBlockOffset + HexBlockLength)
         {
             HexBlockOffset = 0;
@@ -1085,8 +1134,18 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
 
         HexSelectionOffset = match;
-        HexSelectionLength = pattern.Bytes.Length;
+        HexSelectionLength = length;
         HexSearchStatus = $"Match at 0x{match:X}.";
+    }
+
+    partial void OnHexSearchTextChanged(string value)
+    {
+        RunLiveHexSearch();
+    }
+
+    partial void OnHexSearchAsHexChanged(bool value)
+    {
+        RunLiveHexSearch();
     }
 
     private void SetHexBlock(long offset, long size)
