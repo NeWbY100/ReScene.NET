@@ -64,6 +64,17 @@ public class FileDialogService : IFileDialogService
         return Task.FromResult(result == MessageBoxResult.OK);
     }
 
+    public Task<string?> PromptForTextAsync(string title, string message, string initialValue)
+    {
+        var window = new ReScene.NET.Views.PromptWindow(title, message, initialValue)
+        {
+            Owner = Application.Current?.MainWindow
+        };
+
+        bool? result = window.ShowDialog();
+        return Task.FromResult(result == true ? window.ResultText : null);
+    }
+
     private static string BuildFilter(IReadOnlyList<string> filters) =>
         // Avalonia filters: "Description|*.ext1;*.ext2"
         // WPF filters: "Description|*.ext1;*.ext2" (same format)

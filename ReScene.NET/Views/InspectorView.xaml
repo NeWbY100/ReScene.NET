@@ -100,6 +100,16 @@
                 <MenuItem Header="Remove Stored File"
                           Command="{Binding RemoveStoredFileFromSrrCommand}"
                           Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
+                <Separator Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
+                <MenuItem Header="Rename..."
+                          Command="{Binding RenameStoredFileCommand}"
+                          Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
+                <MenuItem Header="Move Up"
+                          Command="{Binding MoveStoredFileUpCommand}"
+                          Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
+                <MenuItem Header="Move Down"
+                          Command="{Binding MoveStoredFileDownCommand}"
+                          Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
                 <Separator Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Verify integrity"
                           Command="{Binding VerifyIntegrityCommand}"

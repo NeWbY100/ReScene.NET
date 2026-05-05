@@ -14,4 +14,12 @@ public class SrrEditingService : ISrrEditingService
     /// <inheritdoc />
     public void RemoveStoredFiles(string srrFilePath, IReadOnlyList<string> storedNames)
         => SRREditor.RemoveStoredFiles(srrFilePath, storedNames);
+
+    /// <inheritdoc />
+    public Task RenameStoredFileAsync(string srrPath, string oldName, string newName, CancellationToken ct = default)
+        => Task.Run(() => SRREditor.RenameStoredFile(srrPath, oldName, newName), ct);
+
+    /// <inheritdoc />
+    public Task MoveStoredFileAsync(string srrPath, string storedName, int offset, CancellationToken ct = default)
+        => Task.Run(() => SRREditor.MoveStoredFile(srrPath, storedName, offset), ct);
 }

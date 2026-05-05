@@ -26,4 +26,38 @@ public interface ISrrEditingService
     /// List of stored file names to remove.
     /// </param>
     public void RemoveStoredFiles(string srrFilePath, IReadOnlyList<string> storedNames);
+
+    /// <summary>
+    /// Renames a stored file inside an existing SRR file.
+    /// </summary>
+    /// <param name="srrPath">
+    /// Path to the SRR file to modify.
+    /// </param>
+    /// <param name="oldName">
+    /// The current stored file name.
+    /// </param>
+    /// <param name="newName">
+    /// The new stored file name.
+    /// </param>
+    /// <param name="ct">
+    /// Cancellation token.
+    /// </param>
+    public Task RenameStoredFileAsync(string srrPath, string oldName, string newName, CancellationToken ct = default);
+
+    /// <summary>
+    /// Moves a stored file within an existing SRR file by a given offset among stored-file blocks.
+    /// </summary>
+    /// <param name="srrPath">
+    /// Path to the SRR file to modify.
+    /// </param>
+    /// <param name="storedName">
+    /// The stored file name to move.
+    /// </param>
+    /// <param name="offset">
+    /// Number of positions to move. Use -1 for up, +1 for down.
+    /// </param>
+    /// <param name="ct">
+    /// Cancellation token.
+    /// </param>
+    public Task MoveStoredFileAsync(string srrPath, string storedName, int offset, CancellationToken ct = default);
 }

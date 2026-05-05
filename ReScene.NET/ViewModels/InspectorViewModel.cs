@@ -72,6 +72,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         OnPropertyChanged(nameof(IsSrrLoaded));
         OnPropertyChanged(nameof(IsStoredFileSelected));
         VerifyIntegrityCommand.NotifyCanExecuteChanged();
+        RenameStoredFileCommand.NotifyCanExecuteChanged();
+        MoveStoredFileUpCommand.NotifyCanExecuteChanged();
+        MoveStoredFileDownCommand.NotifyCanExecuteChanged();
     }
 
     public ObservableCollection<TreeNodeViewModel> TreeRoots { get; } = [];
@@ -255,6 +258,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HexSelectionLength = 0;
         ExportBlockCommand.NotifyCanExecuteChanged();
         RemoveStoredFileFromSrrCommand.NotifyCanExecuteChanged();
+        RenameStoredFileCommand.NotifyCanExecuteChanged();
+        MoveStoredFileUpCommand.NotifyCanExecuteChanged();
+        MoveStoredFileDownCommand.NotifyCanExecuteChanged();
         VerifyIntegrityCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsStoredFileSelected));
 
@@ -477,8 +483,92 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         _fileDataSource = null;
     }
 
+    private async Task MoveStoredFileByOffsetAsync(int offset)
+    {
+        if (SelectedTreeNode?.Tag is not SrrStoredFileBlock stored)
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(LoadedFilePath))
+        {
+            return;
+        }
+
+        string srrPath = LoadedFilePath;
+        ReleaseFileHandles();
+
+        try
+        {
+            await _srrEditingService.MoveStoredFileAsync(srrPath, stored.FileName, offset);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error moving stored file: {ex.Message}";
+        }
+        finally
+        {
+            LoadFile(srrPath);
+        }
+    }
+
     private bool CanRemoveStoredFile()
         => IsSrrFileLoaded() && SelectedTreeNode?.Tag is SrrStoredFileBlock;
+
+    private bool CanRenameStoredFile() => IsStoredFileSelected;
+    private bool CanMoveStoredFileUp() => IsStoredFileSelected;
+    private bool CanMoveStoredFileDown() => IsStoredFileSelected;
+
+    [RelayCommand(CanExecute = nameof(CanRenameStoredFile))]
+    private async Task RenameStoredFileAsync()
+    {
+        if (SelectedTreeNode?.Tag is not SrrStoredFileBlock stored)
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(LoadedFilePath))
+        {
+            return;
+        }
+
+        string? newName = await _fileDialog.PromptForTextAsync(
+            "Rename stored file", "New name:", stored.FileName);
+
+        if (string.IsNullOrWhiteSpace(newName) || newName == stored.FileName)
+        {
+            return;
+        }
+
+        string srrPath = LoadedFilePath;
+        ReleaseFileHandles();
+
+        try
+        {
+            await _srrEditingService.RenameStoredFileAsync(srrPath, stored.FileName, newName);
+            StatusMessage = $"Renamed stored file: {stored.FileName} → {newName}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error renaming stored file: {ex.Message}";
+        }
+        finally
+        {
+            LoadFile(srrPath);
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanMoveStoredFileUp))]
+    private async Task MoveStoredFileUpAsync()
+    {
+        await MoveStoredFileByOffsetAsync(-1);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanMoveStoredFileDown))]
+    private async Task MoveStoredFileDownAsync()
+    {
+        await MoveStoredFileByOffsetAsync(+1);
+    }
 
     private bool CanVerifyIntegrity() => IsSrrFileLoaded();
 

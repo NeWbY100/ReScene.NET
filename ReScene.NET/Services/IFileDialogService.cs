@@ -7,4 +7,5 @@ public interface IFileDialogService
     public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null);
     public Task<string?> OpenFolderAsync(string title);
     public Task<bool> ShowConfirmAsync(string title, string message);
+    public Task<string?> PromptForTextAsync(string title, string message, string initialValue);
 }
