@@ -135,7 +135,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     [ObservableProperty]
     private string _statusMessage = "No file loaded";
 
-    // Hex search properties
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(FindNextCommand))]
     [NotifyCanExecuteChangedFor(nameof(FindPreviousCommand))]
@@ -518,44 +517,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         RunHexSearch(forward: false);
     }
 
-    private bool CanRunHexSearch()
-        => HexDataSource is not null && !string.IsNullOrWhiteSpace(HexSearchText);
-
-    private void RunHexSearch(bool forward)
-    {
-        if (HexDataSource is null)
-        {
-            HexSearchStatus = "No file loaded.";
-            return;
-        }
-
-        HexSearchPattern? pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
-
-        if (pattern is null)
-        {
-            HexSearchStatus = HexSearchAsHex ? "Invalid hex (need pairs)." : "Empty pattern.";
-            return;
-        }
-
-        long start = forward
-            ? (HexSelectionOffset >= 0 ? HexSelectionOffset + 1 : 0)
-            : (HexSelectionOffset >= 0 ? HexSelectionOffset : HexDataSource.Length);
-
-        long match = forward
-            ? HexSearcher.FindForward(HexDataSource, pattern, start)
-            : HexSearcher.FindBackward(HexDataSource, pattern, start);
-
-        if (match < 0)
-        {
-            HexSearchStatus = "Not found.";
-            return;
-        }
-
-        HexSelectionOffset = match;
-        HexSelectionLength = pattern.Bytes.Length;
-        HexSearchStatus = $"Match at 0x{match:X}";
-    }
-
     private void BuildTree()
     {
         TreeRoots.Clear();
@@ -892,6 +853,44 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         AddProperty("Total Size", $"{chunk.BlockSize:N0} bytes ({FormatUtilities.FormatSize(chunk.BlockSize)})");
         AddProperty("Header Size", $"{chunk.HeaderSize:N0} bytes ({FormatUtilities.FormatSize(chunk.HeaderSize)})");
         AddProperty("Payload Size", $"{chunk.PayloadSize:N0} bytes ({FormatUtilities.FormatSize(chunk.PayloadSize)})");
+    }
+
+    private bool CanRunHexSearch()
+        => HexDataSource is not null && !string.IsNullOrWhiteSpace(HexSearchText);
+
+    private void RunHexSearch(bool forward)
+    {
+        if (HexDataSource is null)
+        {
+            HexSearchStatus = "No file loaded.";
+            return;
+        }
+
+        HexSearchPattern? pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
+
+        if (pattern is null)
+        {
+            HexSearchStatus = HexSearchAsHex ? "Invalid hex (need pairs)." : "Empty pattern.";
+            return;
+        }
+
+        long start = forward
+            ? (HexSelectionOffset >= 0 ? HexSelectionOffset + 1 : 0)
+            : (HexSelectionOffset >= 0 ? HexSelectionOffset : HexDataSource.Length);
+
+        long match = forward
+            ? HexSearcher.FindForward(HexDataSource, pattern, start)
+            : HexSearcher.FindBackward(HexDataSource, pattern, start);
+
+        if (match < 0)
+        {
+            HexSearchStatus = "Not found.";
+            return;
+        }
+
+        HexSelectionOffset = match;
+        HexSelectionLength = pattern.Bytes.Length;
+        HexSearchStatus = $"Match at 0x{match:X}.";
     }
 
     private void SetHexBlock(long offset, long size)
