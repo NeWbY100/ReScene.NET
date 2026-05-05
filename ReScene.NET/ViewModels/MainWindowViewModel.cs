@@ -84,16 +84,16 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), new TempDirectoryService(), new SrrEditingService())
+        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), new TempDirectoryService(), new SrrEditingService(), new SrrVerifyService())
     {
     }
 
-    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService)
+    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService)
     {
         _fileDialog = fileDialog;
         _recentFiles = recentFiles;
 
-        Inspector = new InspectorViewModel(fileDialog, srrEditingService);
+        Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService);
         Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir);
         SrsCreator = new SrsCreatorViewModel(srsService, fileDialog, tempDir);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);

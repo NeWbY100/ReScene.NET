@@ -100,6 +100,10 @@
                 <MenuItem Header="Remove Stored File"
                           Command="{Binding RemoveStoredFileFromSrrCommand}"
                           Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
+                <Separator Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
+                <MenuItem Header="Verify integrity"
+                          Command="{Binding VerifyIntegrityCommand}"
+                          Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
               </ContextMenu>
             </TreeView.ContextMenu>
           </TreeView>
@@ -111,17 +115,45 @@
                     Width="{DynamicResource SplitterWidth}"
                     ResizeBehavior="PreviousAndNext" />
 
-      <!-- Right panel: Properties + Hex -->
+      <!-- Right panel: Verify Result + Properties + Hex -->
       <Grid Grid.Column="2"
             Margin="0,2,2,2">
         <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
           <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <!-- Verify result panel -->
+        <Border Grid.Row="0"
+                Visibility="{Binding IsVerifyResultVisible, Converter={StaticResource BoolToVisibility}}"
+                Style="{StaticResource PanelSection}"
+                Margin="0,0,0,4">
+          <DockPanel>
+            <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Close"
+                        Command="{Binding DismissVerifyResultCommand}"
+                        Style="{StaticResource GhostButton}"
+                        MinWidth="55" Margin="4,0,0,0" />
+                <TextBlock Style="{StaticResource PanelHeaderText}" Text="Integrity Verify Result" />
+              </DockPanel>
+            </Border>
+            <TextBox Text="{Binding VerifyResultText, Mode=OneWay}"
+                     IsReadOnly="True"
+                     FontFamily="{DynamicResource MonoFontFamily}"
+                     FontSize="{DynamicResource FontSizeCaption}"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto"
+                     MaxHeight="180"
+                     Padding="6"
+                     BorderThickness="0" />
+          </DockPanel>
+        </Border>
+
         <!-- Properties panel -->
-        <Border Style="{StaticResource PanelSection}">
+        <Border Grid.Row="1" Style="{StaticResource PanelSection}">
           <DockPanel>
             <!-- Panel header -->
             <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
@@ -207,13 +239,13 @@
         </Border>
 
         <!-- Splitter between properties and hex -->
-        <GridSplitter Grid.Row="1"
+        <GridSplitter Grid.Row="2"
                       Height="{DynamicResource SplitterHeight}"
                       HorizontalAlignment="Stretch"
                       ResizeBehavior="PreviousAndNext" />
 
         <!-- Hex view panel -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Style="{StaticResource PanelSection}">
           <DockPanel>
             <!-- Panel header -->

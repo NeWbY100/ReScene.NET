@@ -12,12 +12,13 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService) : ViewModelBase, IDisposable
+public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService) : ViewModelBase, IDisposable
 {
     private const int ExportBufferSize = 80 * 1024;
 
     private readonly IFileDialogService _fileDialog = fileDialog;
     private readonly ISrrEditingService _srrEditingService = srrEditingService;
+    private readonly ISrrVerifyService _verifyService = verifyService;
     private SrrFileData? _srrData;
     private SrsInspectorData? _srsData;
     private List<RARDetailedBlock>? _rarDetailedBlocks;
@@ -66,9 +67,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HexSelectionLength = 0;
         HasFile = false;
         HasProperties = false;
+        IsVerifyResultVisible = false;
         StatusMessage = "No file loaded";
         OnPropertyChanged(nameof(IsSrrLoaded));
         OnPropertyChanged(nameof(IsStoredFileSelected));
+        VerifyIntegrityCommand.NotifyCanExecuteChanged();
     }
 
     public ObservableCollection<TreeNodeViewModel> TreeRoots { get; } = [];
@@ -149,6 +152,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     [ObservableProperty]
     private string _hexSearchStatus = string.Empty;
 
+    [ObservableProperty]
+    private string _verifyResultText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isVerifyResultVisible;
+
     public void LoadFile(string filePath)
     {
         try
@@ -188,6 +197,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             HasFile = true;
             OnPropertyChanged(nameof(IsSrrLoaded));
             OnPropertyChanged(nameof(IsStoredFileSelected));
+            VerifyIntegrityCommand.NotifyCanExecuteChanged();
 
             if (isSrs)
             {
@@ -245,6 +255,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HexSelectionLength = 0;
         ExportBlockCommand.NotifyCanExecuteChanged();
         RemoveStoredFileFromSrrCommand.NotifyCanExecuteChanged();
+        VerifyIntegrityCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsStoredFileSelected));
 
         if (value?.Tag is RARDetailedBlock detailedBlock)
@@ -490,6 +501,25 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         {
             StatusMessage = $"Error removing stored file: {ex.Message}";
         }
+    }
+
+    [RelayCommand(CanExecute = nameof(IsSrrLoaded))]
+    private async Task VerifyIntegrityAsync()
+    {
+        if (string.IsNullOrEmpty(LoadedFilePath))
+        {
+            return;
+        }
+
+        SrrVerifyResult result = await _verifyService.VerifyAsync(LoadedFilePath);
+        VerifyResultText = FormatVerifyResult(result);
+        IsVerifyResultVisible = true;
+    }
+
+    [RelayCommand]
+    private void DismissVerifyResult()
+    {
+        IsVerifyResultVisible = false;
     }
 
     [RelayCommand]
@@ -944,6 +974,21 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         // note: no unmanaged resources to release here
 
         _disposed = true;
+    }
+
+    private static string FormatVerifyResult(SrrVerifyResult result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(result.IsValid ? "OK — no errors found." : "Errors detected.");
+        sb.AppendLine($"Blocks scanned: {result.BlocksScanned:N0}");
+        sb.AppendLine($"File size: {result.FileSize:N0} bytes");
+
+        foreach (SrrVerifyIssue issue in result.Issues)
+        {
+            sb.AppendLine($"[{issue.Severity}] 0x{issue.Offset:X}: {issue.Message}");
+        }
+
+        return sb.ToString();
     }
 
     private void AddProperty(string name, string value, ByteRange? range = null, bool indented = false, bool warning = false)
