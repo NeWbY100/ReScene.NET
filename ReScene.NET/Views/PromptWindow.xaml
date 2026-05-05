@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Input"
         Width="380" Height="160"
-        MinWidth="320" MinHeight="140"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Background="{DynamicResource WindowBackground}"
@@ -23,6 +22,7 @@
                 Margin="0,8,0,0">
       <Button Content="Cancel"
               Click="OnCancelClick"
+              IsCancel="True"
               Style="{StaticResource GhostButton}"
               MinWidth="75"
               Margin="4,0,0,0" />

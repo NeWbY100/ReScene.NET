@@ -1,5 +1,6 @@
 using System.Windows;
 using Microsoft.Win32;
+using ReScene.NET.Views;
 
 namespace ReScene.NET.Services;
 
@@ -66,7 +67,7 @@ public class FileDialogService : IFileDialogService
 
     public Task<string?> PromptForTextAsync(string title, string message, string initialValue)
     {
-        var window = new ReScene.NET.Views.PromptWindow(title, message, initialValue)
+        var window = new PromptWindow(title, message, initialValue)
         {
             Owner = Application.Current?.MainWindow
         };

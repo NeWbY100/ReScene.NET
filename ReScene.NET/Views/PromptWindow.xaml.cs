@@ -15,21 +15,11 @@ public partial class PromptWindow : Window
         Title = title;
         MessageBlock.Text = message;
         InputBox.Text = initialValue;
-        InputBox.SelectAll();
 
         Loaded += (_, _) =>
         {
             InputBox.Focus();
             InputBox.SelectAll();
-        };
-
-        InputBox.KeyDown += (_, e) =>
-        {
-            if (e.Key == System.Windows.Input.Key.Escape)
-            {
-                DialogResult = false;
-                Close();
-            }
         };
     }
 
