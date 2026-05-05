@@ -156,6 +156,13 @@ public static class HexSearcher
                 }
             }
 
+            // When we've already scanned from the start, every preceding byte is covered;
+            // continuing would re-read the same overlap region forever.
+            if (chunkStart == 0)
+            {
+                break;
+            }
+
             chunkEnd = chunkStart + overlap;
         }
 

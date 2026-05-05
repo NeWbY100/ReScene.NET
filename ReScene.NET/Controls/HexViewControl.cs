@@ -128,7 +128,7 @@ public class HexViewControl : UserControl
         if (d is HexViewControl c)
         {
             c._canvas.ClearMouseSelection();
-            c._canvas.InvalidateVisual();
+            c.OnSelectionChanged();
         }
     }
 
