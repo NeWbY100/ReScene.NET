@@ -321,6 +321,10 @@
                             IsChecked="{Binding HexSearchAsHex}"
                             VerticalAlignment="Center"
                             Margin="4,0,0,0" />
+                  <CheckBox DockPanel.Dock="Right" Content="Highlight all"
+                            IsChecked="{Binding HighlightAllMatches}"
+                            VerticalAlignment="Center"
+                            Margin="4,0,0,0" />
                   <TextBox x:Name="HexSearchBox"
                            Text="{Binding HexSearchText, UpdateSourceTrigger=PropertyChanged}"
                            FontFamily="{DynamicResource MonoFontFamily}"
@@ -338,7 +342,8 @@
                                        BlockLength="{Binding HexBlockLength}"
                                        SelectionOffset="{Binding HexSelectionOffset}"
                                        SelectionLength="{Binding HexSelectionLength}"
-                                       BytesPerLine="{Binding HexBytesPerLine}" />
+                                       BytesPerLine="{Binding HexBytesPerLine}"
+                                       HighlightRanges="{Binding HexMatchRanges}" />
             </DockPanel>
           </DockPanel>
         </Border>

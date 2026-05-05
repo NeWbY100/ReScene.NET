@@ -159,6 +159,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private string _hexSearchStatus = string.Empty;
 
     [ObservableProperty]
+    private bool _highlightAllMatches;
+
+    [ObservableProperty]
+    private IReadOnlyList<HexMatchRange>? _hexMatchRanges;
+
+    [ObservableProperty]
     private string _verifyResultText = string.Empty;
 
     [ObservableProperty]
@@ -1078,6 +1084,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
 
         ApplyHexMatch(match, pattern.Bytes.Length);
+        UpdateHexMatchRanges(pattern);
     }
 
     private void RunLiveHexSearch()
@@ -1113,10 +1120,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         if (match < 0)
         {
             HexSearchStatus = "Not found.";
+            UpdateHexMatchRanges(pattern);
             return;
         }
 
         ApplyHexMatch(match, pattern.Bytes.Length);
+        UpdateHexMatchRanges(pattern);
     }
 
     private void ApplyHexMatch(long match, int length)
@@ -1138,6 +1147,24 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HexSearchStatus = $"Match at 0x{match:X}.";
     }
 
+    private void UpdateHexMatchRanges(HexSearchPattern? pattern)
+    {
+        if (!HighlightAllMatches || pattern is null || HexDataSource is null)
+        {
+            HexMatchRanges = null;
+            return;
+        }
+
+        IReadOnlyList<long> offsets = HexSearcher.FindAll(HexDataSource, pattern);
+        var ranges = new List<HexMatchRange>(offsets.Count);
+        foreach (long offset in offsets)
+        {
+            ranges.Add(new HexMatchRange(offset, pattern.Bytes.Length));
+        }
+
+        HexMatchRanges = ranges;
+    }
+
     partial void OnHexSearchTextChanged(string value)
     {
         RunLiveHexSearch();
@@ -1146,6 +1173,25 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     partial void OnHexSearchAsHexChanged(bool value)
     {
         RunLiveHexSearch();
+    }
+
+    partial void OnHighlightAllMatchesChanged(bool value)
+    {
+        if (!value)
+        {
+            HexMatchRanges = null;
+            return;
+        }
+
+        UpdateHexMatchRanges(HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex));
+    }
+
+    partial void OnIsHexSearchVisibleChanged(bool value)
+    {
+        if (!value)
+        {
+            HexMatchRanges = null;
+        }
     }
 
     private void SetHexBlock(long offset, long size)

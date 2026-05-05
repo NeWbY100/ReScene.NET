@@ -10,6 +10,36 @@ namespace ReScene.NET.Services;
 public static class HexSearcher
 {
     private const int ChunkSize = 64 * 1024;
+    private const int DefaultMaxAllMatches = 100_000;
+
+    /// <summary>
+    /// Returns the offset of every (non-overlapping) match of <paramref name="pattern"/>
+    /// in <paramref name="source"/>, capped at <paramref name="maxResults"/>.
+    /// </summary>
+    public static IReadOnlyList<long> FindAll(IHexDataSource source, HexSearchPattern pattern, int maxResults = DefaultMaxAllMatches)
+    {
+        if (source is null || pattern is null || pattern.Bytes.Length == 0 || maxResults <= 0)
+        {
+            return [];
+        }
+
+        List<long> matches = [];
+        long pos = 0;
+
+        while (pos < source.Length && matches.Count < maxResults)
+        {
+            long match = FindForward(source, pattern, pos);
+            if (match < 0)
+            {
+                break;
+            }
+
+            matches.Add(match);
+            pos = match + pattern.Bytes.Length;
+        }
+
+        return matches;
+    }
 
     /// <summary>
     /// Searches forward from <paramref name="startOffset"/> for the first occurrence

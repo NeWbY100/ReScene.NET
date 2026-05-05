@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 
 namespace ReScene.NET.Controls;
@@ -58,6 +59,10 @@ public class HexViewControl : UserControl
         DependencyProperty.Register(nameof(BytesPerLine), typeof(int), typeof(HexViewControl),
             new PropertyMetadata(16, OnBytesPerLineChanged, CoerceBytesPerLine));
 
+    public static readonly DependencyProperty HighlightRangesProperty =
+        DependencyProperty.Register(nameof(HighlightRanges), typeof(IReadOnlyList<HexMatchRange>), typeof(HexViewControl),
+            new PropertyMetadata(null, OnHighlightRangesChanged));
+
     private readonly HexCanvas _canvas;
     private readonly ScrollViewer _scrollViewer;
     private readonly HexColumnHeader _columnHeader;
@@ -98,6 +103,12 @@ public class HexViewControl : UserControl
         set => SetValue(BytesPerLineProperty, value);
     }
 
+    public IReadOnlyList<HexMatchRange>? HighlightRanges
+    {
+        get => (IReadOnlyList<HexMatchRange>?)GetValue(HighlightRangesProperty);
+        set => SetValue(HighlightRangesProperty, value);
+    }
+
     private static object CoerceBytesPerLine(DependencyObject _, object baseValue)
     {
         int val = (int)baseValue;
@@ -135,6 +146,14 @@ public class HexViewControl : UserControl
         {
             c.RefreshCanvas();
             c._columnHeader.InvalidateVisual();
+        }
+    }
+
+    private static void OnHighlightRangesChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
+    {
+        if (d is HexViewControl c)
+        {
+            c._canvas.InvalidateVisual();
         }
     }
 
@@ -618,6 +637,7 @@ public class HexViewControl : UserControl
             Brush hexBrush = GetBrush("HexBytesForeground", Brushes.Black);
             Brush asciiBrush = GetBrush("HexAsciiForeground", Brushes.DimGray);
             Brush selectionBrush = GetBrush("HexSelectionBrush", new SolidColorBrush(Color.FromArgb(120, 60, 120, 220)));
+            Brush matchBrush = GetBrush("HexMatchHighlightBrush", new SolidColorBrush(Color.FromArgb(80, 240, 140, 0)));
 
             long blockStart = _owner.BlockOffset;
             long blockLen = _owner.BlockLength;
@@ -649,12 +669,40 @@ public class HexViewControl : UserControl
             long firstVisible = Math.Max(0, (long)(scrollY / LineHeight) - 1);
             long lastVisible = Math.Min(totalLines - 1, (long)((scrollY + viewportH) / LineHeight) + 1);
 
+            IReadOnlyList<HexMatchRange>? highlightRanges = _owner.HighlightRanges;
+
             for (long line = firstVisible; line <= lastVisible; line++)
             {
                 double y = line * LineHeight;
                 long lineFileOffset = blockStart + line * bytesPerLine;
                 long lineDataStart = line * bytesPerLine;
                 int lineBytes = (int)Math.Min(bytesPerLine, blockLen - lineDataStart);
+
+                // All-matches highlight (drawn before the primary selection so the
+                // current match's brighter color renders on top).
+                if (highlightRanges is not null && highlightRanges.Count > 0)
+                {
+                    long lineEnd = lineFileOffset + bytesPerLine;
+                    foreach (HexMatchRange range in highlightRanges)
+                    {
+                        long rangeEnd = range.Offset + range.Length;
+                        if (range.Offset >= lineEnd || rangeEnd <= lineFileOffset)
+                        {
+                            continue;
+                        }
+
+                        int hStart = (int)Math.Max(0, range.Offset - lineFileOffset);
+                        int hEnd = (int)Math.Min(bytesPerLine, rangeEnd - lineFileOffset);
+
+                        double mhx1 = _owner.HexStartX + hStart * 3 * _charWidth;
+                        double mhx2 = _owner.HexStartX + (hEnd * 3 - 1) * _charWidth;
+                        context.DrawRectangle(matchBrush, null, new Rect(mhx1, y, mhx2 - mhx1, LineHeight));
+
+                        double max1 = _owner.AsciiStartX + hStart * _charWidth;
+                        double max2 = _owner.AsciiStartX + hEnd * _charWidth;
+                        context.DrawRectangle(matchBrush, null, new Rect(max1, y, max2 - max1, LineHeight));
+                    }
+                }
 
                 // Selection highlight
                 if (selStart >= 0 && selLen > 0)

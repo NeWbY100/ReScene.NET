@@ -77,6 +77,7 @@
   <SolidColorBrush x:Key="HexBytesForeground" Color="#FF66FF66" />
   <SolidColorBrush x:Key="HexAsciiForeground" Color="#FF00CCCC" />
   <SolidColorBrush x:Key="HexSelectionBrush" Color="#44FFFF00" />
+  <SolidColorBrush x:Key="HexMatchHighlightBrush" Color="#33FF8C00" />
 
   <!-- ══ Log Terminal ════════════════════════════════════════ -->
   <SolidColorBrush x:Key="LogTerminalForeground" Color="#FF4EC9B0" />
