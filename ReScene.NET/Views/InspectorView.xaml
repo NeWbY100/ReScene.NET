@@ -80,12 +80,13 @@
                      BasedOn="{StaticResource {x:Type TreeViewItem}}">
                 <Setter Property="IsExpanded"
                         Value="{Binding IsExpanded, Mode=TwoWay}" />
+                <Setter Property="Visibility"
+                        Value="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}" />
               </Style>
             </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>
               <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                 <TextBlock Text="{Binding Text}"
-                           Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}"
                            TextTrimming="CharacterEllipsis" />
               </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
