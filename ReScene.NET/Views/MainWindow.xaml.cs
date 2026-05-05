@@ -194,7 +194,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var settingsVm = new ViewModels.SettingsViewModel(vm.AppSettingsService, new Services.FileDialogService());
+        var settingsVm = new ViewModels.SettingsViewModel(vm.AppSettingsService, vm.FileDialog);
         var window = new Views.SettingsWindow
         {
             Owner = this,

@@ -71,6 +71,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IAppSettingsService AppSettingsService => _appSettingsService;
 
+    public IFileDialogService FileDialog => _fileDialog;
+
     private static string GetAppVersion()
     {
         string? version = Assembly.GetEntryAssembly()?

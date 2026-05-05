@@ -20,10 +20,4 @@ public partial class SettingsWindow : Window
             Close();
         }
     }
-
-    private void OnCancelClick(object _, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
-    }
 }

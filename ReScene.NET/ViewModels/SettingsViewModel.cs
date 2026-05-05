@@ -10,17 +10,6 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly IAppSettingsService _settingsService;
     private readonly IFileDialogService _fileDialog;
 
-    [ObservableProperty]
-    private string _defaultAppName = string.Empty;
-
-    [ObservableProperty]
-    private string _defaultOutputDirectory = string.Empty;
-
-    [ObservableProperty]
-    private int _recentFilesLimit = 10;
-
-    public bool DialogResult { get; private set; }
-
     public SettingsViewModel(IAppSettingsService settingsService, IFileDialogService fileDialog)
     {
         _settingsService = settingsService;
@@ -31,6 +20,17 @@ public partial class SettingsViewModel : ViewModelBase
         DefaultOutputDirectory = settings.DefaultOutputDirectory;
         RecentFilesLimit = settings.RecentFilesLimit;
     }
+
+    [ObservableProperty]
+    private string _defaultAppName = string.Empty;
+
+    [ObservableProperty]
+    private string _defaultOutputDirectory = string.Empty;
+
+    [ObservableProperty]
+    private int _recentFilesLimit = 10;
+
+    public bool DialogResult { get; private set; }
 
     [RelayCommand]
     private async Task BrowseOutputDirAsync()
