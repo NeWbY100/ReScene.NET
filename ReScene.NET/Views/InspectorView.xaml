@@ -5,6 +5,13 @@
              x:Class="ReScene.NET.Views.InspectorView"
              x:Name="InspectorRoot">
 
+  <UserControl.InputBindings>
+    <KeyBinding Gesture="Ctrl+F" Command="{Binding ShowHexSearchCommand}" />
+    <KeyBinding Key="Escape" Command="{Binding HideHexSearchCommand}" />
+    <KeyBinding Key="F3" Command="{Binding FindNextCommand}" />
+    <KeyBinding Key="F3" Modifiers="Shift" Command="{Binding FindPreviousCommand}" />
+  </UserControl.InputBindings>
+
   <!-- ── Inspector panels ──────────────────────────────────── -->
   <DockPanel Margin="{DynamicResource PageMargin}">
     <TextBlock DockPanel.Dock="Top"
@@ -236,12 +243,53 @@
               </DockPanel>
             </Border>
 
-            <controls:HexViewControl DataSource="{Binding HexDataSource}"
-                                      BlockOffset="{Binding HexBlockOffset}"
-                                      BlockLength="{Binding HexBlockLength}"
-                                      SelectionOffset="{Binding HexSelectionOffset}"
-                                      SelectionLength="{Binding HexSelectionLength}"
-                                      BytesPerLine="{Binding HexBytesPerLine}" />
+            <DockPanel>
+              <Border DockPanel.Dock="Top"
+                      Visibility="{Binding IsHexSearchVisible, Converter={StaticResource BoolToVisibility}}"
+                      Background="{DynamicResource SurfaceBackground}"
+                      BorderBrush="{DynamicResource BorderSeparator}"
+                      BorderThickness="0,0,0,1"
+                      Padding="4">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Content="Close"
+                          Command="{Binding HideHexSearchCommand}"
+                          Style="{StaticResource GhostButton}"
+                          MinWidth="55" Margin="4,0,0,0" />
+                  <Button DockPanel.Dock="Right" Content="Prev"
+                          Command="{Binding FindPreviousCommand}"
+                          Style="{StaticResource GhostButton}"
+                          MinWidth="55" Margin="4,0,0,0" />
+                  <Button DockPanel.Dock="Right" Content="Next"
+                          Command="{Binding FindNextCommand}"
+                          Style="{StaticResource PrimaryButton}"
+                          MinWidth="55" Margin="4,0,0,0" />
+                  <CheckBox DockPanel.Dock="Right" Content="Hex"
+                            IsChecked="{Binding HexSearchAsHex}"
+                            VerticalAlignment="Center"
+                            Margin="4,0,0,0" />
+                  <TextBlock DockPanel.Dock="Right"
+                             Text="{Binding HexSearchStatus}"
+                             Foreground="{DynamicResource ForegroundSecondary}"
+                             VerticalAlignment="Center"
+                             Margin="8,0" />
+                  <TextBox Text="{Binding HexSearchText, UpdateSourceTrigger=PropertyChanged}"
+                           FontFamily="{DynamicResource MonoFontFamily}"
+                           VerticalAlignment="Center">
+                    <TextBox.InputBindings>
+                      <KeyBinding Key="Enter" Command="{Binding FindNextCommand}" />
+                      <KeyBinding Key="Enter" Modifiers="Shift" Command="{Binding FindPreviousCommand}" />
+                    </TextBox.InputBindings>
+                  </TextBox>
+                </DockPanel>
+              </Border>
+
+              <controls:HexViewControl DataSource="{Binding HexDataSource}"
+                                       BlockOffset="{Binding HexBlockOffset}"
+                                       BlockLength="{Binding HexBlockLength}"
+                                       SelectionOffset="{Binding HexSelectionOffset}"
+                                       SelectionLength="{Binding HexSelectionLength}"
+                                       BytesPerLine="{Binding HexBytesPerLine}" />
+            </DockPanel>
           </DockPanel>
         </Border>
 
