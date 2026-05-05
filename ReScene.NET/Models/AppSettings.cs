@@ -1,3 +1,5 @@
+using ReScene.NET.Helpers;
+
 namespace ReScene.NET.Models;
 
 /// <summary>
@@ -8,7 +10,7 @@ public sealed class AppSettings
     /// <summary>
     /// Gets or sets the default app name used when creating SRR or SRS files.
     /// </summary>
-    public string DefaultAppName { get; set; } = "ReScene.NET";
+    public string DefaultAppName { get; set; } = FormatUtilities.GetDefaultAppName();
 
     /// <summary>
     /// Gets or sets the default output directory pre-filled into Output paths.
