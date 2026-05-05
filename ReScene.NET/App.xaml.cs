@@ -13,13 +13,14 @@ public partial class App : Application
 
         var tempDir = new TempDirectoryService();
         var windowState = new WindowStateService();
+        var appSettings = new AppSettingsService();
         MainWindow = new MainWindow
         {
             WindowStateService = windowState,
             Opacity = 0,
             DataContext = new MainWindowViewModel(
                 new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(),
-                new SampleRestorerService(tempDir), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), tempDir, new SrrEditingService(), new SrrVerifyService(), new PropertyExportService())
+                new SampleRestorerService(tempDir), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(appSettings), tempDir, new SrrEditingService(), new SrrVerifyService(), new PropertyExportService(), appSettings)
         };
         MainWindow.Show();
     }

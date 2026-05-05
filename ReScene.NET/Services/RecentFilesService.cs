@@ -3,9 +3,8 @@ using ReScene.NET.Models;
 
 namespace ReScene.NET.Services;
 
-public class RecentFilesService : IRecentFilesService
+public class RecentFilesService(IAppSettingsService appSettingsService) : IRecentFilesService
 {
-    private const int MaxEntries = 10;
     private static readonly JsonSerializerOptions _serializerOptions = new() { WriteIndented = true };
     private static readonly string _appDataDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -43,9 +42,11 @@ public class RecentFilesService : IRecentFilesService
             LastOpened = DateTime.Now
         });
 
-        if (entries.Count > MaxEntries)
+        int maxEntries = appSettingsService.Load().RecentFilesLimit;
+
+        if (entries.Count > maxEntries)
         {
-            entries.RemoveRange(MaxEntries, entries.Count - MaxEntries);
+            entries.RemoveRange(maxEntries, entries.Count - maxEntries);
         }
 
         Save(entries);

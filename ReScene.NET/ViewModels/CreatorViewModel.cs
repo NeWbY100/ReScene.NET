@@ -3,6 +3,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.SRR;
 using ReScene.SRS;
@@ -18,16 +19,40 @@ public partial class CreatorViewModel : ViewModelBase
     private readonly ISrsCreationService _srsService;
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
+    private readonly IAppSettingsService _settingsService;
     private CancellationTokenSource? _cts;
 
-    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir)
+    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService)
     {
         _srrService = srrService;
         _srsService = srsService;
         _fileDialog = fileDialog;
         _tempDir = tempDir;
+        _settingsService = settingsService;
 
         _srrService.Progress += OnProgress;
+
+        AppSettings settings = _settingsService.Load();
+
+        if (string.IsNullOrEmpty(AppName))
+        {
+            AppName = settings.DefaultAppName;
+        }
+
+        if (string.IsNullOrEmpty(OutputPath) && !string.IsNullOrEmpty(settings.DefaultOutputDirectory))
+        {
+            OutputPath = settings.DefaultOutputDirectory;
+        }
+
+        _settingsService.Changed += (_, _) =>
+        {
+            AppSettings updated = _settingsService.Load();
+
+            if (string.IsNullOrEmpty(AppName))
+            {
+                AppName = updated.DefaultAppName;
+            }
+        };
     }
 
     // Input
@@ -72,7 +97,7 @@ public partial class CreatorViewModel : ViewModelBase
     private bool _generateLanguagesDiz = true;
 
     [ObservableProperty]
-    private string _appName = FormatUtilities.GetDefaultAppName();
+    private string _appName = string.Empty;
 
     // Progress
     [ObservableProperty]

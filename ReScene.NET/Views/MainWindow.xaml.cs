@@ -187,6 +187,22 @@ public partial class MainWindow : Window
 
     #endregion
 
+    private void OnSettingsClick(object _, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+        {
+            return;
+        }
+
+        var settingsVm = new ViewModels.SettingsViewModel(vm.AppSettingsService, new Services.FileDialogService());
+        var window = new Views.SettingsWindow
+        {
+            Owner = this,
+            DataContext = settingsVm
+        };
+        window.ShowDialog();
+    }
+
     private void OnAboutClick(object _, RoutedEventArgs e)
     {
         string version = DataContext is ViewModels.MainWindowViewModel vm ? vm.AppVersion : "?";

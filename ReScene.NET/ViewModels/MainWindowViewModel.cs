@@ -14,6 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly IFileDialogService _fileDialog;
     private readonly IRecentFilesService _recentFiles;
+    private readonly IAppSettingsService _appSettingsService;
 
     public HomeViewModel Home
     {
@@ -68,6 +69,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string AppVersion { get; } = GetAppVersion();
 
+    public IAppSettingsService AppSettingsService => _appSettingsService;
+
     private static string GetAppVersion()
     {
         string? version = Assembly.GetEntryAssembly()?
@@ -84,18 +87,19 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), new TempDirectoryService(), new SrrEditingService(), new SrrVerifyService(), new PropertyExportService())
+        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SrrEditingService(), new SrrVerifyService(), new PropertyExportService(), new AppSettingsService())
     {
     }
 
-    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService, IPropertyExportService propertyExportService)
+    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService, IPropertyExportService propertyExportService, IAppSettingsService appSettingsService)
     {
         _fileDialog = fileDialog;
         _recentFiles = recentFiles;
+        _appSettingsService = appSettingsService;
 
         Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService);
-        Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir);
-        SrsCreator = new SrsCreatorViewModel(srsService, fileDialog, tempDir);
+        Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService);
+        SrsCreator = new SrsCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
         SrsReconstructor = new SrsReconstructorViewModel(srsReconService, fileDialog, tempDir);
         SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
