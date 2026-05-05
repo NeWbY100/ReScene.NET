@@ -135,6 +135,21 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     [ObservableProperty]
     private string _statusMessage = "No file loaded";
 
+    // Hex search properties
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(FindNextCommand))]
+    [NotifyCanExecuteChangedFor(nameof(FindPreviousCommand))]
+    private string _hexSearchText = string.Empty;
+
+    [ObservableProperty]
+    private bool _hexSearchAsHex = true;
+
+    [ObservableProperty]
+    private bool _isHexSearchVisible;
+
+    [ObservableProperty]
+    private string _hexSearchStatus = string.Empty;
+
     public void LoadFile(string filePath)
     {
         try
@@ -476,6 +491,69 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         {
             StatusMessage = $"Error removing stored file: {ex.Message}";
         }
+    }
+
+    [RelayCommand]
+    private void ShowHexSearch()
+    {
+        IsHexSearchVisible = true;
+    }
+
+    [RelayCommand]
+    private void HideHexSearch()
+    {
+        IsHexSearchVisible = false;
+        HexSearchStatus = string.Empty;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunHexSearch))]
+    private void FindNext()
+    {
+        RunHexSearch(forward: true);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunHexSearch))]
+    private void FindPrevious()
+    {
+        RunHexSearch(forward: false);
+    }
+
+    private bool CanRunHexSearch()
+        => HexDataSource is not null && !string.IsNullOrWhiteSpace(HexSearchText);
+
+    private void RunHexSearch(bool forward)
+    {
+        if (HexDataSource is null)
+        {
+            HexSearchStatus = "No file loaded.";
+            return;
+        }
+
+        HexSearchPattern? pattern = HexSearchPattern.TryParse(HexSearchText, HexSearchAsHex);
+
+        if (pattern is null)
+        {
+            HexSearchStatus = HexSearchAsHex ? "Invalid hex (need pairs)." : "Empty pattern.";
+            return;
+        }
+
+        long start = forward
+            ? (HexSelectionOffset >= 0 ? HexSelectionOffset + 1 : 0)
+            : (HexSelectionOffset >= 0 ? HexSelectionOffset : HexDataSource.Length);
+
+        long match = forward
+            ? HexSearcher.FindForward(HexDataSource, pattern, start)
+            : HexSearcher.FindBackward(HexDataSource, pattern, start);
+
+        if (match < 0)
+        {
+            HexSearchStatus = "Not found.";
+            return;
+        }
+
+        HexSelectionOffset = match;
+        HexSelectionLength = pattern.Bytes.Length;
+        HexSearchStatus = $"Match at 0x{match:X}";
     }
 
     private void BuildTree()
