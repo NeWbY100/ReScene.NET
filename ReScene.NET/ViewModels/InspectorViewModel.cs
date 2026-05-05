@@ -1458,6 +1458,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
 
         string trimmed = sb.ToString().Trim();
+        if (trimmed.Length > 200)
+        {
+            trimmed = trimmed[..200];
+        }
+
         return string.IsNullOrEmpty(trimmed) ? "node" : trimmed;
     }
 

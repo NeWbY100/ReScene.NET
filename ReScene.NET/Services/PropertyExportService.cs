@@ -23,10 +23,14 @@ public sealed class PropertyExportService : IPropertyExportService
     public Task ExportSelectedAsync(string outputPath, TreeNodeViewModel node, IEnumerable<PropertyItem> properties, CancellationToken ct = default)
     {
         PropertyExportNode export = ToExport(node, includeChildren: false);
-        export.Properties = properties
+        var entries = properties
             .Where(p => !p.IsSeparator)
             .Select(p => new PropertyExportEntry { Name = p.Name, Value = p.Value })
             .ToList();
+        if (entries.Count > 0)
+        {
+            export.Properties = entries;
+        }
         string json = JsonSerializer.Serialize(export, _options);
         return File.WriteAllTextAsync(outputPath, json, ct);
     }
@@ -51,12 +55,14 @@ public sealed class PropertyExportService : IPropertyExportService
         export.Offset = offset;
         export.Length = length;
 
-        if (includeChildren)
+        if (includeChildren && node.Children.Count > 0)
         {
+            List<PropertyExportNode> children = [];
             foreach (TreeNodeViewModel child in node.Children)
             {
-                export.Children.Add(ToExport(child, includeChildren: true));
+                children.Add(ToExport(child, includeChildren: true));
             }
+            export.Children = children;
         }
 
         return export;

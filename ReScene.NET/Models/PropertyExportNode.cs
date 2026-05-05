@@ -28,10 +28,10 @@ public sealed class PropertyExportNode
     /// <summary>
     /// Gets or sets the property entries to include with this node (selected-node export only).
     /// </summary>
-    public List<PropertyExportEntry> Properties { get; set; } = [];
+    public List<PropertyExportEntry>? Properties { get; set; }
 
     /// <summary>
     /// Gets or sets the child nodes (entire-tree export only).
     /// </summary>
-    public List<PropertyExportNode> Children { get; set; } = [];
+    public List<PropertyExportNode>? Children { get; set; }
 }
