@@ -12,13 +12,14 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService) : ViewModelBase, IDisposable
+public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService, IPropertyExportService propertyExportService) : ViewModelBase, IDisposable
 {
     private const int ExportBufferSize = 80 * 1024;
 
     private readonly IFileDialogService _fileDialog = fileDialog;
     private readonly ISrrEditingService _srrEditingService = srrEditingService;
     private readonly ISrrVerifyService _verifyService = verifyService;
+    private readonly IPropertyExportService _propertyExportService = propertyExportService;
     private SrrFileData? _srrData;
     private SrsInspectorData? _srsData;
     private List<RARDetailedBlock>? _rarDetailedBlocks;
@@ -75,6 +76,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         RenameStoredFileCommand.NotifyCanExecuteChanged();
         MoveStoredFileUpCommand.NotifyCanExecuteChanged();
         MoveStoredFileDownCommand.NotifyCanExecuteChanged();
+        ExportSelectedPropertiesCommand.NotifyCanExecuteChanged();
+        ExportTreeCommand.NotifyCanExecuteChanged();
     }
 
     public ObservableCollection<TreeNodeViewModel> TreeRoots { get; } = [];
@@ -199,6 +202,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             BuildTree();
             HasFile = true;
             OnPropertyChanged(nameof(IsSrrLoaded));
+            ExportTreeCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(IsStoredFileSelected));
             VerifyIntegrityCommand.NotifyCanExecuteChanged();
 
@@ -262,6 +266,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         MoveStoredFileUpCommand.NotifyCanExecuteChanged();
         MoveStoredFileDownCommand.NotifyCanExecuteChanged();
         VerifyIntegrityCommand.NotifyCanExecuteChanged();
+        ExportSelectedPropertiesCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsStoredFileSelected));
 
         if (value?.Tag is RARDetailedBlock detailedBlock)
@@ -334,6 +339,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         {
             ShowFullHex();
         }
+
+        ExportSelectedPropertiesCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSelectedPropertyChanged(PropertyItem? value)
@@ -428,6 +435,66 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         finally
         {
             IsExporting = false;
+        }
+    }
+
+    private bool CanExportSelectedProperties() => SelectedTreeNode is not null && Properties.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanExportSelectedProperties))]
+    private async Task ExportSelectedPropertiesAsync()
+    {
+        if (SelectedTreeNode is null)
+        {
+            return;
+        }
+
+        string defaultName = $"{SafeFileName(SelectedTreeNode.Text)}.json";
+        string? path = await _fileDialog.SaveFileAsync(
+            "Export properties", ".json", ["JSON Files|*.json"], defaultName);
+
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _propertyExportService.ExportSelectedAsync(path, SelectedTreeNode, Properties);
+            StatusMessage = $"Exported properties to {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting properties: {ex.Message}";
+        }
+    }
+
+    private bool CanExportTree() => TreeRoots.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanExportTree))]
+    private async Task ExportTreeAsync()
+    {
+        if (TreeRoots.Count == 0)
+        {
+            return;
+        }
+
+        string defaultName = $"{Path.GetFileNameWithoutExtension(LoadedFilePath ?? "tree")}.tree.json";
+        string? path = await _fileDialog.SaveFileAsync(
+            "Export tree", ".json", ["JSON Files|*.json"], defaultName);
+
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _propertyExportService.ExportTreeAsync(path, TreeRoots);
+            StatusMessage = $"Exported tree to {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error exporting tree: {ex.Message}";
         }
     }
 
@@ -1380,6 +1447,19 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         0x05 or 0x35 => "Best",
         _ => $"Unknown (0x{method:X2})"
     };
+
+    private static string SafeFileName(string text)
+    {
+        char[] invalid = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(text.Length);
+        foreach (char c in text)
+        {
+            sb.Append(invalid.Contains(c) ? '_' : c);
+        }
+
+        string trimmed = sb.ToString().Trim();
+        return string.IsNullOrEmpty(trimmed) ? "node" : trimmed;
+    }
 
     private bool _disposed;
 

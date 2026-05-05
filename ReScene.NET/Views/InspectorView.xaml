@@ -114,6 +114,11 @@
                 <MenuItem Header="Verify integrity"
                           Command="{Binding VerifyIntegrityCommand}"
                           Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
+                <Separator />
+                <MenuItem Header="Export properties as JSON..."
+                          Command="{Binding ExportSelectedPropertiesCommand}" />
+                <MenuItem Header="Export entire tree as JSON..."
+                          Command="{Binding ExportTreeCommand}" />
               </ContextMenu>
             </TreeView.ContextMenu>
           </TreeView>

@@ -19,7 +19,7 @@ public partial class App : Application
             Opacity = 0,
             DataContext = new MainWindowViewModel(
                 new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(),
-                new SampleRestorerService(tempDir), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), tempDir, new SrrEditingService(), new SrrVerifyService())
+                new SampleRestorerService(tempDir), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(), tempDir, new SrrEditingService(), new SrrVerifyService(), new PropertyExportService())
         };
         MainWindow.Show();
     }
