@@ -1,3 +1,5 @@
+using ReScene.Hex;
+
 namespace ReScene.NET.Services;
 
 /// <summary>

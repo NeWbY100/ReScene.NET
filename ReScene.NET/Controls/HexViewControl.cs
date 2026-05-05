@@ -4,8 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using ReScene.NET.Models;
-using ReScene.NET.Services;
+using ReScene.Hex;
 
 namespace ReScene.NET.Controls;
 
