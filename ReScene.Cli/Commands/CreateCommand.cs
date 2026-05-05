@@ -48,10 +48,18 @@ public static class CreateCommand
             }
         }
 
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            Console.Error.WriteLine("Cancelling...");
+            cts.Cancel();
+        };
+
         try
         {
             var writer = new SRRWriter();
-            SrrCreationResult result = await writer.CreateAsync(outPath, rarPaths);
+            SrrCreationResult result = await writer.CreateAsync(outPath, rarPaths, ct: cts.Token);
 
             if (!result.Success)
             {
@@ -61,6 +69,11 @@ public static class CreateCommand
 
             Console.WriteLine($"Created {outPath}");
             return 0;
+        }
+        catch (OperationCanceledException)
+        {
+            Console.Error.WriteLine("Cancelled.");
+            return 2;
         }
         catch (Exception ex)
         {

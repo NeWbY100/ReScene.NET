@@ -36,32 +36,41 @@ public static class InspectCommand
         {
             SRRFile srr = SRRFile.Load(path);
 
-            Console.WriteLine($"{"Offset",-12} {"Type",-20} {"Size",10}  Name");
-            Console.WriteLine(new string('-', 60));
+            List<(long Offset, string Type, long Size, string Name)> rows = [];
 
             if (srr.HeaderBlock is not null)
             {
-                PrintRow(srr.HeaderBlock.BlockPosition, "Header", srr.HeaderBlock.HeaderSize, srr.HeaderBlock.AppName ?? string.Empty);
+                rows.Add((srr.HeaderBlock.BlockPosition, "Header", srr.HeaderBlock.HeaderSize, srr.HeaderBlock.AppName ?? string.Empty));
             }
 
-            foreach (var s in srr.StoredFiles)
+            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
             {
-                PrintRow(s.BlockPosition, "StoredFile", s.HeaderSize + s.AddSize, s.FileName);
+                rows.Add((stored.BlockPosition, "StoredFile", stored.HeaderSize + stored.AddSize, stored.FileName));
             }
 
-            foreach (var o in srr.OsoHashBlocks)
+            foreach (SrrOsoHashBlock oso in srr.OsoHashBlocks)
             {
-                PrintRow(o.BlockPosition, "OsoHash", o.HeaderSize, o.FileName);
+                rows.Add((oso.BlockPosition, "OsoHash", oso.HeaderSize, oso.FileName));
             }
 
-            foreach (var r in srr.RarFiles)
+            foreach (SrrRarFileBlock rarFile in srr.RarFiles)
             {
-                PrintRow(r.BlockPosition, "RarFile", r.HeaderSize + r.AddSize, r.FileName);
+                rows.Add((rarFile.BlockPosition, "RarFile", rarFile.HeaderSize + rarFile.AddSize, rarFile.FileName));
             }
 
-            foreach (var p in srr.RarPaddingBlocks)
+            foreach (SrrRarPaddingBlock padding in srr.RarPaddingBlocks)
             {
-                PrintRow(p.BlockPosition, "RarPadding", p.HeaderSize + p.AddSize, p.RarFileName);
+                rows.Add((padding.BlockPosition, "RarPadding", padding.HeaderSize + padding.AddSize, padding.RarFileName));
+            }
+
+            rows.Sort((a, b) => a.Offset.CompareTo(b.Offset));
+
+            Console.WriteLine($"{"Offset",-12} {"Type",-20} {"Size",10}  Name");
+            Console.WriteLine(new string('-', 60));
+
+            foreach (var row in rows)
+            {
+                PrintRow(row.Offset, row.Type, row.Size, row.Name);
             }
 
             return 0;

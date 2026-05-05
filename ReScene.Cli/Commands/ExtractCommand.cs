@@ -57,8 +57,8 @@ public static class ExtractCommand
 
             foreach (var stored in srr.StoredFiles)
             {
-                string safeName = stored.FileName.Replace('\\', '/');
-                string outPath = Path.Combine(outDir, Path.GetFileName(safeName));
+                string outPath = ResolveSafeOutputPath(outDir, stored.FileName);
+                Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
 
                 input.Position = stored.DataOffset;
 
@@ -79,7 +79,7 @@ public static class ExtractCommand
                     remaining -= read;
                 }
 
-                Console.WriteLine($"Extracted {Path.GetFileName(safeName)} ({stored.FileLength:N0} bytes)");
+                Console.WriteLine($"Extracted {stored.FileName} ({stored.FileLength:N0} bytes)");
             }
 
             return 0;
@@ -89,5 +89,29 @@ public static class ExtractCommand
             Console.Error.WriteLine($"Error: {ex.Message}");
             return 2;
         }
+    }
+
+    private static string ResolveSafeOutputPath(string outDir, string storedName)
+    {
+        string normalized = storedName.Replace('\\', '/');
+        string[] parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        List<string> safeParts = [];
+        foreach (string part in parts)
+        {
+            if (part == ".." || Path.IsPathRooted(part))
+            {
+                continue;
+            }
+
+            safeParts.Add(part);
+        }
+
+        if (safeParts.Count == 0)
+        {
+            safeParts.Add("file.bin");
+        }
+
+        return Path.Combine([outDir, .. safeParts]);
     }
 }
