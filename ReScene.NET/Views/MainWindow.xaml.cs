@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Navigation;
 using ReScene.NET.Helpers;
 using ReScene.NET.Models;
@@ -210,7 +211,7 @@ public partial class MainWindow : Window
         var panel = new StackPanel { Margin = new Thickness(20) };
 
         panel.Children.Add(new TextBlock { Text = "ReScene.NET", FontSize = 18, FontWeight = FontWeights.Bold });
-        panel.Children.Add(new TextBlock { Text = $"Version {version}", Foreground = System.Windows.Media.Brushes.Gray, Margin = new Thickness(0, 4, 0, 0) });
+        panel.Children.Add(new TextBlock { Text = $"Version {version}", Foreground = (Brush)FindResource("ForegroundSecondary"), Margin = new Thickness(0, 4, 0, 0) });
         panel.Children.Add(new TextBlock { Text = "Inspect, create, and reconstruct ReScene (SRR/SRS) files", Margin = new Thickness(0, 8, 0, 0) });
 
         // Links
@@ -228,9 +229,13 @@ public partial class MainWindow : Window
             ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
-            Content = panel
+            Content = panel,
+            Background = (Brush)FindResource("WindowBackground"),
+            Foreground = (Brush)FindResource("ForegroundPrimary"),
+            FontFamily = (FontFamily)FindResource("UIFontFamily")
         };
 
+        dialog.SourceInitialized += (_, _) => DarkTitleBar.Enable(dialog);
         dialog.ShowDialog();
     }
 
