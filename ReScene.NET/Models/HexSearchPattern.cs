@@ -70,7 +70,7 @@ public sealed class HexSearchPattern
                 bytes[i] = b;
             }
 
-            return new HexSearchPattern(bytes, input, true);
+            return new HexSearchPattern(bytes, input.Trim(), true);
         }
         else
         {
