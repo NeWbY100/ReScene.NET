@@ -25,10 +25,10 @@ public class SRRCreationService : ISrrCreationService
         CancellationToken ct) => _writer.CreateAsync(outputPath, rarVolumePaths, storedFiles, options, ct);
 
     /// <inheritdoc />
-    public Task<SRRCreationResult> CreateFromSfvAsync(
+    public Task<SRRCreationResult> CreateFromSFVAsync(
         string outputPath,
         string sfvFilePath,
         IReadOnlyDictionary<string, string>? additionalFiles,
         SRRCreationOptions options,
-        CancellationToken ct) => _writer.CreateFromSfvAsync(outputPath, sfvFilePath, additionalFiles, options, ct);
+        CancellationToken ct) => _writer.CreateFromSFVAsync(outputPath, sfvFilePath, additionalFiles, options, ct);
 }

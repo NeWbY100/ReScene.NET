@@ -39,7 +39,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
 
     // ISO support
     [ObservableProperty]
-    private bool _isIsoSource;
+    private bool _isISOSource;
 
     [ObservableProperty]
     private string _iSOFilePath = string.Empty;
@@ -114,7 +114,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     public ObservableCollection<string> LogEntries { get; } = [];
 
     [RelayCommand]
-    private async Task BrowseSrsAsync()
+    private async Task BrowseSRSAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRS File",
             FileDialogFilters.SRSFiles);
@@ -137,15 +137,15 @@ public partial class SRSReconstructorViewModel : ViewModelBase
             return;
         }
 
-        if (ISOMediaExtractor.IsIsoFile(path))
+        if (ISOMediaExtractor.IsISOFile(path))
         {
-            IsIsoSource = true;
+            IsISOSource = true;
             ISOFilePath = path;
             MediaFilePath = path;
         }
         else
         {
-            IsIsoSource = false;
+            IsISOSource = false;
             ISOFilePath = string.Empty;
             MediaFilePath = path;
         }
@@ -172,7 +172,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
             return false;
         }
 
-        if (IsIsoSource)
+        if (IsISOSource)
         {
             return true; // Auto-detection will find the right VOB set
         }
@@ -201,7 +201,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
             string mediaPath;
 
             // If ISO source, auto-detect matching VOB set or extract selected file
-            if (IsIsoSource)
+            if (IsISOSource)
             {
                 Log($"ISO image:  {ISOFilePath}");
 
@@ -240,7 +240,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
                         {
                             ISOCurrentSizeText = string.Empty;
                         }
-                        UpdateIsoStats(p.BytesProcessed, p.BytesTotal);
+                        UpdateISOStats(p.BytesProcessed, p.BytesTotal);
                     }), _cts.Token);
 
                 ISOProcessing = false;
@@ -292,8 +292,8 @@ public partial class SRSReconstructorViewModel : ViewModelBase
             if (result.Success)
             {
                 Log($"Reconstruction complete in {sw.Elapsed.TotalSeconds:F1}s");
-                Log($"  Expected CRC: {result.ExpectedCrc:X8}");
-                Log($"  Actual CRC:   {result.ActualCrc:X8}");
+                Log($"  Expected CRC: {result.ExpectedCRC:X8}");
+                Log($"  Actual CRC:   {result.ActualCRC:X8}");
                 Log($"  CRC match:    YES");
                 Log($"  Expected size: {result.ExpectedSize:N0} bytes");
                 Log($"  Actual size:   {result.ActualSize:N0} bytes");
@@ -301,7 +301,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
                 ProgressPercent = 100;
                 ProgressMessage = "Complete!";
                 ResultSuccess = true;
-                ResultSummary = $"CRC32 match: {result.ActualCrc:X8} ({result.ActualSize:N0} bytes)";
+                ResultSummary = $"CRC32 match: {result.ActualCRC:X8} ({result.ActualSize:N0} bytes)";
             }
             else
             {
@@ -372,7 +372,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
         }
     }
 
-    private void UpdateIsoStats(long processed, long total)
+    private void UpdateISOStats(long processed, long total)
     {
         if (total <= 0 || _iSOStopwatch is null)
         {
@@ -430,7 +430,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
             ISOOverallPercent = e.Percent;
             ISOCurrentPercent = e.Percent;
             ISOCurrentFileText = e.Phase;
-            UpdateIsoStats(e.BytesScanned, e.BytesTotal);
+            UpdateISOStats(e.BytesScanned, e.BytesTotal);
         });
     }
 

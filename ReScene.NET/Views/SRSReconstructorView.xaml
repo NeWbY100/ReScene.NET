@@ -15,7 +15,7 @@
     <TextBlock DockPanel.Dock="Top" Text="SRS File" FontWeight="SemiBold" Margin="0,0,0,2" />
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
-              Command="{Binding BrowseSrsCommand}"
+              Command="{Binding BrowseSRSCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="SRSFileTextBox" Text="{Binding SRSFilePath}" />
@@ -31,7 +31,7 @@
               Command="{Binding BrowseMediaCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox x:Name="MediaFileTextBox" Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsIsoSource}" />
+      <TextBox x:Name="MediaFileTextBox" Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsISOSource}" />
     </DockPanel>
 
     <!-- separator -->

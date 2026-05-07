@@ -23,12 +23,12 @@
 
     <!-- ── ISO file selection (visible only when ISO loaded, single mode) ── -->
     <DockPanel DockPanel.Dock="Top"
-               Visibility="{Binding ShowIsoSelection, Converter={StaticResource BoolToVisibility}}"
+               Visibility="{Binding ShowISOSelection, Converter={StaticResource BoolToVisibility}}"
                Margin="0,4,0,0">
       <TextBlock Text="File inside ISO:" VerticalAlignment="Center"
                  Margin="0,0,8,0" />
       <ComboBox ItemsSource="{Binding ISOMediaFiles}"
-                SelectedItem="{Binding SelectedIsoMediaFile}"
+                SelectedItem="{Binding SelectedISOMediaFile}"
                 FontFamily="{DynamicResource MonoFontFamily}"
                 FontSize="{DynamicResource FontSizeCaption}" />
     </DockPanel>
@@ -68,7 +68,7 @@
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
         <Button Content="Create SRS"
-                Command="{Binding CreateSrsCommand}"
+                Command="{Binding CreateSRSCommand}"
                 Style="{StaticResource PrimaryButton}"
                 Padding="16,4" Margin="0,0,4,0" />
         <Button Content="Cancel"

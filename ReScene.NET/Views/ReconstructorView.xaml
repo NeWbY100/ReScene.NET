@@ -75,7 +75,7 @@
             <!-- ── Import SRR ──────────────────────────────────────── -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
                 <Button DockPanel.Dock="Left" Content="Import SRR"
-                Command="{Binding ImportSrrCommand}"
+                Command="{Binding ImportSRRCommand}"
                 Style="{StaticResource PrimaryButton}"
                 ToolTip="Import settings from an SRR file. Auto-configures compression, dictionary, versions, timestamps, and Host OS."
                 Padding="12,4" />

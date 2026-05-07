@@ -14,7 +14,7 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
         remove => _rebuilder.Progress -= value;
     }
 
-    public List<SRSEntryInfo> GetSrsEntries(string srrFilePath)
+    public List<SRSEntryInfo> GetSRSEntries(string srrFilePath)
     {
         var srr = SRRFile.Load(srrFilePath);
         var entries = new List<SRSEntryInfo>();
@@ -51,7 +51,7 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
                             SRSFileName = srsName,
                             SampleFileName = fd.FileName,
                             SampleSize = fd.SampleSize,
-                            ExpectedCrc = fd.CRC32
+                            ExpectedCRC = fd.CRC32
                         });
                     }
                 }
@@ -85,7 +85,7 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
             {
                 return new SRSReconstructionResult(
                     Success: false, CRCMatch: false,
-                    ExpectedCrc: 0, ActualCrc: 0,
+                    ExpectedCRC: 0, ActualCRC: 0,
                     ExpectedSize: 0, ActualSize: 0,
                     ErrorMessage: $"Could not extract '{srsFileName}' from SRR");
             }

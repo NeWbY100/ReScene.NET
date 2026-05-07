@@ -71,7 +71,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HasProperties = false;
         IsVerifyResultVisible = false;
         StatusMessage = "No file loaded";
-        OnPropertyChanged(nameof(IsSrrLoaded));
+        OnPropertyChanged(nameof(IsSRRLoaded));
         OnPropertyChanged(nameof(IsStoredFileSelected));
         VerifyIntegrityCommand.NotifyCanExecuteChanged();
         RenameStoredFileCommand.NotifyCanExecuteChanged();
@@ -87,12 +87,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     /// <summary>
     /// Gets whether the currently loaded file is an SRR file.
     /// </summary>
-    public bool IsSrrLoaded => IsSrrFileLoaded();
+    public bool IsSRRLoaded => IsSRRFileLoaded();
 
     /// <summary>
     /// Gets whether the selected tree node is a stored file block.
     /// </summary>
-    public bool IsStoredFileSelected => IsSrrFileLoaded() && SelectedTreeNode?.Tag is SRRStoredFileBlock;
+    public bool IsStoredFileSelected => IsSRRFileLoaded() && SelectedTreeNode?.Tag is SRRStoredFileBlock;
 
     [ObservableProperty]
     private TreeNodeViewModel? _selectedTreeNode;
@@ -176,7 +176,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         try
         {
             string ext = Path.GetExtension(filePath);
-            bool isSrs = ext.Equals(".srs", StringComparison.OrdinalIgnoreCase);
+            bool isSRS = ext.Equals(".srs", StringComparison.OrdinalIgnoreCase);
             bool isRar = ext.Equals(".rar", StringComparison.OrdinalIgnoreCase);
 
             _sRSData = null;
@@ -188,7 +188,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             _fileDataSource?.Dispose();
             _fileDataSource = null;
 
-            if (isSrs)
+            if (isSRS)
             {
                 _sRSData = SRSInspectorData.Load(filePath);
             }
@@ -208,12 +208,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
             BuildTree();
             HasFile = true;
-            OnPropertyChanged(nameof(IsSrrLoaded));
+            OnPropertyChanged(nameof(IsSRRLoaded));
             ExportTreeCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(IsStoredFileSelected));
             VerifyIntegrityCommand.NotifyCanExecuteChanged();
 
-            if (isSrs)
+            if (isSRS)
             {
                 SRSFile srs = _sRSData!.SRSFile;
                 int blockCount = (srs.FileData is not null ? 1 : 0) + srs.Tracks.Count + srs.ContainerChunks.Count;
@@ -268,7 +268,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         HexSelectionOffset = -1;
         HexSelectionLength = 0;
         ExportBlockCommand.NotifyCanExecuteChanged();
-        RemoveStoredFileFromSrrCommand.NotifyCanExecuteChanged();
+        RemoveStoredFileFromSRRCommand.NotifyCanExecuteChanged();
         RenameStoredFileCommand.NotifyCanExecuteChanged();
         MoveStoredFileUpCommand.NotifyCanExecuteChanged();
         MoveStoredFileDownCommand.NotifyCanExecuteChanged();
@@ -284,13 +284,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
         else if (value?.Tag is SRRHeaderBlock header)
         {
-            ShowSrrHeaderProperties(header);
+            ShowSRRHeaderProperties(header);
             SetHexBlock(header.BlockPosition, header.HeaderSize);
             HasProperties = true;
         }
         else if (value?.Tag is SRROsoHashBlock oso)
         {
-            ShowOsoHashProperties(oso);
+            ShowOSOHashProperties(oso);
             SetHexBlock(oso.BlockPosition, oso.HeaderSize);
             HasProperties = true;
         }
@@ -320,25 +320,25 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
         else if (value?.Tag is SRSFile srsFile)
         {
-            ShowSrsSummaryProperties(srsFile);
+            ShowSRSSummaryProperties(srsFile);
             ShowFullHex();
             HasProperties = true;
         }
         else if (value?.Tag is SRSFileDataBlock srsFileData)
         {
-            ShowSrsFileDataProperties(srsFileData);
+            ShowSRSFileDataProperties(srsFileData);
             SetHexBlock(srsFileData.BlockPosition, srsFileData.BlockSize);
             HasProperties = true;
         }
         else if (value?.Tag is SRSTrackDataBlock srsTrack)
         {
-            ShowSrsTrackDataProperties(srsTrack);
+            ShowSRSTrackDataProperties(srsTrack);
             SetHexBlock(srsTrack.BlockPosition, srsTrack.BlockSize);
             HasProperties = true;
         }
         else if (value?.Tag is SRSContainerChunk srsChunk)
         {
-            ShowSrsChunkProperties(srsChunk);
+            ShowSRSChunkProperties(srsChunk);
             SetHexBlock(srsChunk.BlockPosition, srsChunk.BlockSize);
             HasProperties = true;
         }
@@ -505,7 +505,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
     }
 
-    private bool IsSrrFileLoaded()
+    private bool IsSRRFileLoaded()
     {
         if (string.IsNullOrEmpty(_loadedFilePathInternal))
         {
@@ -516,12 +516,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             .Equals(".srr", StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool CanAddStoredFile() => IsSrrFileLoaded();
+    private bool CanAddStoredFile() => IsSRRFileLoaded();
 
     [RelayCommand(CanExecute = nameof(CanAddStoredFile))]
-    private async Task AddStoredFileToSrrAsync()
+    private async Task AddStoredFileToSRRAsync()
     {
-        if (!IsSrrFileLoaded())
+        if (!IsSRRFileLoaded())
         {
             return;
         }
@@ -587,7 +587,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     }
 
     private bool CanRemoveStoredFile()
-        => IsSrrFileLoaded() && SelectedTreeNode?.Tag is SRRStoredFileBlock;
+        => IsSRRFileLoaded() && SelectedTreeNode?.Tag is SRRStoredFileBlock;
 
     private bool CanRenameStoredFile() => IsStoredFileSelected;
     private bool CanMoveStoredFileUp() => IsStoredFileSelected;
@@ -638,12 +638,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     [RelayCommand(CanExecute = nameof(CanMoveStoredFileDown))]
     private async Task MoveStoredFileDownAsync() => await MoveStoredFileByOffsetAsync(+1);
 
-    private bool CanVerifyIntegrity() => IsSrrFileLoaded();
+    private bool CanVerifyIntegrity() => IsSRRFileLoaded();
 
     [RelayCommand(CanExecute = nameof(CanRemoveStoredFile))]
-    private void RemoveStoredFileFromSrr()
+    private void RemoveStoredFileFromSRR()
     {
-        if (!IsSrrFileLoaded() || SelectedTreeNode?.Tag is not SRRStoredFileBlock stored)
+        if (!IsSRRFileLoaded() || SelectedTreeNode?.Tag is not SRRStoredFileBlock stored)
         {
             return;
         }
@@ -701,7 +701,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
         if (_sRSData is not null)
         {
-            BuildSrsTree();
+            BuildSRSTree();
             return;
         }
 
@@ -716,7 +716,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
-        BuildSrrTree();
+        BuildSRRTree();
     }
 
     private static bool DetectCustomPackerInRarBlocks(List<RARDetailedBlock> blocks)
@@ -768,7 +768,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         TreeRoots.Add(root);
     }
 
-    private void BuildSrrTree()
+    private void BuildSRRTree()
     {
         SRRFile srr = _sRRData!.SRRFile;
 
@@ -886,7 +886,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         TreeRoots.Add(root);
     }
 
-    private void BuildSrsTree()
+    private void BuildSRSTree()
     {
         SRSFile srs = _sRSData!.SRSFile;
         var root = new TreeNodeViewModel
@@ -938,7 +938,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         TreeRoots.Add(root);
     }
 
-    private void ShowSrsSummaryProperties(SRSFile srs)
+    private void ShowSRSSummaryProperties(SRSFile srs)
     {
         AddProperty("Container Type", srs.ContainerType.ToString());
 
@@ -957,7 +957,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         AddProperty("Container Chunks", srs.ContainerChunks.Count.ToString());
     }
 
-    private void ShowSrsFileDataProperties(SRSFileDataBlock block)
+    private void ShowSRSFileDataProperties(SRSFileDataBlock block)
     {
         long p = block.FrameOffset;
         AddProperty("Frame Offset", $"0x{block.FrameOffset:X8}",
@@ -985,7 +985,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             new ByteRange { Offset = block.CRC32Offset, Length = 4 });
     }
 
-    private void ShowSrsTrackDataProperties(SRSTrackDataBlock block)
+    private void ShowSRSTrackDataProperties(SRSTrackDataBlock block)
     {
         long p = block.FrameOffset;
         AddProperty("Frame Offset", $"0x{block.FrameOffset:X8}",
@@ -1022,7 +1022,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
     }
 
-    private void ShowSrsChunkProperties(SRSContainerChunk chunk)
+    private void ShowSRSChunkProperties(SRSContainerChunk chunk)
     {
         AddProperty("Label", chunk.Label);
         AddProperty("Chunk ID", chunk.ChunkId);
@@ -1238,11 +1238,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         });
     }
 
-    private void ShowSrrHeaderProperties(SRRHeaderBlock header)
+    private void ShowSRRHeaderProperties(SRRHeaderBlock header)
     {
         long pos = header.BlockPosition;
 
-        AddProperty("Header CRC", $"0x{header.Crc:X4}",
+        AddProperty("Header CRC", $"0x{header.CRC:X4}",
             new ByteRange { Offset = pos, Length = 2 });
         AddProperty("Block Type", $"0x{(byte)header.BlockType:X2} ({header.BlockType})",
             new ByteRange { Offset = pos + 2, Length = 1 });
@@ -1262,7 +1262,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     {
         long p = stored.BlockPosition;
 
-        AddProperty("Header CRC", $"0x{stored.Crc:X4}",
+        AddProperty("Header CRC", $"0x{stored.CRC:X4}",
             new ByteRange { Offset = p, Length = 2 });
         AddProperty("Block Type", $"0x{(byte)stored.BlockType:X2} ({stored.BlockType})",
             new ByteRange { Offset = p + 2, Length = 1 });
@@ -1294,7 +1294,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     {
         long p = rar.BlockPosition;
 
-        AddProperty("Header CRC", $"0x{rar.Crc:X4}",
+        AddProperty("Header CRC", $"0x{rar.CRC:X4}",
             new ByteRange { Offset = p, Length = 2 });
         AddProperty("Block Type", $"0x{(byte)rar.BlockType:X2} ({rar.BlockType})",
             new ByteRange { Offset = p + 2, Length = 1 });
@@ -1319,11 +1319,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             new ByteRange { Offset = p, Length = nameLen });
     }
 
-    private void ShowOsoHashProperties(SRROsoHashBlock oso)
+    private void ShowOSOHashProperties(SRROsoHashBlock oso)
     {
         long p = oso.BlockPosition;
 
-        AddProperty("Header CRC", $"0x{oso.Crc:X4}",
+        AddProperty("Header CRC", $"0x{oso.CRC:X4}",
             new ByteRange { Offset = p, Length = 2 });
         AddProperty("Block Type", $"0x{(byte)oso.BlockType:X2} ({oso.BlockType})",
             new ByteRange { Offset = p + 2, Length = 1 });
@@ -1360,7 +1360,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     {
         long p = padding.BlockPosition;
 
-        AddProperty("Header CRC", $"0x{padding.Crc:X4}",
+        AddProperty("Header CRC", $"0x{padding.CRC:X4}",
             new ByteRange { Offset = p, Length = 2 });
         AddProperty("Block Type", $"0x{(byte)padding.BlockType:X2} ({padding.BlockType})",
             new ByteRange { Offset = p + 2, Length = 1 });
@@ -1498,7 +1498,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         AddProperty("Dir Access Times", srr.ArchivedDirectoryAccessTimes.Count.ToString());
 
         AddProperty("File CRCs", srr.ArchivedFileCrcs.Count.ToString());
-        AddProperty("Header CRC Errors", srr.HeaderCrcMismatches.ToString());
+        AddProperty("Header CRC Errors", srr.HeaderCRCMismatches.ToString());
         AddProperty("Has Comment", !string.IsNullOrEmpty(srr.ArchiveComment) ? "Yes" : "No");
 
         if (!string.IsNullOrEmpty(srr.ArchiveComment))

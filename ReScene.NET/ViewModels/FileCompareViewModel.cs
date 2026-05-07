@@ -629,7 +629,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             PopulateDetailedTree(roots, detailedBlocks, isLeft);
         }
-        else if (data is Models.SRRFileData srrData)
+        else if (data is ReScene.Core.Comparison.SRRFileData srrData)
         {
             PopulateSRRTree(roots, srrData, isLeft);
         }
@@ -684,7 +684,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         roots.Add(rootNode);
     }
 
-    private static void PopulateSRRTree(ObservableCollection<TreeNodeViewModel> roots, Models.SRRFileData srrData, bool isLeft)
+    private static void PopulateSRRTree(ObservableCollection<TreeNodeViewModel> roots, ReScene.Core.Comparison.SRRFileData srrData, bool isLeft)
     {
         SRRFile srr = srrData.SRRFile;
 
@@ -1272,7 +1272,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             case CompareNodeType.SRSFileInfo:
                 if (nodeData.Data is SRSFileDataBlock fd)
                 {
-                    ShowSrsFileInfoProperties(properties, fd);
+                    ShowSRSFileInfoProperties(properties, fd);
                 }
 
                 break;
@@ -1280,7 +1280,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             case CompareNodeType.SRSTrack:
                 if (nodeData.Data is SRSTrackDataBlock track)
                 {
-                    ShowSrsTrackProperties(properties, track, nodeData.FileName);
+                    ShowSRSTrackProperties(properties, track, nodeData.FileName);
                 }
 
                 break;
@@ -1288,7 +1288,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             case CompareNodeType.SRSContainerChunks:
                 if (nodeData.Data is SRSContainerChunk chunk)
                 {
-                    ShowSrsContainerChunkProperties(properties, chunk);
+                    ShowSRSContainerChunkProperties(properties, chunk);
                 }
 
                 break;
@@ -1296,7 +1296,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             case CompareNodeType.OSOHash:
                 if (nodeData.Data is SRROsoHashBlock oso)
                 {
-                    ShowOsoHashProperties(properties, oso);
+                    ShowOSOHashProperties(properties, oso);
                 }
 
                 break;
@@ -1434,9 +1434,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         var otherData = isLeft ? _rightData : _leftData;
-        if (otherData is Models.SRRFileData otherSrrData)
+        if (otherData is ReScene.Core.Comparison.SRRFileData otherSRRData)
         {
-            foreach (List<RARDetailedBlock> volumeBlocks in otherSrrData.VolumeDetailedBlocks.Values)
+            foreach (List<RARDetailedBlock> volumeBlocks in otherSRRData.VolumeDetailedBlocks.Values)
             {
                 RARDetailedBlock? match = volumeBlocks.FirstOrDefault(b =>
                     b.BlockType == block.BlockType && b.ItemName == block.ItemName);
@@ -1463,7 +1463,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         AddComparedProperty(properties, "RAR Volumes", srr.RARFiles.Count.ToString(), "RAR Volumes Count");
         AddComparedProperty(properties, "Stored Files", srr.StoredFiles.Count.ToString(), "Stored Files Count");
         AddComparedProperty(properties, "Archived Files", srr.ArchivedFiles.Count.ToString(), "Archived Files Count");
-        AddComparedProperty(properties, "Header CRC Errors", srr.HeaderCrcMismatches.ToString(), "Header CRC Errors");
+        AddComparedProperty(properties, "Header CRC Errors", srr.HeaderCRCMismatches.ToString(), "Header CRC Errors");
         AddComparedProperty(properties, "Has Comment", FileComparer.FormatBool(!string.IsNullOrEmpty(srr.ArchiveComment)), "Has Comment");
 
         properties.Add(new PropertyItem { Name = "--- Reconstruction Hints ---", Value = "", IsSeparator = true });
@@ -1524,7 +1524,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "Type", Value = header.IsDirectory ? "Directory" : "File" });
         AddComparedProperty(properties, "Unpacked Size", $"{header.UnpackedSize:N0} bytes", "Unpacked Size");
         AddComparedProperty(properties, "Packed Size", $"{header.PackedSize:N0} bytes", "Packed Size");
-        AddComparedProperty(properties, "CRC32", header.FileCrc.ToString("X8"), "CRC");
+        AddComparedProperty(properties, "CRC32", header.FileCRC.ToString("X8"), "CRC");
         AddComparedProperty(properties, "Compression Method", FileComparer.GetCompressionMethodName((int?)header.CompressionMethod), "Compression Method");
         properties.Add(new PropertyItem { Name = "Dictionary Size", Value = $"{header.DictionarySizeKB} KB" });
         AddComparedProperty(properties, "Modified Time", header.ModifiedTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A", "Modified Time");
@@ -1537,7 +1537,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "File Name", Value = info.FileName });
         properties.Add(new PropertyItem { Name = "Type", Value = info.IsDirectory ? "Directory" : "File" });
         AddComparedProperty(properties, "Unpacked Size", $"{info.UnpackedSize:N0} bytes", "Unpacked Size");
-        AddComparedProperty(properties, "CRC32", info.FileCrc?.ToString("X8") ?? "N/A", "CRC");
+        AddComparedProperty(properties, "CRC32", info.FileCRC?.ToString("X8") ?? "N/A", "CRC");
         AddComparedProperty(properties, "Compression Method", FileComparer.GetCompressionMethodName(info.CompressionMethod), "Compression Method");
         properties.Add(new PropertyItem { Name = "Dictionary Size", Value = $"{info.DictionarySizeKB} KB" });
         if (info.ModificationTime.HasValue)
@@ -1618,12 +1618,12 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem
         {
             Name = "Header CRC",
-            Value = $"0x{rarFile.Crc:X4}",
+            Value = $"0x{rarFile.CRC:X4}",
             ByteRange = new ByteRange { Offset = p, Length = 2 }
         });
     }
 
-    private void ShowSrsFileInfoProperties(ObservableCollection<PropertyItem> properties, SRSFileDataBlock fd)
+    private void ShowSRSFileInfoProperties(ObservableCollection<PropertyItem> properties, SRSFileDataBlock fd)
     {
         AddComparedProperty(properties, "App Name", fd.AppName, "App Name");
 
@@ -1651,7 +1651,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private void ShowSrsTrackProperties(ObservableCollection<PropertyItem> properties, SRSTrackDataBlock track, string? trackName)
+    private void ShowSRSTrackProperties(ObservableCollection<PropertyItem> properties, SRSTrackDataBlock track, string? trackName)
     {
         List<PropertyDifference>? trackDiffs = trackName is not null ? GetTrackDiffs(trackName) : null;
 
@@ -1724,7 +1724,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private static void ShowSrsContainerChunkProperties(ObservableCollection<PropertyItem> properties, SRSContainerChunk chunk)
+    private static void ShowSRSContainerChunkProperties(ObservableCollection<PropertyItem> properties, SRSContainerChunk chunk)
     {
         properties.Add(new PropertyItem { Name = "Label", Value = chunk.Label });
         properties.Add(new PropertyItem { Name = "Chunk ID", Value = chunk.ChunkId });
@@ -1734,7 +1734,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes ({FormatUtilities.FormatSize(chunk.BlockSize)})" });
     }
 
-    private static void ShowOsoHashProperties(ObservableCollection<PropertyItem> properties, SRROsoHashBlock oso)
+    private static void ShowOSOHashProperties(ObservableCollection<PropertyItem> properties, SRROsoHashBlock oso)
     {
         long p = oso.BlockPosition + 7; // skip base header (CRC + type + flags + headerSize)
 

@@ -63,7 +63,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
     public ObservableCollection<string> LogEntries { get; } = [];
 
     [RelayCommand]
-    private async Task BrowseSrrAsync()
+    private async Task BrowseSRRAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
             FileDialogFilters.SRRFiles);
@@ -74,7 +74,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
 
         SRRFilePath = path;
-        LoadSrsEntries();
+        LoadSRSEntries();
 
         if (!string.IsNullOrWhiteSpace(MediaDirectoryPath))
         {
@@ -164,8 +164,8 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
                     if (result.Success)
                     {
-                        entry.Status = $"OK ({result.ActualCrc:X8})";
-                        Log($"    CRC match: {result.ActualCrc:X8}");
+                        entry.Status = $"OK ({result.ActualCRC:X8})";
+                        Log($"    CRC match: {result.ActualCRC:X8}");
                     }
                     else
                     {
@@ -242,7 +242,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
     }
 
-    private void LoadSrsEntries()
+    private void LoadSRSEntries()
     {
         foreach (SRSFileEntry old in SRSEntries)
         {
@@ -253,7 +253,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
         try
         {
-            List<SRSEntryInfo> entries = _service.GetSrsEntries(SRRFilePath);
+            List<SRSEntryInfo> entries = _service.GetSRSEntries(SRRFilePath);
 
             foreach (SRSEntryInfo info in entries)
             {

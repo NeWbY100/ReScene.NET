@@ -52,13 +52,13 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
     // Input
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
     private string _inputPath = string.Empty;
 
     // ISO support
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowIsoSelection))]
-    private bool _isIsoSource;
+    [NotifyPropertyChangedFor(nameof(ShowISOSelection))]
+    private bool _isISOSource;
 
     [ObservableProperty]
     private string _iSOFilePath = string.Empty;
@@ -66,13 +66,13 @@ public partial class SRSCreatorViewModel : ViewModelBase
     public ObservableCollection<string> ISOMediaFiles { get; } = [];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
-    private string? _selectedIsoMediaFile;
+    [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
+    private string? _selectedISOMediaFile;
 
     /// <summary>
     /// Gets whether the ISO file selection combo should be visible.
     /// </summary>
-    public bool ShowIsoSelection => IsIsoSource;
+    public bool ShowISOSelection => IsISOSource;
 
     // ISO progress (for modal window)
     [ObservableProperty]
@@ -110,7 +110,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
     // Output
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
     private string _outputPath = string.Empty;
 
     // Options
@@ -125,7 +125,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
     private string _progressMessage = string.Empty;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
     private bool _isCreating;
 
     [ObservableProperty]
@@ -145,14 +145,14 @@ public partial class SRSCreatorViewModel : ViewModelBase
             return;
         }
 
-        if (ISOMediaExtractor.IsIsoFile(path))
+        if (ISOMediaExtractor.IsISOFile(path))
         {
-            IsIsoSource = true;
+            IsISOSource = true;
             ISOFilePath = path;
             InputPath = path;
 
             ISOMediaFiles.Clear();
-            SelectedIsoMediaFile = null;
+            SelectedISOMediaFile = null;
 
             List<string> files = ISOMediaExtractor.ListMediaFiles(path);
             foreach (string file in files)
@@ -162,17 +162,17 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
             if (ISOMediaFiles.Count > 0)
             {
-                SelectedIsoMediaFile = ISOMediaFiles[0];
+                SelectedISOMediaFile = ISOMediaFiles[0];
             }
 
             AutoSetOutputPath(path);
         }
         else
         {
-            IsIsoSource = false;
+            IsISOSource = false;
             ISOFilePath = string.Empty;
             ISOMediaFiles.Clear();
-            SelectedIsoMediaFile = null;
+            SelectedISOMediaFile = null;
             InputPath = path;
             AutoSetOutputPath(path);
         }
@@ -189,23 +189,23 @@ public partial class SRSCreatorViewModel : ViewModelBase
         }
     }
 
-    private bool CanCreateSrs()
+    private bool CanCreateSRS()
     {
         if (IsCreating || string.IsNullOrWhiteSpace(InputPath) || string.IsNullOrWhiteSpace(OutputPath))
         {
             return false;
         }
 
-        if (IsIsoSource)
+        if (IsISOSource)
         {
-            return !string.IsNullOrWhiteSpace(SelectedIsoMediaFile);
+            return !string.IsNullOrWhiteSpace(SelectedISOMediaFile);
         }
 
         return true;
     }
 
-    [RelayCommand(CanExecute = nameof(CanCreateSrs))]
-    private async Task CreateSrsAsync()
+    [RelayCommand(CanExecute = nameof(CanCreateSRS))]
+    private async Task CreateSRSAsync()
     {
         IsCreating = true;
         ShowProgress = true;
@@ -226,13 +226,13 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
             string samplePath;
 
-            if (IsIsoSource)
+            if (IsISOSource)
             {
                 Log($"ISO image: {ISOFilePath}");
-                Log($"ISO file:  {SelectedIsoMediaFile}");
+                Log($"ISO file:  {SelectedISOMediaFile}");
 
                 string tempDir = _tempDir.CreateTempDirectory();
-                string tempFile = Path.Combine(tempDir, Path.GetFileName(SelectedIsoMediaFile!));
+                string tempFile = Path.Combine(tempDir, Path.GetFileName(SelectedISOMediaFile!));
                 _extractedTempFile = tempFile;
 
                 // Show ISO progress modal
@@ -240,7 +240,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
                 ISOOverallPercent = 0;
                 ISOCurrentPercent = 0;
                 ISOFileCountText = "Extracting file...";
-                ISOCurrentFileText = SelectedIsoMediaFile!;
+                ISOCurrentFileText = SelectedISOMediaFile!;
                 ISOCurrentSizeText = string.Empty;
                 ISOProcessedText = string.Empty;
                 ISORemainingText = string.Empty;
@@ -248,10 +248,10 @@ public partial class SRSCreatorViewModel : ViewModelBase
                 ISOEtaText = string.Empty;
                 ISOProcessing = true;
 
-                Log($"Extracting {SelectedIsoMediaFile} from ISO...");
+                Log($"Extracting {SelectedISOMediaFile} from ISO...");
 
                 await ISOMediaExtractor.ExtractFileAsync(
-                    ISOFilePath, SelectedIsoMediaFile!,
+                    ISOFilePath, SelectedISOMediaFile!,
                     tempFile,
                     percent => Application.Current.Dispatcher.BeginInvoke(() =>
                     {
@@ -284,7 +284,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
                 Log($"SRS created successfully.");
                 Log($"  Container: {result.ContainerType}");
                 Log($"  Tracks: {result.TrackCount}");
-                Log($"  Sample CRC: {result.SampleCrc32:X8}");
+                Log($"  Sample CRC: {result.SampleCRC32:X8}");
                 Log($"  Sample size: {result.SampleSize:N0} bytes");
                 Log($"  SRS size: {result.SRSFileSize:N0} bytes");
             }

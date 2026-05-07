@@ -161,7 +161,7 @@ internal static partial class ReleaseFileScanner
     /// <returns>
     /// A list of SFV file paths found in subtitle subdirectories.
     /// </returns>
-    public static List<string> FindSubtitleSfvFiles(string releaseDir)
+    public static List<string> FindSubtitleSFVFiles(string releaseDir)
     {
         var sfvFiles = new List<string>();
 
@@ -242,7 +242,7 @@ internal static partial class ReleaseFileScanner
     /// <returns>
     /// A list of existing RAR file paths referenced by the SFV.
     /// </returns>
-    public static List<string> FindRarFilesFromSfv(string sfvPath)
+    public static List<string> FindRarFilesFromSFV(string sfvPath)
     {
         string dir = Path.GetDirectoryName(sfvPath) ?? ".";
         var rarFiles = new List<string>();

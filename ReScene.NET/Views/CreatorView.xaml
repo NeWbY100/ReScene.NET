@@ -112,15 +112,15 @@
         <CheckBox Content="Auto-include files — Scan release directory for .nfo, .sfv, proof images, .m3u, .cue, .log files."
                   IsChecked="{Binding AutoIncludeFiles}" Margin="0,1" />
         <CheckBox Content="Auto-create SRS — Create .srs files for samples found in Sample/ subdirectory."
-                  IsChecked="{Binding AutoCreateSrs}" Margin="0,1" />
+                  IsChecked="{Binding AutoCreateSRS}" Margin="0,1" />
         <CheckBox Content="Vobsub SRR — Create nested SRR files for subtitle archives found in Subs/ directories."
-                  IsChecked="{Binding CreateVobsubSrr}" Margin="0,1" />
+                  IsChecked="{Binding CreateVobsubSRR}" Margin="0,1" />
         <CheckBox Content="Store fix RAR — For fix/patch releases, store the main RAR file as proof."
                   IsChecked="{Binding StoreFixRar}" Margin="0,1" />
         <CheckBox Content="Allow compressed — Accept RAR volumes that use compression (method != Store)."
                   IsChecked="{Binding AllowCompressed}" Margin="0,1" />
         <CheckBox Content="OSO hashes — Compute and store OpenSubtitles OSO hashes for archived files."
-                  IsChecked="{Binding ComputeOsoHashes}" Margin="0,1" />
+                  IsChecked="{Binding ComputeOSOHashes}" Margin="0,1" />
         <CheckBox Content="Languages.diz — Extract language metadata from VobSub .idx files and store in the SRR."
                   IsChecked="{Binding GenerateLanguagesDiz}" Margin="0,1,0,4" />
         <DockPanel Margin="0,0,0,2">
@@ -142,7 +142,7 @@
         <DockPanel Margin="0,0,0,2">
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
             <Button Content="Create SRR"
-                    Command="{Binding CreateSrrCommand}"
+                    Command="{Binding CreateSRRCommand}"
                     Style="{StaticResource PrimaryButton}"
                     Padding="16,4" Margin="0,0,4,0" />
             <Button Content="Cancel"

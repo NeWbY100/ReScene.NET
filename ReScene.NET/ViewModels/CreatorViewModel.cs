@@ -57,11 +57,11 @@ public partial class CreatorViewModel : ViewModelBase
 
     // Input
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrrCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
     private string _inputPath = string.Empty;
 
     [ObservableProperty]
-    private bool _isSfvInput = true;
+    private bool _isSFVInput = true;
 
     // Stored Files
     public ObservableCollection<StoredFileItem> StoredFiles { get; } = [];
@@ -71,7 +71,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     // Output
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrrCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
     private string _outputPath = string.Empty;
 
     // Options
@@ -82,16 +82,16 @@ public partial class CreatorViewModel : ViewModelBase
     private bool _autoIncludeFiles = true;
 
     [ObservableProperty]
-    private bool _autoCreateSrs = true;
+    private bool _autoCreateSRS = true;
 
     [ObservableProperty]
-    private bool _createVobsubSrr = true;
+    private bool _createVobsubSRR = true;
 
     [ObservableProperty]
     private bool _storeFixRar = true;
 
     [ObservableProperty]
-    private bool _computeOsoHashes;
+    private bool _computeOSOHashes;
 
     [ObservableProperty]
     private bool _generateLanguagesDiz = true;
@@ -107,7 +107,7 @@ public partial class CreatorViewModel : ViewModelBase
     private string _progressMessage = string.Empty;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateSrrCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
     private bool _isCreating;
 
     [ObservableProperty]
@@ -133,7 +133,7 @@ public partial class CreatorViewModel : ViewModelBase
     {
         if (!string.IsNullOrWhiteSpace(value))
         {
-            IsSfvInput = Path.GetExtension(value).Equals(".sfv", StringComparison.OrdinalIgnoreCase);
+            IsSFVInput = Path.GetExtension(value).Equals(".sfv", StringComparison.OrdinalIgnoreCase);
         }
 
         UpdateStoredNames();
@@ -204,12 +204,12 @@ public partial class CreatorViewModel : ViewModelBase
     [RelayCommand]
     private void RemoveAllStoredFiles() => StoredFiles.Clear();
 
-    private bool CanCreateSrr() => !IsCreating
+    private bool CanCreateSRR() => !IsCreating
         && !string.IsNullOrWhiteSpace(InputPath)
         && !string.IsNullOrWhiteSpace(OutputPath);
 
-    [RelayCommand(CanExecute = nameof(CanCreateSrr))]
-    private async Task CreateSrrAsync()
+    [RelayCommand(CanExecute = nameof(CanCreateSRR))]
+    private async Task CreateSRRAsync()
     {
         IsCreating = true;
         ShowProgress = true;
@@ -226,7 +226,7 @@ public partial class CreatorViewModel : ViewModelBase
             {
                 AppName = string.IsNullOrWhiteSpace(AppName) ? null : AppName,
                 AllowCompressed = AllowCompressed,
-                ComputeOsoHashes = ComputeOsoHashes,
+                ComputeOSOHashes = ComputeOSOHashes,
                 GenerateLanguagesDiz = GenerateLanguagesDiz
             };
 
@@ -237,13 +237,13 @@ public partial class CreatorViewModel : ViewModelBase
             string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
 
             // Phase 1: Auto-create SRS files for samples
-            if (AutoCreateSrs)
+            if (AutoCreateSRS)
             {
-                tempDir = await CreateSrsForSamplesAsync(releaseDir, _cts.Token);
+                tempDir = await CreateSRSForSamplesAsync(releaseDir, _cts.Token);
             }
 
             // Phase 2: Create nested SRRs for subtitle archives
-            if (CreateVobsubSrr)
+            if (CreateVobsubSRR)
             {
                 await CreateVobsubSrrsAsync(releaseDir, options, tempDir ??= _tempDir.CreateTempDirectory(), _cts.Token);
             }
@@ -263,9 +263,9 @@ public partial class CreatorViewModel : ViewModelBase
                 storedFiles[item.StoredName] = item.FullPath;
             }
 
-            if (IsSfvInput)
+            if (IsSFVInput)
             {
-                result = await _sRRService.CreateFromSfvAsync(
+                result = await _sRRService.CreateFromSFVAsync(
                     OutputPath, InputPath,
                     storedFiles.Count > 0 ? storedFiles : null,
                     options, _cts.Token);
@@ -391,7 +391,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     // ── SRS auto-creation ───────────────────────────────────
 
-    private async Task<string?> CreateSrsForSamplesAsync(string releaseDir, CancellationToken ct)
+    private async Task<string?> CreateSRSForSamplesAsync(string releaseDir, CancellationToken ct)
     {
         List<string> samples = ReleaseFileScanner.FindSampleFiles(releaseDir);
         if (samples.Count == 0)
@@ -449,7 +449,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     private async Task CreateVobsubSrrsAsync(string releaseDir, SRRCreationOptions options, string tempDir, CancellationToken ct)
     {
-        List<string> subtitleSfvs = ReleaseFileScanner.FindSubtitleSfvFiles(releaseDir);
+        List<string> subtitleSfvs = ReleaseFileScanner.FindSubtitleSFVFiles(releaseDir);
         if (subtitleSfvs.Count == 0)
         {
             return;
@@ -467,7 +467,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             try
             {
-                SRRCreationResult result = await _sRRService.CreateFromSfvAsync(
+                SRRCreationResult result = await _sRRService.CreateFromSFVAsync(
                     srrPath, sfvPath, null, options, ct);
 
                 if (result.Success)
@@ -513,7 +513,7 @@ public partial class CreatorViewModel : ViewModelBase
         }
 
         // Find RAR files referenced by the SFV
-        List<string> rarFiles = ReleaseFileScanner.FindRarFilesFromSfv(sfvFiles[0]);
+        List<string> rarFiles = ReleaseFileScanner.FindRarFilesFromSFV(sfvFiles[0]);
         if (rarFiles.Count != 1)
         {
             return;

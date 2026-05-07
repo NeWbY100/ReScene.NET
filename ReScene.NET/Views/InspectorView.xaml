@@ -94,12 +94,12 @@
               <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                 <MenuItem Header="Export..."
                           Command="{Binding ExportBlockCommand}" />
-                <Separator Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
+                <Separator Visibility="{Binding IsSRRLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Add Stored File..."
-                          Command="{Binding AddStoredFileToSrrCommand}"
-                          Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
+                          Command="{Binding AddStoredFileToSRRCommand}"
+                          Visibility="{Binding IsSRRLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Remove Stored File"
-                          Command="{Binding RemoveStoredFileFromSrrCommand}"
+                          Command="{Binding RemoveStoredFileFromSRRCommand}"
                           Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
                 <Separator Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Rename..."
@@ -111,10 +111,10 @@
                 <MenuItem Header="Move Down"
                           Command="{Binding MoveStoredFileDownCommand}"
                           Visibility="{Binding IsStoredFileSelected, Converter={StaticResource BoolToVisibility}}" />
-                <Separator Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
+                <Separator Visibility="{Binding IsSRRLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <MenuItem Header="Verify integrity"
                           Command="{Binding VerifyIntegrityCommand}"
-                          Visibility="{Binding IsSrrLoaded, Converter={StaticResource BoolToVisibility}}" />
+                          Visibility="{Binding IsSRRLoaded, Converter={StaticResource BoolToVisibility}}" />
                 <Separator />
                 <MenuItem Header="Export properties as JSON..."
                           Command="{Binding ExportSelectedPropertiesCommand}" />

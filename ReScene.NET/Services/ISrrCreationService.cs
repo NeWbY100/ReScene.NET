@@ -61,7 +61,7 @@ public interface ISrrCreationService
     /// <returns>
     /// The creation result including success status and statistics.
     /// </returns>
-    public Task<SRRCreationResult> CreateFromSfvAsync(
+    public Task<SRRCreationResult> CreateFromSFVAsync(
         string outputPath,
         string sfvFilePath,
         IReadOnlyDictionary<string, string>? additionalFiles,

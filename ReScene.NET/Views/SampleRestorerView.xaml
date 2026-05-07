@@ -15,7 +15,7 @@
     <TextBlock DockPanel.Dock="Top" Text="SRR File" FontWeight="SemiBold" Margin="0,0,0,2" />
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
-              Command="{Binding BrowseSrrCommand}"
+              Command="{Binding BrowseSRRCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="SRRFileTextBox" Text="{Binding SRRFilePath}" />

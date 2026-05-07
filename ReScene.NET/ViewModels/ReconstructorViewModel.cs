@@ -54,7 +54,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private uint? _detectedHighUnpSize;
     private List<string> _importedOriginalRarFileNames = [];
     private CustomPackerType _importedCustomPackerType = CustomPackerType.None;
-    private string? _importedSrrFilePath;
+    private string? _importedSRRFilePath;
 
     public ReconstructorViewModel(IBruteForceService bruteForceService, IFileDialogService fileDialog)
     {
@@ -65,7 +65,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         _bruteForceService.StatusChanged += OnStatusChanged;
         _bruteForceService.LogMessage += OnLogMessage;
         _bruteForceService.FileCopyProgress += OnFileCopyProgress;
-        _bruteForceService.CRCValidationProgress += OnCrcValidationProgress;
+        _bruteForceService.CRCValidationProgress += OnCRCValidationProgress;
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += (_, _) => OnElapsedTimerTick();
@@ -349,7 +349,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     // ── Import SRR ──
 
     [RelayCommand]
-    private async Task ImportSrrAsync()
+    private async Task ImportSRRAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
             FileDialogFilters.SRRFiles);
@@ -370,7 +370,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             {
                 Log(LogTarget.System, $"Custom RAR packer detected: {srr.CustomPackerDetected}");
                 _importedCustomPackerType = srr.CustomPackerDetected;
-                _importedSrrFilePath = path;
+                _importedSRRFilePath = path;
 
                 string groups = srr.CustomPackerDetected switch
                 {
@@ -387,7 +387,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             else
             {
                 _importedCustomPackerType = CustomPackerType.None;
-                _importedSrrFilePath = null;
+                _importedSRRFilePath = null;
                 CustomPackerWarning = null;
             }
 
@@ -583,10 +583,10 @@ public partial class ReconstructorViewModel : ViewModelBase
             }
 
             // RAR version selection
-            SetRARVersionsFromSrr(srr);
+            SetRARVersionsFromSRR(srr);
 
             // Extract stored SFV for verification
-            TryExtractStoredSfv(path, srr);
+            TryExtractStoredSFV(path, srr);
 
             Log(LogTarget.System, "=== SRR Import Complete ===");
         }
@@ -1067,7 +1067,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             DetectedHighUnpSize = _detectedHighUnpSize,
             UseOldVolumeNaming = UseOldVolumeNaming,
             CustomPackerDetected = _importedCustomPackerType,
-            SRRFilePath = _importedSrrFilePath
+            SRRFilePath = _importedSRRFilePath
         };
     }
 
@@ -1451,7 +1451,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         return $"{bytesPerSec / 1024:F1} KB/s";
     }
 
-    private void OnCrcValidationProgress(object? _, CRCValidationProgressEventArgs e)
+    private void OnCRCValidationProgress(object? _, CRCValidationProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -1603,7 +1603,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     // ── SRR Import Helpers ──
 
-    private void SetRARVersionsFromSrr(SRRFile srr)
+    private void SetRARVersionsFromSRR(SRRFile srr)
     {
         if (!srr.RARVersion.HasValue)
         {
@@ -1761,7 +1761,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         return $"{ts.Minutes:D2}:{ts.Seconds:D2}";
     }
 
-    private void TryExtractStoredSfv(string srrFilePath, SRRFile srr)
+    private void TryExtractStoredSFV(string srrFilePath, SRRFile srr)
     {
         if (srr.StoredFiles.Count == 0)
         {

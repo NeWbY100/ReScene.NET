@@ -10,7 +10,7 @@ public class SRSEntryInfo
     {
         get; set;
     }
-    public uint ExpectedCrc
+    public uint ExpectedCRC
     {
         get; set;
     }
@@ -20,7 +20,7 @@ public interface ISampleRestorerService
 {
     public event EventHandler<SRSReconstructionProgressEventArgs>? Progress;
 
-    public List<SRSEntryInfo> GetSrsEntries(string srrFilePath);
+    public List<SRSEntryInfo> GetSRSEntries(string srrFilePath);
 
     public Task<SRSReconstructionResult> RestoreSampleAsync(
         string srrFilePath, string srsFileName,
