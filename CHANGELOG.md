@@ -1,0 +1,60 @@
+# Changelog
+
+All notable changes to ReScene.NET are documented here.
+Releases follow [SemVer](https://semver.org/) and this file follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [1.2.2] — 2026-05-07
+
+### Fixed
+
+- SRR Creator now prompts before overwriting an existing output file
+  instead of silently truncating it. Cancelling leaves the previous log
+  and progress untouched.
+- Compare tab populates correctly when opening an SRR file. The
+  v1.2.1 acronym rename created two `SRRFileData` types in different
+  namespaces; the dispatch in `FileCompareViewModel` was matching the
+  wrong sibling, leaving the tree empty.
+- `languages.diz` extraction now decompresses RAR-compressed VobSub
+  `.idx` files via `RARDecompressor` instead of writing garbage from
+  the packed bitstream. Solid archives, split files, and decompression
+  failures surface a precise per-file skip warning.
+- SRR Creator no longer silently re-adds the SFV (and any sibling
+  `.nfo` files) after the user removes them from the Stored Files
+  list. `SRRWriter.CreateFromSFVAsync` now treats `additionalFiles`
+  as the sole source of stored-file blocks; the WPF
+  `ReleaseFileScanner` still pre-populates the UI list when an input
+  is selected.
+
+### Added
+
+- Granular per-file log lines during SRR creation: `Adding stored
+  file …`, `Computing OSO hashes…`, `Added OSO hash …`, `Scanning RAR
+  archive for VobSub .idx files…`, `Adding languages.diz …`.
+- New `RARArchive` / `RAREntry` types in `ReScene.RAR` — a file-level
+  view over a RAR volume set with `Open`, `Files`, `OpenPackedStream`,
+  and `TryReadAllBytes` (transparent decompression). Replaces hand-rolled
+  header-walk code that had been duplicated across consumers.
+- `RARArchiveOpenTests` (16 cases) and `RARVolumeNamingTests`
+  (27 cases) covering the new abstraction and the volume-naming helper.
+- `SRRCreationResult.LanguagesDizIdxFiles` exposes the discovered
+  `.idx` files; the SRR Creator log surfaces these on the success
+  line.
+
+### Changed
+
+- Acronyms in identifiers and source-file names normalized to ALL
+  CAPS to match the dominant convention: `RAR`, `SRR`, `SRS`, `SFV`,
+  `EBML`, `MP3`, `MP4`, `MKV`, `AVI`, `WMV`, `ASF`, `ISO`, `OSO`,
+  `CRC`, `MHD`, `LHD`. Mid-identifier and standalone occurrences are
+  covered (e.g. `CreateSrrCommand` → `CreateSRRCommand`,
+  `BlockCrcMismatch` → `BlockCRCMismatch`). Third-party namespaces and
+  types (`Force.Crc32`, `Crc32Algorithm` from Crc32.NET,
+  `DiscUtils.Iso9660`, BCL `System.IO.Hashing.Crc32`) are
+  intentionally preserved.
+- `LanguagesDizGenerator` and `OSOHashCalculator` refactored onto
+  `RARArchive`, dropping their duplicated header-walk loops.
+- `RarStream`'s previously-private volume-naming helper extracted to
+  `RARVolumeNaming` and shared with `RARArchive`.
+
+[1.2.2]: https://github.com/NeWbY100/ReScene.NET/releases/tag/v1.2.2

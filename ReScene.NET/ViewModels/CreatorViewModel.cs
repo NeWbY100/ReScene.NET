@@ -211,6 +211,17 @@ public partial class CreatorViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanCreateSRR))]
     private async Task CreateSRRAsync()
     {
+        if (File.Exists(OutputPath))
+        {
+            bool proceed = await _fileDialog.ShowConfirmAsync(
+                "Overwrite existing SRR?",
+                $"An SRR file already exists at:\n\n{OutputPath}\n\nDo you want to overwrite it?");
+            if (!proceed)
+            {
+                return;
+            }
+        }
+
         IsCreating = true;
         ShowProgress = true;
         ProgressPercent = 0;
@@ -467,8 +478,18 @@ public partial class CreatorViewModel : ViewModelBase
 
             try
             {
+                // Nested SRRs have no UI to curate stored files, so explicitly pass the
+                // vobsub SFV and any NFOs in its directory to be stored.
+                var nestedStoredFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                string sfvDir = Path.GetDirectoryName(sfvPath) ?? ".";
+                foreach (string nfoFile in Directory.GetFiles(sfvDir, "*.nfo"))
+                {
+                    nestedStoredFiles[Path.GetFileName(nfoFile)] = nfoFile;
+                }
+                nestedStoredFiles[Path.GetFileName(sfvPath)] = sfvPath;
+
                 SRRCreationResult result = await _sRRService.CreateFromSFVAsync(
-                    srrPath, sfvPath, null, options, ct);
+                    srrPath, sfvPath, nestedStoredFiles, options, ct);
 
                 if (result.Success)
                 {
