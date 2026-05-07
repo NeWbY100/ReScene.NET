@@ -26,12 +26,12 @@ public static class VerifyCommand
 
         try
         {
-            SrrVerifyResult result = SRRVerifier.Verify(args[0]);
+            SRRVerifyResult result = SRRVerifier.Verify(args[0]);
 
             Console.WriteLine($"Blocks scanned: {result.BlocksScanned}");
             Console.WriteLine($"File size: {result.FileSize:N0}");
 
-            foreach (SrrVerifyIssue issue in result.Issues)
+            foreach (SRRVerifyIssue issue in result.Issues)
             {
                 Console.WriteLine($"[{issue.Severity}] 0x{issue.Offset:X}: {issue.Message}");
             }

@@ -18,7 +18,7 @@
               Command="{Binding BrowseSrrCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox x:Name="SrrFileTextBox" Text="{Binding SrrFilePath}" />
+      <TextBox x:Name="SRRFileTextBox" Text="{Binding SRRFilePath}" />
     </DockPanel>
 
     <!-- separator -->
@@ -53,7 +53,7 @@
     <!-- ── SRS Entries DataGrid ──────────────────────────────── -->
     <TextBlock DockPanel.Dock="Top" Text="Embedded SRS Files" FontWeight="SemiBold" Margin="0,0,0,2" />
     <DataGrid DockPanel.Dock="Top"
-              ItemsSource="{Binding SrsEntries}"
+              ItemsSource="{Binding SRSEntries}"
               IsReadOnly="False"
               CanUserAddRows="False"
               AutoGenerateColumns="False"
@@ -67,7 +67,7 @@
               MaxHeight="250">
       <DataGrid.Columns>
         <DataGridCheckBoxColumn Header="" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="30" />
-        <DataGridTextColumn Header="SRS File" Binding="{Binding SrsFileName}" Width="200" IsReadOnly="True" />
+        <DataGridTextColumn Header="SRS File" Binding="{Binding SRSFileName}" Width="200" IsReadOnly="True" />
         <DataGridTextColumn Header="Sample Name" Binding="{Binding SampleFileName}" Width="200" IsReadOnly="True" />
         <DataGridTextColumn Header="Media File" Binding="{Binding MediaFilePath}" Width="*" />
         <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="200" IsReadOnly="True" />

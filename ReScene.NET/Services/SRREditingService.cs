@@ -5,7 +5,7 @@ namespace ReScene.NET.Services;
 /// <summary>
 /// Service wrapper around <see cref="SRREditor"/> for editing existing SRR files.
 /// </summary>
-public class SrrEditingService : ISrrEditingService
+public class SRREditingService : ISrrEditingService
 {
     /// <inheritdoc />
     public void AddStoredFiles(string srrFilePath, IReadOnlyList<(string StoredName, string FilePath)> files)

@@ -6,12 +6,12 @@ namespace ReScene.NET.Models;
 /// <summary>
 /// Holds a parsed SRR file along with detailed RAR block data for each embedded volume.
 /// </summary>
-public class SrrFileData
+public class SRRFileData
 {
     /// <summary>
     /// The parsed SRR file.
     /// </summary>
-    public SRRFile SrrFile { get; set; } = null!;
+    public SRRFile SRRFile { get; set; } = null!;
 
     /// <summary>
     /// Detailed RAR blocks per volume, keyed by volume filename.
@@ -25,19 +25,19 @@ public class SrrFileData
     /// The path to the SRR file.
     /// </param>
     /// <returns>
-    /// A populated <see cref="SrrFileData"/> instance.
+    /// A populated <see cref="SRRFileData"/> instance.
     /// </returns>
-    public static SrrFileData Load(string filePath)
+    public static SRRFileData Load(string filePath)
     {
         var srrFile = SRRFile.Load(filePath);
         var volumeBlocks = new Dictionary<string, List<RARDetailedBlock>>(StringComparer.OrdinalIgnoreCase);
 
-        if (srrFile.RarFiles.Count > 0)
+        if (srrFile.RARFiles.Count > 0)
         {
             try
             {
                 using FileStream fs = File.OpenRead(filePath);
-                foreach (SrrRarFileBlock rarFile in srrFile.RarFiles)
+                foreach (SRRRarFileBlock rarFile in srrFile.RARFiles)
                 {
                     try
                     {
@@ -59,9 +59,9 @@ public class SrrFileData
             }
         }
 
-        return new SrrFileData
+        return new SRRFileData
         {
-            SrrFile = srrFile,
+            SRRFile = srrFile,
             VolumeDetailedBlocks = volumeBlocks
         };
     }

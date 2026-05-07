@@ -1,4 +1,4 @@
-<Window x:Class="ReScene.NET.Views.IsoProgressWindow"
+<Window x:Class="ReScene.NET.Views.ISOProgressWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ISO Processing"
@@ -26,20 +26,20 @@
 
     <!-- Heading -->
     <TextBlock Grid.Row="0"
-               Text="{Binding IsoProgressHeading}"
+               Text="{Binding ISOProgressHeading}"
                FontWeight="Bold" FontSize="{DynamicResource FontSizeH2}"
                Margin="0,0,0,8" />
 
     <!-- ── Overall progress ──────────────────────────────── -->
     <DockPanel Grid.Row="1" Margin="0,0,0,4">
-      <TextBlock DockPanel.Dock="Right" Text="{Binding IsoOverallPercent, StringFormat='{}{0}%'}"
+      <TextBlock DockPanel.Dock="Right" Text="{Binding ISOOverallPercent, StringFormat='{}{0}%'}"
                  Margin="8,0,0,0" VerticalAlignment="Center" MinWidth="35" TextAlignment="Right" />
-      <TextBlock Text="{Binding IsoFileCountText}"
+      <TextBlock Text="{Binding ISOFileCountText}"
                  FontWeight="SemiBold"
                  VerticalAlignment="Center" />
     </DockPanel>
 
-    <ProgressBar Grid.Row="2" Value="{Binding IsoOverallPercent}"
+    <ProgressBar Grid.Row="2" Value="{Binding ISOOverallPercent}"
                  Maximum="100" Height="20" Margin="0,0,0,4" />
 
     <!-- Overall stats -->
@@ -54,27 +54,27 @@
       <TextBlock Grid.Column="0" Text="Processed:"
                  Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,0"
                  FontSize="{DynamicResource FontSizeCaption}" />
-      <TextBlock Grid.Column="1" Text="{Binding IsoProcessedText}"
+      <TextBlock Grid.Column="1" Text="{Binding ISOProcessedText}"
                  FontSize="{DynamicResource FontSizeCaption}" />
 
       <TextBlock Grid.Column="2" Text="Remaining:"
                  Foreground="{DynamicResource ForegroundSecondary}" Margin="16,0,8,0"
                  FontSize="{DynamicResource FontSizeCaption}" />
-      <TextBlock Grid.Column="3" Text="{Binding IsoRemainingText}"
+      <TextBlock Grid.Column="3" Text="{Binding ISORemainingText}"
                  FontSize="{DynamicResource FontSizeCaption}" />
     </Grid>
 
     <!-- ── Current file progress ─────────────────────────── -->
     <DockPanel Grid.Row="4" Margin="0,0,0,4">
-      <TextBlock DockPanel.Dock="Right" Text="{Binding IsoCurrentPercent, StringFormat='{}{0}%'}"
+      <TextBlock DockPanel.Dock="Right" Text="{Binding ISOCurrentPercent, StringFormat='{}{0}%'}"
                  Margin="8,0,0,0" VerticalAlignment="Center" MinWidth="35" TextAlignment="Right" />
-      <TextBlock Text="{Binding IsoCurrentFileText}"
+      <TextBlock Text="{Binding ISOCurrentFileText}"
                  TextTrimming="CharacterEllipsis"
                  Foreground="{DynamicResource ForegroundSecondary}"
                  VerticalAlignment="Center" />
     </DockPanel>
 
-    <ProgressBar Grid.Row="5" Value="{Binding IsoCurrentPercent}"
+    <ProgressBar Grid.Row="5" Value="{Binding ISOCurrentPercent}"
                  Maximum="100" Height="20" Margin="0,0,0,4" />
 
     <!-- Current file stats -->
@@ -89,13 +89,13 @@
       <TextBlock Grid.Column="0" Text="File size:"
                  Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,0"
                  FontSize="{DynamicResource FontSizeCaption}" />
-      <TextBlock Grid.Column="1" Text="{Binding IsoCurrentSizeText}"
+      <TextBlock Grid.Column="1" Text="{Binding ISOCurrentSizeText}"
                  FontSize="{DynamicResource FontSizeCaption}" />
 
       <TextBlock Grid.Column="2" Text="Speed:"
                  Foreground="{DynamicResource ForegroundSecondary}" Margin="16,0,8,0"
                  FontSize="{DynamicResource FontSizeCaption}" />
-      <TextBlock Grid.Column="3" Text="{Binding IsoSpeedText}"
+      <TextBlock Grid.Column="3" Text="{Binding ISOSpeedText}"
                  FontSize="{DynamicResource FontSizeCaption}" />
     </Grid>
 
@@ -109,7 +109,7 @@
       <TextBlock Grid.Column="0" Text="ETA:"
                  Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,8,0"
                  FontSize="{DynamicResource FontSizeCaption}" />
-      <TextBlock Grid.Column="1" Text="{Binding IsoEtaText}"
+      <TextBlock Grid.Column="1" Text="{Binding ISOEtaText}"
                  FontSize="{DynamicResource FontSizeCaption}" />
     </Grid>
 

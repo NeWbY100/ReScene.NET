@@ -5,21 +5,21 @@ namespace ReScene.NET.Services;
 /// <summary>
 /// Default implementation of <see cref="ISrsCreationService"/> that delegates to <see cref="SRSWriter"/>.
 /// </summary>
-public class SrsCreationService : ISrsCreationService
+public class SRSCreationService : ISrsCreationService
 {
     private readonly SRSWriter _writer = new();
 
     /// <inheritdoc />
-    public event EventHandler<SrsCreationProgressEventArgs>? Progress
+    public event EventHandler<SRSCreationProgressEventArgs>? Progress
     {
         add => _writer.Progress += value;
         remove => _writer.Progress -= value;
     }
 
     /// <inheritdoc />
-    public Task<SrsCreationResult> CreateAsync(
+    public Task<SRSCreationResult> CreateAsync(
         string outputPath,
         string sampleFilePath,
-        SrsCreationOptions options,
+        SRSCreationOptions options,
         CancellationToken ct) => _writer.CreateAsync(outputPath, sampleFilePath, options, ct);
 }

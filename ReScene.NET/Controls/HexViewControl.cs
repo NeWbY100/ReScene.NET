@@ -547,7 +547,7 @@ public class HexViewControl : UserControl
                 for (int i = 0; i < read; i++)
                 {
                     byte b = buf[i];
-                    sb.Append(b >= 0x20 && b <= 0x7E ? (char)b : '.');
+                    sb.Append(b is >= 0x20 and <= 0x7E ? (char)b : '.');
                 }
 
                 text = sb.ToString();
@@ -749,7 +749,7 @@ public class HexViewControl : UserControl
                     }
 
                     hexBuilder.Append(b.ToString("X2"));
-                    asciiBuilder.Append(b >= 0x20 && b <= 0x7E ? (char)b : '.');
+                    asciiBuilder.Append(b is >= 0x20 and <= 0x7E ? (char)b : '.');
                 }
 
                 var hexText = new FormattedText(hexBuilder.ToString(),

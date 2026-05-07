@@ -70,31 +70,31 @@ public sealed class PropertyExportService : IPropertyExportService
 
     private static string? BlockTypeOf(object? tag) => tag switch
     {
-        SrrHeaderBlock => "SRR Header",
-        SrrStoredFileBlock => "SRR Stored File",
-        SrrOsoHashBlock => "SRR OSO Hash",
-        SrrRarPaddingBlock => "SRR RAR Padding",
-        SrrRarFileBlock => "SRR RAR File",
+        SRRHeaderBlock => "SRR Header",
+        SRRStoredFileBlock => "SRR Stored File",
+        SRROsoHashBlock => "SRR OSO Hash",
+        SRRRarPaddingBlock => "SRR RAR Padding",
+        SRRRarFileBlock => "SRR RAR File",
         SRRFile => "SRR Archive",
         RARDetailedBlock b => b.BlockType,
-        SrsFileDataBlock => "SRS File Data",
-        SrsTrackDataBlock => "SRS Track Data",
-        SrsContainerChunk => "SRS Container Chunk",
+        SRSFileDataBlock => "SRS File Data",
+        SRSTrackDataBlock => "SRS Track Data",
+        SRSContainerChunk => "SRS Container Chunk",
         SRSFile => "SRS File",
         _ => null
     };
 
     private static (long? Offset, long? Length) RangeOf(object? tag) => tag switch
     {
-        SrrHeaderBlock b => (b.BlockPosition, b.HeaderSize),
-        SrrStoredFileBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
-        SrrOsoHashBlock b => (b.BlockPosition, b.HeaderSize),
-        SrrRarPaddingBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
-        SrrRarFileBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
+        SRRHeaderBlock b => (b.BlockPosition, b.HeaderSize),
+        SRRStoredFileBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
+        SRROsoHashBlock b => (b.BlockPosition, b.HeaderSize),
+        SRRRarPaddingBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
+        SRRRarFileBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
         RARDetailedBlock b => (b.StartOffset, b.TotalSize),
-        SrsFileDataBlock b => (b.BlockPosition, b.BlockSize),
-        SrsTrackDataBlock b => (b.BlockPosition, b.BlockSize),
-        SrsContainerChunk b => (b.BlockPosition, b.BlockSize),
+        SRSFileDataBlock b => (b.BlockPosition, b.BlockSize),
+        SRSTrackDataBlock b => (b.BlockPosition, b.BlockSize),
+        SRSContainerChunk b => (b.BlockPosition, b.BlockSize),
         _ => (null, null)
     };
 }

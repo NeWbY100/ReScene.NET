@@ -62,7 +62,7 @@ public partial class BruteForceProgressWindow : Window
                 return;
             }
 
-            var verifyWindow = new CrcValidationProgressWindow
+            var verifyWindow = new CRCValidationProgressWindow
             {
                 Owner = this,
                 DataContext = DataContext,

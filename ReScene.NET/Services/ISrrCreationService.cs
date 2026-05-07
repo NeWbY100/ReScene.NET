@@ -10,7 +10,7 @@ public interface ISrrCreationService
     /// <summary>
     /// Raised to report progress during SRR creation.
     /// </summary>
-    public event EventHandler<SrrCreationProgressEventArgs>? Progress;
+    public event EventHandler<SRRCreationProgressEventArgs>? Progress;
 
     /// <summary>
     /// Creates an SRR file from a list of RAR volume paths.
@@ -33,11 +33,11 @@ public interface ISrrCreationService
     /// <returns>
     /// The creation result including success status and statistics.
     /// </returns>
-    public Task<SrrCreationResult> CreateFromRarAsync(
+    public Task<SRRCreationResult> CreateFromRarAsync(
         string outputPath,
         IReadOnlyList<string> rarVolumePaths,
         IReadOnlyDictionary<string, string>? storedFiles,
-        SrrCreationOptions options,
+        SRRCreationOptions options,
         CancellationToken ct);
 
     /// <summary>
@@ -61,10 +61,10 @@ public interface ISrrCreationService
     /// <returns>
     /// The creation result including success status and statistics.
     /// </returns>
-    public Task<SrrCreationResult> CreateFromSfvAsync(
+    public Task<SRRCreationResult> CreateFromSfvAsync(
         string outputPath,
         string sfvFilePath,
         IReadOnlyDictionary<string, string>? additionalFiles,
-        SrrCreationOptions options,
+        SRRCreationOptions options,
         CancellationToken ct);
 }

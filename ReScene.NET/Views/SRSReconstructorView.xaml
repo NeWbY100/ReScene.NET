@@ -1,7 +1,7 @@
 <UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
-             x:Class="ReScene.NET.Views.SrsReconstructorView">
+             x:Class="ReScene.NET.Views.SRSReconstructorView">
 
   <DockPanel Margin="{DynamicResource PageMargin}">
 
@@ -18,7 +18,7 @@
               Command="{Binding BrowseSrsCommand}"
               Style="{StaticResource GhostButton}"
               Margin="4,0,0,0" MinWidth="75" />
-      <TextBox x:Name="SrsFileTextBox" Text="{Binding SrsFilePath}" />
+      <TextBox x:Name="SRSFileTextBox" Text="{Binding SRSFilePath}" />
     </DockPanel>
 
     <!-- separator -->

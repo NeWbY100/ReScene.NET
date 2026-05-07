@@ -9,7 +9,7 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class SrsReconstructorViewModel : ViewModelBase
+public partial class SRSReconstructorViewModel : ViewModelBase
 {
     private readonly ISrsReconstructionService _service;
     private readonly IFileDialogService _fileDialog;
@@ -17,7 +17,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
-    public SrsReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog, ITempDirectoryService tempDir)
+    public SRSReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog, ITempDirectoryService tempDir)
     {
         _service = service;
         _fileDialog = fileDialog;
@@ -30,7 +30,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     // SRS file
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
-    private string _srsFilePath = string.Empty;
+    private string _sRSFilePath = string.Empty;
 
     // Media file
     [ObservableProperty]
@@ -42,7 +42,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private bool _isIsoSource;
 
     [ObservableProperty]
-    private string _isoFilePath = string.Empty;
+    private string _iSOFilePath = string.Empty;
 
     // Output
     [ObservableProperty]
@@ -65,39 +65,39 @@ public partial class SrsReconstructorViewModel : ViewModelBase
 
     // ISO progress (for modal window)
     [ObservableProperty]
-    private string _isoProgressHeading = string.Empty;
+    private string _iSOProgressHeading = string.Empty;
 
     [ObservableProperty]
-    private int _isoOverallPercent;
+    private int _iSOOverallPercent;
 
     [ObservableProperty]
-    private string _isoFileCountText = string.Empty;
+    private string _iSOFileCountText = string.Empty;
 
     [ObservableProperty]
-    private int _isoCurrentPercent;
+    private int _iSOCurrentPercent;
 
     [ObservableProperty]
-    private string _isoCurrentFileText = string.Empty;
+    private string _iSOCurrentFileText = string.Empty;
 
     [ObservableProperty]
-    private string _isoProcessedText = string.Empty;
+    private string _iSOProcessedText = string.Empty;
 
     [ObservableProperty]
-    private string _isoRemainingText = string.Empty;
+    private string _iSORemainingText = string.Empty;
 
     [ObservableProperty]
-    private string _isoCurrentSizeText = string.Empty;
+    private string _iSOCurrentSizeText = string.Empty;
 
     [ObservableProperty]
-    private string _isoSpeedText = string.Empty;
+    private string _iSOSpeedText = string.Empty;
 
     [ObservableProperty]
-    private string _isoEtaText = string.Empty;
+    private string _iSOEtaText = string.Empty;
 
     [ObservableProperty]
-    private bool _isoProcessing;
+    private bool _iSOProcessing;
 
-    private Stopwatch? _isoStopwatch;
+    private Stopwatch? _iSOStopwatch;
     private bool _scanModalActive;
 
     // Result
@@ -117,11 +117,11 @@ public partial class SrsReconstructorViewModel : ViewModelBase
     private async Task BrowseSrsAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRS File",
-            FileDialogFilters.SrsFiles);
+            FileDialogFilters.SRSFiles);
 
         if (path is not null)
         {
-            SrsFilePath = path;
+            SRSFilePath = path;
             AutoSetOutputPath(path);
         }
     }
@@ -137,16 +137,16 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             return;
         }
 
-        if (IsoMediaExtractor.IsIsoFile(path))
+        if (ISOMediaExtractor.IsIsoFile(path))
         {
             IsIsoSource = true;
-            IsoFilePath = path;
+            ISOFilePath = path;
             MediaFilePath = path;
         }
         else
         {
             IsIsoSource = false;
-            IsoFilePath = string.Empty;
+            ISOFilePath = string.Empty;
             MediaFilePath = path;
         }
     }
@@ -167,7 +167,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
 
     private bool CanRebuild()
     {
-        if (IsRebuilding || string.IsNullOrWhiteSpace(SrsFilePath) || string.IsNullOrWhiteSpace(OutputPath))
+        if (IsRebuilding || string.IsNullOrWhiteSpace(SRSFilePath) || string.IsNullOrWhiteSpace(OutputPath))
         {
             return false;
         }
@@ -196,54 +196,54 @@ public partial class SrsReconstructorViewModel : ViewModelBase
         try
         {
             Log("Starting SRS reconstruction...");
-            Log($"SRS file:   {SrsFilePath}");
+            Log($"SRS file:   {SRSFilePath}");
 
             string mediaPath;
 
             // If ISO source, auto-detect matching VOB set or extract selected file
             if (IsIsoSource)
             {
-                Log($"ISO image:  {IsoFilePath}");
+                Log($"ISO image:  {ISOFilePath}");
 
                 string tempDir = _tempDir.CreateTempDirectory();
                 string tempFile = Path.Combine(tempDir, "media.vob");
                 _extractedTempFile = tempFile;
 
                 // Show ISO progress modal
-                IsoProgressHeading = "Scanning ISO";
-                IsoOverallPercent = 0;
-                IsoCurrentPercent = 0;
-                IsoFileCountText = "Initializing...";
-                IsoCurrentFileText = "Looking for matching VOB title set...";
-                IsoProcessedText = string.Empty;
-                IsoRemainingText = string.Empty;
-                IsoSpeedText = string.Empty;
-                IsoEtaText = string.Empty;
-                _isoStopwatch = Stopwatch.StartNew();
-                IsoProcessing = true;
+                ISOProgressHeading = "Scanning ISO";
+                ISOOverallPercent = 0;
+                ISOCurrentPercent = 0;
+                ISOFileCountText = "Initializing...";
+                ISOCurrentFileText = "Looking for matching VOB title set...";
+                ISOProcessedText = string.Empty;
+                ISORemainingText = string.Empty;
+                ISOSpeedText = string.Empty;
+                ISOEtaText = string.Empty;
+                _iSOStopwatch = Stopwatch.StartNew();
+                ISOProcessing = true;
 
                 Log("Scanning ISO for matching VOB title set using SRS track signatures...");
-                bool found = await IsoMediaExtractor.ExtractMatchingVobSetAsync(
-                    IsoFilePath, SrsFilePath, tempFile,
+                bool found = await ISOMediaExtractor.ExtractMatchingVobSetAsync(
+                    ISOFilePath, SRSFilePath, tempFile,
                     p => Application.Current.Dispatcher.BeginInvoke(() =>
                     {
-                        IsoProgressHeading = p.Phase == "Extracting" ? "Extracting from ISO" : "Scanning ISO";
-                        IsoOverallPercent = p.OverallPercent;
-                        IsoCurrentPercent = p.CurrentPercent;
-                        IsoFileCountText = $"File {p.FileIndex} of {p.FileCount}";
-                        IsoCurrentFileText = p.CurrentFile;
+                        ISOProgressHeading = p.Phase == "Extracting" ? "Extracting from ISO" : "Scanning ISO";
+                        ISOOverallPercent = p.OverallPercent;
+                        ISOCurrentPercent = p.CurrentPercent;
+                        ISOFileCountText = $"File {p.FileIndex} of {p.FileCount}";
+                        ISOCurrentFileText = p.CurrentFile;
                         if (p.CurrentBytesTotal > 0)
                         {
-                            IsoCurrentSizeText = $"{FormatUtilities.FormatSize(p.CurrentBytesProcessed)} / {FormatUtilities.FormatSize(p.CurrentBytesTotal)}";
+                            ISOCurrentSizeText = $"{FormatUtilities.FormatSize(p.CurrentBytesProcessed)} / {FormatUtilities.FormatSize(p.CurrentBytesTotal)}";
                         }
                         else
                         {
-                            IsoCurrentSizeText = string.Empty;
+                            ISOCurrentSizeText = string.Empty;
                         }
                         UpdateIsoStats(p.BytesProcessed, p.BytesTotal);
                     }), _cts.Token);
 
-                IsoProcessing = false;
+                ISOProcessing = false;
 
                 if (found)
                 {
@@ -252,7 +252,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
                 }
                 else
                 {
-                    IsoProcessing = false;
+                    ISOProcessing = false;
                     throw new InvalidOperationException("No matching VOB set found in ISO. The sample track signature was not found in any VOB title set.");
                 }
 
@@ -267,25 +267,25 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             Log($"Output:     {OutputPath}");
 
             // Show scanning modal during signature search
-            IsoProgressHeading = "Scanning Media File";
-            IsoCurrentFileText = Path.GetFileName(mediaPath);
-            IsoOverallPercent = 0;
-            IsoCurrentPercent = 0;
-            IsoFileCountText = "Searching for track signatures...";
-            IsoCurrentSizeText = string.Empty;
-            IsoProcessedText = string.Empty;
-            IsoRemainingText = string.Empty;
-            IsoSpeedText = string.Empty;
-            IsoEtaText = string.Empty;
-            _isoStopwatch = Stopwatch.StartNew();
+            ISOProgressHeading = "Scanning Media File";
+            ISOCurrentFileText = Path.GetFileName(mediaPath);
+            ISOOverallPercent = 0;
+            ISOCurrentPercent = 0;
+            ISOFileCountText = "Searching for track signatures...";
+            ISOCurrentSizeText = string.Empty;
+            ISOProcessedText = string.Empty;
+            ISORemainingText = string.Empty;
+            ISOSpeedText = string.Empty;
+            ISOEtaText = string.Empty;
+            _iSOStopwatch = Stopwatch.StartNew();
             _scanModalActive = true;
-            IsoProcessing = true;
+            ISOProcessing = true;
 
             // Yield to let the dispatcher open the modal before heavy work starts
             await Task.Yield();
 
-            SrsReconstructionResult result = await _service.RebuildAsync(
-                SrsFilePath, mediaPath, OutputPath, _cts.Token);
+            SRSReconstructionResult result = await _service.RebuildAsync(
+                SRSFilePath, mediaPath, OutputPath, _cts.Token);
 
             sw.Stop();
 
@@ -328,7 +328,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             if (_scanModalActive)
             {
                 _scanModalActive = false;
-                IsoProcessing = false;
+                ISOProcessing = false;
             }
 
             IsRebuilding = false;
@@ -374,30 +374,30 @@ public partial class SrsReconstructorViewModel : ViewModelBase
 
     private void UpdateIsoStats(long processed, long total)
     {
-        if (total <= 0 || _isoStopwatch is null)
+        if (total <= 0 || _iSOStopwatch is null)
         {
             return;
         }
 
-        double elapsed = _isoStopwatch.Elapsed.TotalSeconds;
-        IsoProcessedText = $"{FormatUtilities.FormatSize(processed)} / {FormatUtilities.FormatSize(total)}";
+        double elapsed = _iSOStopwatch.Elapsed.TotalSeconds;
+        ISOProcessedText = $"{FormatUtilities.FormatSize(processed)} / {FormatUtilities.FormatSize(total)}";
 
         long remaining = total - processed;
-        IsoRemainingText = FormatUtilities.FormatSize(remaining);
+        ISORemainingText = FormatUtilities.FormatSize(remaining);
 
         if (elapsed > 0.5 && processed > 0)
         {
             double bytesPerSec = processed / elapsed;
-            IsoSpeedText = $"{FormatUtilities.FormatSize((long)bytesPerSec)}/s";
+            ISOSpeedText = $"{FormatUtilities.FormatSize((long)bytesPerSec)}/s";
 
             double secondsRemaining = remaining / bytesPerSec;
             if (secondsRemaining < 60)
             {
-                IsoEtaText = $"{secondsRemaining:F0}s";
+                ISOEtaText = $"{secondsRemaining:F0}s";
             }
             else
             {
-                IsoEtaText = $"{(int)(secondsRemaining / 60)}m {(int)(secondsRemaining % 60)}s";
+                ISOEtaText = $"{(int)(secondsRemaining / 60)}m {(int)(secondsRemaining % 60)}s";
             }
         }
     }
@@ -418,7 +418,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
 
     #endregion
 
-    private void OnScanProgress(object? _, SrsScanProgressEventArgs e)
+    private void OnScanProgress(object? _, SRSScanProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -427,14 +427,14 @@ public partial class SrsReconstructorViewModel : ViewModelBase
                 return;
             }
 
-            IsoOverallPercent = e.Percent;
-            IsoCurrentPercent = e.Percent;
-            IsoCurrentFileText = e.Phase;
+            ISOOverallPercent = e.Percent;
+            ISOCurrentPercent = e.Percent;
+            ISOCurrentFileText = e.Phase;
             UpdateIsoStats(e.BytesScanned, e.BytesTotal);
         });
     }
 
-    private void OnProgress(object? _, SrsReconstructionProgressEventArgs e)
+    private void OnProgress(object? _, SRSReconstructionProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -442,7 +442,7 @@ public partial class SrsReconstructorViewModel : ViewModelBase
             if (_scanModalActive && e.Phase is "Rebuilding" or "Verifying CRC" or "Complete")
             {
                 _scanModalActive = false;
-                IsoProcessing = false;
+                ISOProcessing = false;
             }
 
             int percent = (int)e.ProgressPercent;

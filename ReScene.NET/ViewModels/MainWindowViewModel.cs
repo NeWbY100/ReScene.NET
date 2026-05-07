@@ -28,7 +28,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         get;
     }
-    public SrsCreatorViewModel SrsCreator
+    public SRSCreatorViewModel SRSCreator
     {
         get;
     }
@@ -36,7 +36,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         get;
     }
-    public SrsReconstructorViewModel SrsReconstructor
+    public SRSReconstructorViewModel SRSReconstructor
     {
         get;
     }
@@ -89,7 +89,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SrrEditingService(), new SrrVerifyService(), new PropertyExportService(), new AppSettingsService())
+        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService())
     {
     }
 
@@ -101,9 +101,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
         Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService);
         Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService);
-        SrsCreator = new SrsCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService);
+        SRSCreator = new SRSCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
-        SrsReconstructor = new SrsReconstructorViewModel(srsReconService, fileDialog, tempDir);
+        SRSReconstructor = new SRSReconstructorViewModel(srsReconService, fileDialog, tempDir);
         SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
         FileCompare = new FileCompareViewModel(fileCompareService, fileDialog);
         Home = new HomeViewModel(
@@ -133,9 +133,9 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         };
 
-        SrsCreator.PropertyChanged += (_, e) =>
+        SRSCreator.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(SrsCreatorViewModel.IsCreating) or nameof(SrsCreatorViewModel.ProgressPercent))
+            if (e.PropertyName is nameof(SRSCreatorViewModel.IsCreating) or nameof(SRSCreatorViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
                 UpdateTaskbarProgress();
@@ -151,9 +151,9 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         };
 
-        SrsReconstructor.PropertyChanged += (_, e) =>
+        SRSReconstructor.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(SrsReconstructorViewModel.IsRebuilding) or nameof(SrsReconstructorViewModel.ProgressPercent))
+            if (e.PropertyName is nameof(SRSReconstructorViewModel.IsRebuilding) or nameof(SRSReconstructorViewModel.ProgressPercent))
             {
                 UpdateIsBusy();
                 UpdateTaskbarProgress();
@@ -206,9 +206,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         IsBusy = Inspector.IsExporting
             || Creator.IsCreating
-            || SrsCreator.IsCreating
+            || SRSCreator.IsCreating
             || Reconstructor.IsRunning
-            || SrsReconstructor.IsRebuilding
+            || SRSReconstructor.IsRebuilding
             || SampleRestorer.IsRestoring;
     }
 
@@ -219,20 +219,20 @@ public partial class MainWindowViewModel : ViewModelBase
             TaskbarProgressState = TaskbarItemProgressState.Normal;
             TaskbarProgressValue = Creator.ProgressPercent / 100.0;
         }
-        else if (SrsCreator.IsCreating)
+        else if (SRSCreator.IsCreating)
         {
             TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = SrsCreator.ProgressPercent / 100.0;
+            TaskbarProgressValue = SRSCreator.ProgressPercent / 100.0;
         }
         else if (Reconstructor.IsRunning)
         {
             TaskbarProgressState = TaskbarItemProgressState.Normal;
             TaskbarProgressValue = Reconstructor.ProgressPercent / 100.0;
         }
-        else if (SrsReconstructor.IsRebuilding)
+        else if (SRSReconstructor.IsRebuilding)
         {
             TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = SrsReconstructor.ProgressPercent / 100.0;
+            TaskbarProgressValue = SRSReconstructor.ProgressPercent / 100.0;
         }
         else if (SampleRestorer.IsRestoring)
         {

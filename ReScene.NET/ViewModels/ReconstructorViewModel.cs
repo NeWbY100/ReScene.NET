@@ -65,7 +65,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         _bruteForceService.StatusChanged += OnStatusChanged;
         _bruteForceService.LogMessage += OnLogMessage;
         _bruteForceService.FileCopyProgress += OnFileCopyProgress;
-        _bruteForceService.CrcValidationProgress += OnCrcValidationProgress;
+        _bruteForceService.CRCValidationProgress += OnCrcValidationProgress;
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += (_, _) => OnElapsedTimerTick();
@@ -352,7 +352,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private async Task ImportSrrAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
-            FileDialogFilters.SrrFiles);
+            FileDialogFilters.SRRFiles);
         if (path is null)
         {
             return;
@@ -401,7 +401,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             _importedFileCreationTimes = new Dictionary<string, DateTime>(srr.ArchivedFileCreationTimes, StringComparer.OrdinalIgnoreCase);
             _importedFileAccessTimes = new Dictionary<string, DateTime>(srr.ArchivedFileAccessTimes, StringComparer.OrdinalIgnoreCase);
             _importedArchiveFileCrcs = new Dictionary<string, string>(srr.ArchivedFileCrcs, StringComparer.OrdinalIgnoreCase);
-            _importedOriginalRarFileNames = srr.RarFiles.Select(r => r.FileName).ToList();
+            _importedOriginalRarFileNames = srr.RARFiles.Select(r => r.FileName).ToList();
             _importedArchiveComment = srr.ArchiveComment;
             _importedArchiveCommentBytes = srr.ArchiveCommentBytes;
             _importedCmtCompressedData = srr.CmtCompressedData;
@@ -451,7 +451,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             if (srr.CompressionMethod.HasValue)
             {
                 int method = srr.CompressionMethod.Value;
-                if (method >= 0 && method <= 5)
+                if (method is >= 0 and <= 5)
                 {
                     SwitchM0 = method == 0;
                     SwitchM1 = method == 1;
@@ -561,7 +561,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             SwitchR = true;
 
             // Volume size
-            if (srr.RarFiles.Count > 1 && srr.VolumeSizeBytes.HasValue)
+            if (srr.RARFiles.Count > 1 && srr.VolumeSizeBytes.HasValue)
             {
                 ApplyVolumeSize(srr.VolumeSizeBytes.Value);
             }
@@ -671,7 +671,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         }
 
         string verificationExt = Path.GetExtension(VerificationPath).ToLowerInvariant();
-        if (verificationExt != ".sfv" && verificationExt != ".sha1")
+        if (verificationExt is not ".sfv" and not ".sha1")
         {
             Log(LogTarget.System, "Invalid verification file type.");
             MessageBox.Show("Invalid verification file type. Use .sfv or .sha1 files.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1067,7 +1067,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             DetectedHighUnpSize = _detectedHighUnpSize,
             UseOldVolumeNaming = UseOldVolumeNaming,
             CustomPackerDetected = _importedCustomPackerType,
-            SrrFilePath = _importedSrrFilePath
+            SRRFilePath = _importedSrrFilePath
         };
     }
 
@@ -1451,7 +1451,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         return $"{bytesPerSec / 1024:F1} KB/s";
     }
 
-    private void OnCrcValidationProgress(object? _, CrcValidationProgressEventArgs e)
+    private void OnCrcValidationProgress(object? _, CRCValidationProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -1633,8 +1633,8 @@ public partial class ReconstructorViewModel : ViewModelBase
         else
         {
             bool isRar2 = unpVer <= 29;
-            bool isRar3 = unpVer >= 20 && unpVer <= 36;
-            bool isRar4 = unpVer >= 26 && unpVer <= 36;
+            bool isRar3 = unpVer is >= 20 and <= 36;
+            bool isRar4 = unpVer is >= 26 and <= 36;
 
             if (srr.HasFirstVolumeFlag == true || srr.HasUnicodeNames == true)
             {

@@ -59,7 +59,7 @@ public static class CreateCommand
         try
         {
             var writer = new SRRWriter();
-            SrrCreationResult result = await writer.CreateAsync(outPath, rarPaths, ct: cts.Token);
+            SRRCreationResult result = await writer.CreateAsync(outPath, rarPaths, ct: cts.Token);
 
             if (!result.Success)
             {

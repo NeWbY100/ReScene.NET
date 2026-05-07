@@ -31,7 +31,7 @@ internal static class FileDialogFilters
     /// <summary>
     /// SRR Creator input — SFV or RAR files.
     /// </summary>
-    public static readonly string[] SfvAndRar =
+    public static readonly string[] SFVAndRar =
     [
         "SFV Files|*.sfv",
         "RAR Files|*.rar",
@@ -50,7 +50,7 @@ internal static class FileDialogFilters
     /// <summary>
     /// SRR files only.
     /// </summary>
-    public static readonly string[] SrrFiles =
+    public static readonly string[] SRRFiles =
     [
         "SRR Files|*.srr",
         "All Files|*.*"
@@ -59,7 +59,7 @@ internal static class FileDialogFilters
     /// <summary>
     /// SRS files only.
     /// </summary>
-    public static readonly string[] SrsFiles =
+    public static readonly string[] SRSFiles =
     [
         "SRS Files|*.srs",
         "All Files|*.*"
@@ -102,12 +102,12 @@ internal static class FileDialogFilters
     /// <summary>
     /// SRR save dialog filter.
     /// </summary>
-    public static readonly string[] SrrSave = ["SRR Files|*.srr"];
+    public static readonly string[] SRRSave = ["SRR Files|*.srr"];
 
     /// <summary>
     /// SRS save dialog filter.
     /// </summary>
-    public static readonly string[] SrsSave = ["SRS Files|*.srs"];
+    public static readonly string[] SRSSave = ["SRS Files|*.srs"];
 
     /// <summary>
     /// All files — for generic save/export dialogs.

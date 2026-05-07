@@ -31,12 +31,12 @@ public enum CompareNodeType
     /// <summary>
     /// Container node for RAR volume entries.
     /// </summary>
-    RarVolumes,
+    RARVolumes,
 
     /// <summary>
     /// Individual RAR volume entry.
     /// </summary>
-    RarVolume,
+    RARVolume,
 
     /// <summary>
     /// Container node for stored file entries.
@@ -61,12 +61,12 @@ public enum CompareNodeType
     /// <summary>
     /// Container node for OSO hash entries.
     /// </summary>
-    OsoHashes,
+    OSOHashes,
 
     /// <summary>
     /// Individual OSO hash entry.
     /// </summary>
-    OsoHash,
+    OSOHash,
 
     /// <summary>
     /// Detailed RAR block header entry.
@@ -76,17 +76,17 @@ public enum CompareNodeType
     /// <summary>
     /// SRS file-level information node.
     /// </summary>
-    SrsFileInfo,
+    SRSFileInfo,
 
     /// <summary>
     /// SRS track data entry.
     /// </summary>
-    SrsTrack,
+    SRSTrack,
 
     /// <summary>
     /// Container node for SRS container chunk entries.
     /// </summary>
-    SrsContainerChunks
+    SRSContainerChunks
 }
 
 /// <summary>
@@ -511,22 +511,22 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             long fileSize = isLeft ? _leftFileSize : _rightFileSize;
             length = Math.Max(0, Math.Min(block.StartOffset + block.TotalSize, fileSize) - offset);
         }
-        else if (nodeData.Data is SrsFileDataBlock fd)
+        else if (nodeData.Data is SRSFileDataBlock fd)
         {
             offset = fd.BlockPosition;
             length = fd.BlockSize;
         }
-        else if (nodeData.Data is SrsTrackDataBlock track)
+        else if (nodeData.Data is SRSTrackDataBlock track)
         {
             offset = track.BlockPosition;
             length = track.BlockSize;
         }
-        else if (nodeData.Data is SrsContainerChunk chunk)
+        else if (nodeData.Data is SRSContainerChunk chunk)
         {
             offset = chunk.BlockPosition;
             length = chunk.BlockSize;
         }
-        else if (nodeData.Data is SrrOsoHashBlock oso)
+        else if (nodeData.Data is SRROsoHashBlock oso)
         {
             offset = oso.BlockPosition;
             length = oso.HeaderSize;
@@ -629,7 +629,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             PopulateDetailedTree(roots, detailedBlocks, isLeft);
         }
-        else if (data is SRRFileData srrData)
+        else if (data is Models.SRRFileData srrData)
         {
             PopulateSRRTree(roots, srrData, isLeft);
         }
@@ -684,9 +684,9 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         roots.Add(rootNode);
     }
 
-    private static void PopulateSRRTree(ObservableCollection<TreeNodeViewModel> roots, SRRFileData srrData, bool isLeft)
+    private static void PopulateSRRTree(ObservableCollection<TreeNodeViewModel> roots, Models.SRRFileData srrData, bool isLeft)
     {
-        SRRFile srr = srrData.SrrFile;
+        SRRFile srr = srrData.SRRFile;
 
         var rootNode = new TreeNodeViewModel
         {
@@ -701,20 +701,20 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             Tag = new CompareNodeData { NodeType = CompareNodeType.ArchiveInfo, Data = srr, IsLeft = isLeft }
         });
 
-        if (srr.RarFiles.Count > 0)
+        if (srr.RARFiles.Count > 0)
         {
             var volumesNode = new TreeNodeViewModel
             {
-                Text = $"RAR Volumes ({srr.RarFiles.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.RarVolumes, Data = srr.RarFiles, IsLeft = isLeft }
+                Text = $"RAR Volumes ({srr.RARFiles.Count})",
+                Tag = new CompareNodeData { NodeType = CompareNodeType.RARVolumes, Data = srr.RARFiles, IsLeft = isLeft }
             };
 
-            foreach (SrrRarFileBlock rar in srr.RarFiles)
+            foreach (SRRRarFileBlock rar in srr.RARFiles)
             {
                 var volNode = new TreeNodeViewModel
                 {
                     Text = rar.FileName,
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.RarVolume, Data = rar, IsLeft = isLeft }
+                    Tag = new CompareNodeData { NodeType = CompareNodeType.RARVolume, Data = rar, IsLeft = isLeft }
                 };
 
                 if (srrData.VolumeDetailedBlocks.TryGetValue(rar.FileName, out List<RARDetailedBlock>? detailedBlocks))
@@ -757,7 +757,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 Tag = new CompareNodeData { NodeType = CompareNodeType.StoredFiles, Data = srr.StoredFiles, IsLeft = isLeft }
             };
 
-            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
+            foreach (SRRStoredFileBlock stored in srr.StoredFiles)
             {
                 storedNode.Children.Add(new TreeNodeViewModel
                 {
@@ -795,22 +795,22 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             rootNode.Children.Add(archivedNode);
         }
 
-        if (srr.OsoHashBlocks.Count > 0)
+        if (srr.OSOHashBlocks.Count > 0)
         {
             var osoNode = new TreeNodeViewModel
             {
-                Text = $"OSO Hashes ({srr.OsoHashBlocks.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.OsoHashes, Data = srr.OsoHashBlocks, IsLeft = isLeft }
+                Text = $"OSO Hashes ({srr.OSOHashBlocks.Count})",
+                Tag = new CompareNodeData { NodeType = CompareNodeType.OSOHashes, Data = srr.OSOHashBlocks, IsLeft = isLeft }
             };
 
-            foreach (SrrOsoHashBlock oso in srr.OsoHashBlocks)
+            foreach (SRROsoHashBlock oso in srr.OSOHashBlocks)
             {
                 osoNode.Children.Add(new TreeNodeViewModel
                 {
                     Text = oso.FileName,
                     Tag = new CompareNodeData
                     {
-                        NodeType = CompareNodeType.OsoHash,
+                        NodeType = CompareNodeType.OSOHash,
                         Data = oso,
                         FileName = oso.FileName,
                         IsLeft = isLeft
@@ -838,7 +838,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             rootNode.Children.Add(new TreeNodeViewModel
             {
                 Text = $"File Info: {fd.FileName}",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.SrsFileInfo, Data = fd, IsLeft = isLeft }
+                Tag = new CompareNodeData { NodeType = CompareNodeType.SRSFileInfo, Data = fd, IsLeft = isLeft }
             });
         }
 
@@ -850,14 +850,14 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 Tag = new CompareNodeData { NodeType = CompareNodeType.Root, IsLeft = isLeft }
             };
 
-            foreach (SrsTrackDataBlock track in srs.Tracks)
+            foreach (SRSTrackDataBlock track in srs.Tracks)
             {
                 tracksNode.Children.Add(new TreeNodeViewModel
                 {
                     Text = $"Track {track.TrackNumber}",
                     Tag = new CompareNodeData
                     {
-                        NodeType = CompareNodeType.SrsTrack,
+                        NodeType = CompareNodeType.SRSTrack,
                         Data = track,
                         FileName = $"Track {track.TrackNumber}",
                         IsLeft = isLeft
@@ -873,7 +873,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             var chunksNode = new TreeNodeViewModel
             {
                 Text = $"Container Structure ({srs.ContainerChunks.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = srs.ContainerChunks, IsLeft = isLeft }
+                Tag = new CompareNodeData { NodeType = CompareNodeType.SRSContainerChunks, Data = srs.ContainerChunks, IsLeft = isLeft }
             };
             BuildChunkHierarchy(chunksNode, srs.ContainerChunks, isLeft);
             rootNode.Children.Add(chunksNode);
@@ -1041,7 +1041,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         if (node.Tag is CompareNodeData data)
         {
-            if (data.NodeType is CompareNodeType.ArchiveInfo or CompareNodeType.SrsFileInfo
+            if (data.NodeType is CompareNodeType.ArchiveInfo or CompareNodeType.SRSFileInfo
                 && _compareResult?.ArchiveDifferences.Count > 0)
             {
                 node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
@@ -1061,7 +1061,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                     }
                 }
             }
-            else if (data.NodeType == CompareNodeType.SrsTrack && data.FileName is not null)
+            else if (data.NodeType == CompareNodeType.SRSTrack && data.FileName is not null)
             {
                 if (removed.Contains(data.FileName))
                 {
@@ -1254,47 +1254,47 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 break;
 
             case CompareNodeType.StoredFile:
-                if (nodeData.Data is SrrStoredFileBlock stored)
+                if (nodeData.Data is SRRStoredFileBlock stored)
                 {
                     ShowStoredFileProperties(properties, stored);
                 }
 
                 break;
 
-            case CompareNodeType.RarVolume:
-                if (nodeData.Data is SrrRarFileBlock rarFile)
+            case CompareNodeType.RARVolume:
+                if (nodeData.Data is SRRRarFileBlock rarFile)
                 {
                     ShowRarVolumeProperties(properties, rarFile);
                 }
 
                 break;
 
-            case CompareNodeType.SrsFileInfo:
-                if (nodeData.Data is SrsFileDataBlock fd)
+            case CompareNodeType.SRSFileInfo:
+                if (nodeData.Data is SRSFileDataBlock fd)
                 {
                     ShowSrsFileInfoProperties(properties, fd);
                 }
 
                 break;
 
-            case CompareNodeType.SrsTrack:
-                if (nodeData.Data is SrsTrackDataBlock track)
+            case CompareNodeType.SRSTrack:
+                if (nodeData.Data is SRSTrackDataBlock track)
                 {
                     ShowSrsTrackProperties(properties, track, nodeData.FileName);
                 }
 
                 break;
 
-            case CompareNodeType.SrsContainerChunks:
-                if (nodeData.Data is SrsContainerChunk chunk)
+            case CompareNodeType.SRSContainerChunks:
+                if (nodeData.Data is SRSContainerChunk chunk)
                 {
                     ShowSrsContainerChunkProperties(properties, chunk);
                 }
 
                 break;
 
-            case CompareNodeType.OsoHash:
-                if (nodeData.Data is SrrOsoHashBlock oso)
+            case CompareNodeType.OSOHash:
+                if (nodeData.Data is SRROsoHashBlock oso)
                 {
                     ShowOsoHashProperties(properties, oso);
                 }
@@ -1434,7 +1434,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         var otherData = isLeft ? _rightData : _leftData;
-        if (otherData is SRRFileData otherSrrData)
+        if (otherData is Models.SRRFileData otherSrrData)
         {
             foreach (List<RARDetailedBlock> volumeBlocks in otherSrrData.VolumeDetailedBlocks.Values)
             {
@@ -1460,7 +1460,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         AddComparedProperty(properties, "Volume Archive", FileComparer.FormatBool(srr.IsVolumeArchive), "Volume Archive");
         AddComparedProperty(properties, "Recovery Record", FileComparer.FormatBool(srr.HasRecoveryRecord), "Recovery Record");
         AddComparedProperty(properties, "Encrypted Headers", FileComparer.FormatBool(srr.HasEncryptedHeaders), "Encrypted Headers");
-        AddComparedProperty(properties, "RAR Volumes", srr.RarFiles.Count.ToString(), "RAR Volumes Count");
+        AddComparedProperty(properties, "RAR Volumes", srr.RARFiles.Count.ToString(), "RAR Volumes Count");
         AddComparedProperty(properties, "Stored Files", srr.StoredFiles.Count.ToString(), "Stored Files Count");
         AddComparedProperty(properties, "Archived Files", srr.ArchivedFiles.Count.ToString(), "Archived Files Count");
         AddComparedProperty(properties, "Header CRC Errors", srr.HeaderCrcMismatches.ToString(), "Header CRC Errors");
@@ -1575,7 +1575,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
     }
 
-    private static void ShowStoredFileProperties(ObservableCollection<PropertyItem> properties, SrrStoredFileBlock stored)
+    private static void ShowStoredFileProperties(ObservableCollection<PropertyItem> properties, SRRStoredFileBlock stored)
     {
         long p = stored.BlockPosition;
         int nameLen = Encoding.UTF8.GetByteCount(stored.FileName);
@@ -1599,7 +1599,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private static void ShowRarVolumeProperties(ObservableCollection<PropertyItem> properties, SrrRarFileBlock rarFile)
+    private static void ShowRarVolumeProperties(ObservableCollection<PropertyItem> properties, SRRRarFileBlock rarFile)
     {
         long p = rarFile.BlockPosition;
         int nameLen = Encoding.UTF8.GetByteCount(rarFile.FileName);
@@ -1623,7 +1623,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private void ShowSrsFileInfoProperties(ObservableCollection<PropertyItem> properties, SrsFileDataBlock fd)
+    private void ShowSrsFileInfoProperties(ObservableCollection<PropertyItem> properties, SRSFileDataBlock fd)
     {
         AddComparedProperty(properties, "App Name", fd.AppName, "App Name");
 
@@ -1635,7 +1635,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
 
         AddComparedProperty(properties, "Sample Size", $"{fd.SampleSize:N0} bytes", "Sample Size");
-        AddComparedProperty(properties, "CRC32", fd.Crc32.ToString("X8"), "CRC32");
+        AddComparedProperty(properties, "CRC32", fd.CRC32.ToString("X8"), "CRC32");
         AddComparedProperty(properties, "Flags", $"0x{fd.Flags:X4}", "Flags");
 
         properties.Add(new PropertyItem
@@ -1651,7 +1651,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private void ShowSrsTrackProperties(ObservableCollection<PropertyItem> properties, SrsTrackDataBlock track, string? trackName)
+    private void ShowSrsTrackProperties(ObservableCollection<PropertyItem> properties, SRSTrackDataBlock track, string? trackName)
     {
         List<PropertyDifference>? trackDiffs = trackName is not null ? GetTrackDiffs(trackName) : null;
 
@@ -1724,7 +1724,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private static void ShowSrsContainerChunkProperties(ObservableCollection<PropertyItem> properties, SrsContainerChunk chunk)
+    private static void ShowSrsContainerChunkProperties(ObservableCollection<PropertyItem> properties, SRSContainerChunk chunk)
     {
         properties.Add(new PropertyItem { Name = "Label", Value = chunk.Label });
         properties.Add(new PropertyItem { Name = "Chunk ID", Value = chunk.ChunkId });
@@ -1734,7 +1734,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes ({FormatUtilities.FormatSize(chunk.BlockSize)})" });
     }
 
-    private static void ShowOsoHashProperties(ObservableCollection<PropertyItem> properties, SrrOsoHashBlock oso)
+    private static void ShowOsoHashProperties(ObservableCollection<PropertyItem> properties, SRROsoHashBlock oso)
     {
         long p = oso.BlockPosition + 7; // skip base header (CRC + type + flags + headerSize)
 
@@ -1753,7 +1753,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem
         {
             Name = "OSO Hash",
-            Value = Convert.ToHexString(oso.OsoHash),
+            Value = Convert.ToHexString(oso.OSOHash),
             ByteRange = new ByteRange { Offset = p + 8, Length = 8 }
         });
     }
@@ -1818,14 +1818,14 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     #endregion
 
-    private static void BuildChunkHierarchy(TreeNodeViewModel root, List<SrsContainerChunk> chunks, bool isLeft)
+    private static void BuildChunkHierarchy(TreeNodeViewModel root, List<SRSContainerChunk> chunks, bool isLeft)
     {
         var nodeStack = new Stack<TreeNodeViewModel>();
         var endStack = new Stack<long>();
         nodeStack.Push(root);
         endStack.Push(long.MaxValue);
 
-        foreach (SrsContainerChunk chunk in chunks)
+        foreach (SRSContainerChunk chunk in chunks)
         {
             long chunkEnd = chunk.BlockPosition + chunk.BlockSize;
 
@@ -1838,7 +1838,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             var node = new TreeNodeViewModel
             {
                 Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatUtilities.FormatSize(chunk.BlockSize)})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.SrsContainerChunks, Data = chunk, IsLeft = isLeft }
+                Tag = new CompareNodeData { NodeType = CompareNodeType.SRSContainerChunks, Data = chunk, IsLeft = isLeft }
             };
             nodeStack.Peek().Children.Add(node);
 

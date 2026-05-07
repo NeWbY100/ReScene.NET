@@ -5,9 +5,9 @@ using ReScene.NET.ViewModels;
 
 namespace ReScene.NET.Views;
 
-public partial class CrcValidationProgressWindow : Window
+public partial class CRCValidationProgressWindow : Window
 {
-    public CrcValidationProgressWindow()
+    public CRCValidationProgressWindow()
     {
         InitializeComponent();
         SourceInitialized += (_, _) => DarkTitleBar.Enable(this);

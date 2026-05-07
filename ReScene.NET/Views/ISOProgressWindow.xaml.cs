@@ -3,9 +3,9 @@ using ReScene.NET.Helpers;
 
 namespace ReScene.NET.Views;
 
-public partial class IsoProgressWindow : Window
+public partial class ISOProgressWindow : Window
 {
-    public IsoProgressWindow()
+    public ISOProgressWindow()
     {
         InitializeComponent();
         SourceInitialized += (_, _) => DarkTitleBar.Enable(this);

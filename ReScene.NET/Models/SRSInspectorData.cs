@@ -5,9 +5,9 @@ namespace ReScene.NET.Models;
 /// <summary>
 /// Holds a parsed SRS file for the Inspector tab.
 /// </summary>
-public class SrsInspectorData
+public class SRSInspectorData
 {
-    public SRSFile SrsFile { get; set; } = null!;
+    public SRSFile SRSFile { get; set; } = null!;
 
     /// <summary>
     /// Loads and parses an SRS file from disk.
@@ -16,11 +16,11 @@ public class SrsInspectorData
     /// Path to the SRS file.
     /// </param>
     /// <returns>
-    /// A new <see cref="SrsInspectorData"/> wrapping the parsed file.
+    /// A new <see cref="SRSInspectorData"/> wrapping the parsed file.
     /// </returns>
-    public static SrsInspectorData Load(string filePath)
+    public static SRSInspectorData Load(string filePath)
         => new()
         {
-            SrsFile = SRSFile.Load(filePath)
+            SRSFile = SRSFile.Load(filePath)
         };
 }

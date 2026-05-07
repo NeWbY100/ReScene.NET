@@ -27,7 +27,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
     // SRR file
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    private string _srrFilePath = string.Empty;
+    private string _sRRFilePath = string.Empty;
 
     // Media directory
     [ObservableProperty]
@@ -57,7 +57,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
     private string _overallProgressText = string.Empty;
 
     // Entries
-    public ObservableCollection<SrsFileEntry> SrsEntries { get; } = [];
+    public ObservableCollection<SRSFileEntry> SRSEntries { get; } = [];
 
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];
@@ -66,14 +66,14 @@ public partial class SampleRestorerViewModel : ViewModelBase
     private async Task BrowseSrrAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select SRR File",
-            FileDialogFilters.SrrFiles);
+            FileDialogFilters.SRRFiles);
 
         if (path is null)
         {
             return;
         }
 
-        SrrFilePath = path;
+        SRRFilePath = path;
         LoadSrsEntries();
 
         if (!string.IsNullOrWhiteSpace(MediaDirectoryPath))
@@ -110,10 +110,10 @@ public partial class SampleRestorerViewModel : ViewModelBase
     }
 
     private bool CanRestore() => !IsRestoring
-        && !string.IsNullOrWhiteSpace(SrrFilePath)
+        && !string.IsNullOrWhiteSpace(SRRFilePath)
         && !string.IsNullOrWhiteSpace(MediaDirectoryPath)
         && !string.IsNullOrWhiteSpace(OutputDirectoryPath)
-        && SrsEntries.Any(e => e.IsSelected);
+        && SRSEntries.Any(e => e.IsSelected);
 
     [RelayCommand(CanExecute = nameof(CanRestore))]
     private async Task RestoreAsync()
@@ -129,13 +129,13 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
         try
         {
-            var selected = SrsEntries.Where(e => e.IsSelected).ToList();
+            var selected = SRSEntries.Where(e => e.IsSelected).ToList();
             int total = selected.Count;
             int current = 0;
 
             Log($"Restoring {total} sample(s)...");
 
-            foreach (SrsFileEntry? entry in selected)
+            foreach (SRSFileEntry? entry in selected)
             {
                 if (_cts.Token.IsCancellationRequested)
                 {
@@ -149,17 +149,17 @@ public partial class SampleRestorerViewModel : ViewModelBase
                 if (string.IsNullOrWhiteSpace(entry.MediaFilePath))
                 {
                     entry.Status = "Failed: No media file matched";
-                    Log($"  [{current}/{total}] {entry.SrsFileName} — no media file matched");
+                    Log($"  [{current}/{total}] {entry.SRSFileName} — no media file matched");
                     continue;
                 }
 
                 string outputPath = Path.Combine(OutputDirectoryPath, entry.SampleFileName);
-                Log($"  [{current}/{total}] {entry.SrsFileName} → {entry.SampleFileName}");
+                Log($"  [{current}/{total}] {entry.SRSFileName} → {entry.SampleFileName}");
 
                 try
                 {
-                    SrsReconstructionResult result = await _service.RestoreSampleAsync(
-                        SrrFilePath, entry.SrsFileName,
+                    SRSReconstructionResult result = await _service.RestoreSampleAsync(
+                        SRRFilePath, entry.SRSFileName,
                         entry.MediaFilePath, outputPath, _cts.Token);
 
                     if (result.Success)
@@ -244,27 +244,27 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
     private void LoadSrsEntries()
     {
-        foreach (SrsFileEntry old in SrsEntries)
+        foreach (SRSFileEntry old in SRSEntries)
         {
             old.PropertyChanged -= OnEntryPropertyChanged;
         }
 
-        SrsEntries.Clear();
+        SRSEntries.Clear();
 
         try
         {
-            List<SrsEntryInfo> entries = _service.GetSrsEntries(SrrFilePath);
+            List<SRSEntryInfo> entries = _service.GetSrsEntries(SRRFilePath);
 
-            foreach (SrsEntryInfo info in entries)
+            foreach (SRSEntryInfo info in entries)
             {
-                var entry = new SrsFileEntry
+                var entry = new SRSFileEntry
                 {
-                    SrsFileName = info.SrsFileName,
+                    SRSFileName = info.SRSFileName,
                     SampleFileName = info.SampleFileName,
                     IsSelected = true
                 };
                 entry.PropertyChanged += OnEntryPropertyChanged;
-                SrsEntries.Add(entry);
+                SRSEntries.Add(entry);
             }
 
             Log($"Found {entries.Count} SRS file(s) in SRR");
@@ -292,7 +292,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
 
         int found = 0;
-        foreach (SrsFileEntry entry in SrsEntries)
+        foreach (SRSFileEntry entry in SRSEntries)
         {
             if (byName.TryGetValue(entry.SampleFileName, out string? match))
             {
@@ -307,14 +307,14 @@ public partial class SampleRestorerViewModel : ViewModelBase
             }
         }
 
-        Log($"Matched {found} of {SrsEntries.Count} file(s) in media directory");
+        Log($"Matched {found} of {SRSEntries.Count} file(s) in media directory");
 
         RestoreCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnMediaDirectoryPathChanged(string value)
     {
-        if (!string.IsNullOrWhiteSpace(value) && SrsEntries.Count > 0)
+        if (!string.IsNullOrWhiteSpace(value) && SRSEntries.Count > 0)
         {
             MatchMediaFiles();
         }
@@ -322,7 +322,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
     private void OnEntryPropertyChanged(object? _, PropertyChangedEventArgs e) => RestoreCommand.NotifyCanExecuteChanged();
 
-    private void OnProgress(object? _, SrsReconstructionProgressEventArgs e)
+    private void OnProgress(object? _, SRSReconstructionProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -336,10 +336,10 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
     private void Log(string message) => AppendLogEntry(LogEntries, message);
 
-    public partial class SrsFileEntry : ObservableObject
+    public partial class SRSFileEntry : ObservableObject
     {
         [ObservableProperty]
-        private string _srsFileName = string.Empty;
+        private string _sRSFileName = string.Empty;
 
         [ObservableProperty]
         private string _sampleFileName = string.Empty;

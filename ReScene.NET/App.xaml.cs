@@ -19,8 +19,8 @@ public partial class App : Application
             WindowStateService = windowState,
             Opacity = 0,
             DataContext = new MainWindowViewModel(
-                new SrrCreationService(), new SrsCreationService(), new SrsReconstructionService(),
-                new SampleRestorerService(tempDir), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(appSettings), tempDir, new SrrEditingService(), new SrrVerifyService(), new PropertyExportService(), appSettings)
+                new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(),
+                new SampleRestorerService(tempDir), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(appSettings), tempDir, new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), appSettings)
         };
         MainWindow.Show();
     }

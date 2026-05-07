@@ -94,13 +94,13 @@
         <v:CreatorView DataContext="{Binding Creator}" />
       </TabItem>
       <TabItem Header="SRS Creator">
-        <v:SrsCreatorView DataContext="{Binding SrsCreator}" />
+        <v:SRSCreatorView DataContext="{Binding SRSCreator}" />
       </TabItem>
       <TabItem Header="RAR Reconstructor">
         <v:ReconstructorView DataContext="{Binding Reconstructor}" />
       </TabItem>
       <TabItem Header="SRS Reconstructor">
-        <v:SrsReconstructorView DataContext="{Binding SrsReconstructor}" />
+        <v:SRSReconstructorView DataContext="{Binding SRSReconstructor}" />
       </TabItem>
       <TabItem Header="SRS Restorer">
         <v:SampleRestorerView DataContext="{Binding SampleRestorer}" />

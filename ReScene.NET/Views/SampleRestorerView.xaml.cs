@@ -20,7 +20,7 @@ public partial class SampleRestorerView : UserControl
             return;
         }
 
-        TextBoxDropHelper.SetupFileDrop(SrrFileTextBox, path => vm.SrrFilePath = path);
+        TextBoxDropHelper.SetupFileDrop(SRRFileTextBox, path => vm.SRRFilePath = path);
         TextBoxDropHelper.SetupFolderDrop(MediaDirTextBox, path => vm.MediaDirectoryPath = path);
         TextBoxDropHelper.SetupFolderDrop(OutputDirTextBox, path => vm.OutputDirectoryPath = path);
     }

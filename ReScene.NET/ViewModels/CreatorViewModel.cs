@@ -15,8 +15,8 @@ namespace ReScene.NET.ViewModels;
 /// </summary>
 public partial class CreatorViewModel : ViewModelBase
 {
-    private readonly ISrrCreationService _srrService;
-    private readonly ISrsCreationService _srsService;
+    private readonly ISrrCreationService _sRRService;
+    private readonly ISrsCreationService _sRSService;
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
@@ -24,13 +24,13 @@ public partial class CreatorViewModel : ViewModelBase
 
     public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService)
     {
-        _srrService = srrService;
-        _srsService = srsService;
+        _sRRService = srrService;
+        _sRSService = srsService;
         _fileDialog = fileDialog;
         _tempDir = tempDir;
         _settingsService = settingsService;
 
-        _srrService.Progress += OnProgress;
+        _sRRService.Progress += OnProgress;
 
         AppSettings settings = _settingsService.Load();
 
@@ -120,7 +120,7 @@ public partial class CreatorViewModel : ViewModelBase
     private async Task BrowseInputAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Select Input File",
-            FileDialogFilters.SfvAndRar);
+            FileDialogFilters.SFVAndRar);
 
         if (path is not null)
         {
@@ -144,7 +144,7 @@ public partial class CreatorViewModel : ViewModelBase
     private async Task BrowseOutputAsync()
     {
         string? path = await _fileDialog.SaveFileAsync(
-            "Save SRR File", ".srr", FileDialogFilters.SrrSave);
+            "Save SRR File", ".srr", FileDialogFilters.SRRSave);
         if (path is not null)
         {
             OutputPath = path;
@@ -222,7 +222,7 @@ public partial class CreatorViewModel : ViewModelBase
 
         try
         {
-            var options = new SrrCreationOptions
+            var options = new SRRCreationOptions
             {
                 AppName = string.IsNullOrWhiteSpace(AppName) ? null : AppName,
                 AllowCompressed = AllowCompressed,
@@ -255,7 +255,7 @@ public partial class CreatorViewModel : ViewModelBase
             }
 
             // Phase 4: Create the main SRR
-            SrrCreationResult result;
+            SRRCreationResult result;
 
             var storedFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (StoredFileItem item in StoredFiles)
@@ -265,7 +265,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             if (IsSfvInput)
             {
-                result = await _srrService.CreateFromSfvAsync(
+                result = await _sRRService.CreateFromSfvAsync(
                     OutputPath, InputPath,
                     storedFiles.Count > 0 ? storedFiles : null,
                     options, _cts.Token);
@@ -275,7 +275,7 @@ public partial class CreatorViewModel : ViewModelBase
                 List<string> volumes = DiscoverRarVolumes(InputPath);
                 Log($"Found {volumes.Count} volume(s).");
 
-                result = await _srrService.CreateFromRarAsync(
+                result = await _sRRService.CreateFromRarAsync(
                     OutputPath, volumes,
                     storedFiles.Count > 0 ? storedFiles : null,
                     options, _cts.Token);
@@ -288,7 +288,12 @@ public partial class CreatorViewModel : ViewModelBase
                 Log($"SRR created successfully.");
                 Log($"  Volumes: {result.VolumeCount}");
                 Log($"  Stored files: {result.StoredFileCount}");
-                Log($"  SRR size: {result.SrrFileSize:N0} bytes");
+                Log($"  SRR size: {result.SRRFileSize:N0} bytes");
+
+                if (result.LanguagesDizIdxFiles.Count > 0)
+                {
+                    Log($"  VobSub .idx files found: {result.LanguagesDizIdxFiles.Count} ({string.Join(", ", result.LanguagesDizIdxFiles)})");
+                }
             }
             else
             {
@@ -395,7 +400,7 @@ public partial class CreatorViewModel : ViewModelBase
         }
 
         string tempDir = _tempDir.CreateTempDirectory();
-        var srsOptions = new SrsCreationOptions
+        var srsOptions = new SRSCreationOptions
         {
             AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene.NET" : AppName
         };
@@ -412,7 +417,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             try
             {
-                SrsCreationResult result = await _srsService.CreateAsync(srsPath, samplePath, srsOptions, ct);
+                SRSCreationResult result = await _sRSService.CreateAsync(srsPath, samplePath, srsOptions, ct);
                 if (result.Success)
                 {
                     string storedName = Path.GetRelativePath(releaseDir, samplePath).Replace('\\', '/');
@@ -424,7 +429,7 @@ public partial class CreatorViewModel : ViewModelBase
                         StoredName = storedName
                     });
 
-                    Log($"  SRS created: {srsName} ({result.SrsFileSize:N0} bytes)");
+                    Log($"  SRS created: {srsName} ({result.SRSFileSize:N0} bytes)");
                 }
                 else
                 {
@@ -442,7 +447,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     // ── Vobsub nested SRR ───────────────────────────────────
 
-    private async Task CreateVobsubSrrsAsync(string releaseDir, SrrCreationOptions options, string tempDir, CancellationToken ct)
+    private async Task CreateVobsubSrrsAsync(string releaseDir, SRRCreationOptions options, string tempDir, CancellationToken ct)
     {
         List<string> subtitleSfvs = ReleaseFileScanner.FindSubtitleSfvFiles(releaseDir);
         if (subtitleSfvs.Count == 0)
@@ -462,7 +467,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             try
             {
-                SrrCreationResult result = await _srrService.CreateFromSfvAsync(
+                SRRCreationResult result = await _sRRService.CreateFromSfvAsync(
                     srrPath, sfvPath, null, options, ct);
 
                 if (result.Success)
@@ -476,7 +481,7 @@ public partial class CreatorViewModel : ViewModelBase
                         StoredName = storedName
                     });
 
-                    Log($"  Nested SRR created: {srrName} ({result.SrrFileSize:N0} bytes)");
+                    Log($"  Nested SRR created: {srrName} ({result.SRRFileSize:N0} bytes)");
                 }
                 else
                 {
@@ -534,7 +539,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     // ── Progress & logging ──────────────────────────────────
 
-    private void OnProgress(object? _, SrrCreationProgressEventArgs e)
+    private void OnProgress(object? _, SRRCreationProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -627,7 +632,7 @@ public partial class CreatorViewModel : ViewModelBase
             }
         }
 
-        volumes.Sort(RarVolumeNameComparer.Instance);
+        volumes.Sort(RARVolumeNameComparer.Instance);
         return volumes;
     }
 

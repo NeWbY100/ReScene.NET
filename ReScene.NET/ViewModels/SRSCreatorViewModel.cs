@@ -9,23 +9,23 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class SrsCreatorViewModel : ViewModelBase
+public partial class SRSCreatorViewModel : ViewModelBase
 {
-    private readonly ISrsCreationService _srsService;
+    private readonly ISrsCreationService _sRSService;
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
     private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
-    public SrsCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService)
+    public SRSCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService)
     {
-        _srsService = srsService;
+        _sRSService = srsService;
         _fileDialog = fileDialog;
         _tempDir = tempDir;
         _settingsService = settingsService;
 
-        _srsService.Progress += OnProgress;
+        _sRSService.Progress += OnProgress;
 
         AppSettings settings = _settingsService.Load();
 
@@ -61,9 +61,9 @@ public partial class SrsCreatorViewModel : ViewModelBase
     private bool _isIsoSource;
 
     [ObservableProperty]
-    private string _isoFilePath = string.Empty;
+    private string _iSOFilePath = string.Empty;
 
-    public ObservableCollection<string> IsoMediaFiles { get; } = [];
+    public ObservableCollection<string> ISOMediaFiles { get; } = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSrsCommand))]
@@ -76,37 +76,37 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
     // ISO progress (for modal window)
     [ObservableProperty]
-    private string _isoProgressHeading = string.Empty;
+    private string _iSOProgressHeading = string.Empty;
 
     [ObservableProperty]
-    private int _isoOverallPercent;
+    private int _iSOOverallPercent;
 
     [ObservableProperty]
-    private string _isoFileCountText = string.Empty;
+    private string _iSOFileCountText = string.Empty;
 
     [ObservableProperty]
-    private int _isoCurrentPercent;
+    private int _iSOCurrentPercent;
 
     [ObservableProperty]
-    private string _isoCurrentFileText = string.Empty;
+    private string _iSOCurrentFileText = string.Empty;
 
     [ObservableProperty]
-    private string _isoProcessedText = string.Empty;
+    private string _iSOProcessedText = string.Empty;
 
     [ObservableProperty]
-    private string _isoRemainingText = string.Empty;
+    private string _iSORemainingText = string.Empty;
 
     [ObservableProperty]
-    private string _isoCurrentSizeText = string.Empty;
+    private string _iSOCurrentSizeText = string.Empty;
 
     [ObservableProperty]
-    private string _isoSpeedText = string.Empty;
+    private string _iSOSpeedText = string.Empty;
 
     [ObservableProperty]
-    private string _isoEtaText = string.Empty;
+    private string _iSOEtaText = string.Empty;
 
     [ObservableProperty]
-    private bool _isoProcessing;
+    private bool _iSOProcessing;
 
     // Output
     [ObservableProperty]
@@ -145,24 +145,24 @@ public partial class SrsCreatorViewModel : ViewModelBase
             return;
         }
 
-        if (IsoMediaExtractor.IsIsoFile(path))
+        if (ISOMediaExtractor.IsIsoFile(path))
         {
             IsIsoSource = true;
-            IsoFilePath = path;
+            ISOFilePath = path;
             InputPath = path;
 
-            IsoMediaFiles.Clear();
+            ISOMediaFiles.Clear();
             SelectedIsoMediaFile = null;
 
-            List<string> files = IsoMediaExtractor.ListMediaFiles(path);
+            List<string> files = ISOMediaExtractor.ListMediaFiles(path);
             foreach (string file in files)
             {
-                IsoMediaFiles.Add(file);
+                ISOMediaFiles.Add(file);
             }
 
-            if (IsoMediaFiles.Count > 0)
+            if (ISOMediaFiles.Count > 0)
             {
-                SelectedIsoMediaFile = IsoMediaFiles[0];
+                SelectedIsoMediaFile = ISOMediaFiles[0];
             }
 
             AutoSetOutputPath(path);
@@ -170,8 +170,8 @@ public partial class SrsCreatorViewModel : ViewModelBase
         else
         {
             IsIsoSource = false;
-            IsoFilePath = string.Empty;
-            IsoMediaFiles.Clear();
+            ISOFilePath = string.Empty;
+            ISOMediaFiles.Clear();
             SelectedIsoMediaFile = null;
             InputPath = path;
             AutoSetOutputPath(path);
@@ -182,7 +182,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
     private async Task BrowseOutputAsync()
     {
         string? path = await _fileDialog.SaveFileAsync(
-            "Save SRS File", ".srs", FileDialogFilters.SrsSave);
+            "Save SRS File", ".srs", FileDialogFilters.SRSSave);
         if (path is not null)
         {
             OutputPath = path;
@@ -217,7 +217,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
         try
         {
-            var options = new SrsCreationOptions
+            var options = new SRSCreationOptions
             {
                 AppName = string.IsNullOrWhiteSpace(AppName) ? FormatUtilities.GetDefaultAppName() : AppName
             };
@@ -228,7 +228,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
 
             if (IsIsoSource)
             {
-                Log($"ISO image: {IsoFilePath}");
+                Log($"ISO image: {ISOFilePath}");
                 Log($"ISO file:  {SelectedIsoMediaFile}");
 
                 string tempDir = _tempDir.CreateTempDirectory();
@@ -236,31 +236,31 @@ public partial class SrsCreatorViewModel : ViewModelBase
                 _extractedTempFile = tempFile;
 
                 // Show ISO progress modal
-                IsoProgressHeading = "Extracting from ISO";
-                IsoOverallPercent = 0;
-                IsoCurrentPercent = 0;
-                IsoFileCountText = "Extracting file...";
-                IsoCurrentFileText = SelectedIsoMediaFile!;
-                IsoCurrentSizeText = string.Empty;
-                IsoProcessedText = string.Empty;
-                IsoRemainingText = string.Empty;
-                IsoSpeedText = string.Empty;
-                IsoEtaText = string.Empty;
-                IsoProcessing = true;
+                ISOProgressHeading = "Extracting from ISO";
+                ISOOverallPercent = 0;
+                ISOCurrentPercent = 0;
+                ISOFileCountText = "Extracting file...";
+                ISOCurrentFileText = SelectedIsoMediaFile!;
+                ISOCurrentSizeText = string.Empty;
+                ISOProcessedText = string.Empty;
+                ISORemainingText = string.Empty;
+                ISOSpeedText = string.Empty;
+                ISOEtaText = string.Empty;
+                ISOProcessing = true;
 
                 Log($"Extracting {SelectedIsoMediaFile} from ISO...");
 
-                await IsoMediaExtractor.ExtractFileAsync(
-                    IsoFilePath, SelectedIsoMediaFile!,
+                await ISOMediaExtractor.ExtractFileAsync(
+                    ISOFilePath, SelectedIsoMediaFile!,
                     tempFile,
                     percent => Application.Current.Dispatcher.BeginInvoke(() =>
                     {
-                        IsoOverallPercent = percent;
-                        IsoCurrentPercent = percent;
+                        ISOOverallPercent = percent;
+                        ISOCurrentPercent = percent;
                     }),
                     _cts.Token);
 
-                IsoProcessing = false;
+                ISOProcessing = false;
 
                 long size = new FileInfo(tempFile).Length;
                 Log($"Extracted ({size:N0} bytes).");
@@ -274,7 +274,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
             Log($"Input:  {samplePath}");
             Log($"Output: {OutputPath}");
 
-            SrsCreationResult result = await _srsService.CreateAsync(
+            SRSCreationResult result = await _sRSService.CreateAsync(
                 OutputPath, samplePath, options, _cts.Token);
 
             if (result.Success)
@@ -286,7 +286,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
                 Log($"  Tracks: {result.TrackCount}");
                 Log($"  Sample CRC: {result.SampleCrc32:X8}");
                 Log($"  Sample size: {result.SampleSize:N0} bytes");
-                Log($"  SRS size: {result.SrsFileSize:N0} bytes");
+                Log($"  SRS size: {result.SRSFileSize:N0} bytes");
             }
             else
             {
@@ -311,7 +311,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
         }
         finally
         {
-            IsoProcessing = false;
+            ISOProcessing = false;
             IsCreating = false;
             _cts?.Dispose();
             _cts = null;
@@ -353,7 +353,7 @@ public partial class SrsCreatorViewModel : ViewModelBase
         }
     }
 
-    private void OnProgress(object? _, SrsCreationProgressEventArgs e)
+    private void OnProgress(object? _, SRSCreationProgressEventArgs e)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {

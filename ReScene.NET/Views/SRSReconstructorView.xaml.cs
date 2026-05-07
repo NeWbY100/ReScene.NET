@@ -7,11 +7,11 @@ using ReScene.NET.ViewModels;
 
 namespace ReScene.NET.Views;
 
-public partial class SrsReconstructorView : UserControl
+public partial class SRSReconstructorView : UserControl
 {
-    private IsoProgressWindow? _isoWindow;
+    private ISOProgressWindow? _iSOWindow;
 
-    public SrsReconstructorView()
+    public SRSReconstructorView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
@@ -20,24 +20,24 @@ public partial class SrsReconstructorView : UserControl
 
     private void OnLoaded(object _, RoutedEventArgs e)
     {
-        if (DataContext is not SrsReconstructorViewModel vm)
+        if (DataContext is not SRSReconstructorViewModel vm)
         {
             return;
         }
 
-        TextBoxDropHelper.SetupFileDrop(SrsFileTextBox, path => vm.SrsFilePath = path);
+        TextBoxDropHelper.SetupFileDrop(SRSFileTextBox, path => vm.SRSFilePath = path);
         TextBoxDropHelper.SetupFileDrop(MediaFileTextBox, path => vm.MediaFilePath = path);
         TextBoxDropHelper.SetupFileDrop(OutputTextBox, path => vm.OutputPath = path);
     }
 
     private void OnDataContextChanged(object _, DependencyPropertyChangedEventArgs e)
     {
-        if (e.OldValue is SrsReconstructorViewModel oldVm)
+        if (e.OldValue is SRSReconstructorViewModel oldVm)
         {
             oldVm.PropertyChanged -= OnVmPropertyChanged;
         }
 
-        if (e.NewValue is SrsReconstructorViewModel newVm)
+        if (e.NewValue is SRSReconstructorViewModel newVm)
         {
             newVm.PropertyChanged += OnVmPropertyChanged;
         }
@@ -45,46 +45,46 @@ public partial class SrsReconstructorView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(SrsReconstructorViewModel.IsoProcessing))
+        if (e.PropertyName != nameof(SRSReconstructorViewModel.ISOProcessing))
         {
             return;
         }
 
-        if (sender is not SrsReconstructorViewModel vm)
+        if (sender is not SRSReconstructorViewModel vm)
         {
             return;
         }
 
-        if (vm.IsoProcessing)
+        if (vm.ISOProcessing)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
             {
-                _isoWindow = new IsoProgressWindow
+                _iSOWindow = new ISOProgressWindow
                 {
                     Owner = Window.GetWindow(this),
                     DataContext = DataContext
                 };
 
-                _isoWindow.Closed += (_, _) =>
+                _iSOWindow.Closed += (_, _) =>
                 {
                     // If the window was cancelled (not closed by code), cancel the operation
-                    if (vm.IsoProcessing)
+                    if (vm.ISOProcessing)
                     {
                         vm.CancelRebuildCommand.Execute(null);
                     }
 
-                    _isoWindow = null;
+                    _iSOWindow = null;
                 };
 
-                _isoWindow.ShowDialog();
+                _iSOWindow.ShowDialog();
             });
         }
         else
         {
             Dispatcher.BeginInvoke(() =>
             {
-                _isoWindow?.Close();
-                _isoWindow = null;
+                _iSOWindow?.Close();
+                _iSOWindow = null;
             });
         }
     }

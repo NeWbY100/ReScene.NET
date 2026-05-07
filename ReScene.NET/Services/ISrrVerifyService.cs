@@ -17,7 +17,7 @@ public interface ISrrVerifyService
     /// Cancellation token.
     /// </param>
     /// <returns>
-    /// A <see cref="SrrVerifyResult"/> describing the outcome.
+    /// A <see cref="SRRVerifyResult"/> describing the outcome.
     /// </returns>
-    public Task<SrrVerifyResult> VerifyAsync(string srrFilePath, CancellationToken ct = default);
+    public Task<SRRVerifyResult> VerifyAsync(string srrFilePath, CancellationToken ct = default);
 }

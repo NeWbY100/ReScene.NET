@@ -43,24 +43,24 @@ public static class InspectCommand
                 rows.Add((srr.HeaderBlock.BlockPosition, "Header", srr.HeaderBlock.HeaderSize, srr.HeaderBlock.AppName ?? string.Empty));
             }
 
-            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
+            foreach (SRRStoredFileBlock stored in srr.StoredFiles)
             {
                 rows.Add((stored.BlockPosition, "StoredFile", stored.HeaderSize + stored.AddSize, stored.FileName));
             }
 
-            foreach (SrrOsoHashBlock oso in srr.OsoHashBlocks)
+            foreach (SRROsoHashBlock oso in srr.OSOHashBlocks)
             {
-                rows.Add((oso.BlockPosition, "OsoHash", oso.HeaderSize, oso.FileName));
+                rows.Add((oso.BlockPosition, "OSOHash", oso.HeaderSize, oso.FileName));
             }
 
-            foreach (SrrRarFileBlock rarFile in srr.RarFiles)
+            foreach (SRRRarFileBlock rarFile in srr.RARFiles)
             {
-                rows.Add((rarFile.BlockPosition, "RarFile", rarFile.HeaderSize + rarFile.AddSize, rarFile.FileName));
+                rows.Add((rarFile.BlockPosition, "RARFile", rarFile.HeaderSize + rarFile.AddSize, rarFile.FileName));
             }
 
-            foreach (SrrRarPaddingBlock padding in srr.RarPaddingBlocks)
+            foreach (SRRRarPaddingBlock padding in srr.RARPaddingBlocks)
             {
-                rows.Add((padding.BlockPosition, "RarPadding", padding.HeaderSize + padding.AddSize, padding.RarFileName));
+                rows.Add((padding.BlockPosition, "RARPadding", padding.HeaderSize + padding.AddSize, padding.RARFileName));
             }
 
             rows.Sort((a, b) => a.Offset.CompareTo(b.Offset));

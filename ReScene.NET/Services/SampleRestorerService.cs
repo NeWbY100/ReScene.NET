@@ -8,22 +8,22 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
     private readonly SRSRebuilder _rebuilder = new();
     private readonly ITempDirectoryService _tempDir = tempDir;
 
-    public event EventHandler<SrsReconstructionProgressEventArgs>? Progress
+    public event EventHandler<SRSReconstructionProgressEventArgs>? Progress
     {
         add => _rebuilder.Progress += value;
         remove => _rebuilder.Progress -= value;
     }
 
-    public List<SrsEntryInfo> GetSrsEntries(string srrFilePath)
+    public List<SRSEntryInfo> GetSrsEntries(string srrFilePath)
     {
         var srr = SRRFile.Load(srrFilePath);
-        var entries = new List<SrsEntryInfo>();
+        var entries = new List<SRSEntryInfo>();
 
         string tempDir = _tempDir.CreateTempDirectory();
 
         try
         {
-            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
+            foreach (SRRStoredFileBlock stored in srr.StoredFiles)
             {
                 if (!stored.FileName.EndsWith(".srs", StringComparison.OrdinalIgnoreCase))
                 {
@@ -46,12 +46,12 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
                     var srs = SRSFile.Load(extractedPath);
                     if (srs.FileData is { } fd)
                     {
-                        entries.Add(new SrsEntryInfo
+                        entries.Add(new SRSEntryInfo
                         {
-                            SrsFileName = srsName,
+                            SRSFileName = srsName,
                             SampleFileName = fd.FileName,
                             SampleSize = fd.SampleSize,
-                            ExpectedCrc = fd.Crc32
+                            ExpectedCrc = fd.CRC32
                         });
                     }
                 }
@@ -69,7 +69,7 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
         return entries;
     }
 
-    public async Task<SrsReconstructionResult> RestoreSampleAsync(
+    public async Task<SRSReconstructionResult> RestoreSampleAsync(
         string srrFilePath, string srsFileName,
         string mediaFilePath, string outputPath, CancellationToken ct)
     {
@@ -83,8 +83,8 @@ public class SampleRestorerService(ITempDirectoryService tempDir) : ISampleResto
 
             if (extractedPath is null)
             {
-                return new SrsReconstructionResult(
-                    Success: false, CrcMatch: false,
+                return new SRSReconstructionResult(
+                    Success: false, CRCMatch: false,
                     ExpectedCrc: 0, ActualCrc: 0,
                     ExpectedSize: 0, ActualSize: 0,
                     ErrorMessage: $"Could not extract '{srsFileName}' from SRR");

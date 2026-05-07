@@ -6,8 +6,8 @@ namespace ReScene.NET.Services;
 /// Default <see cref="ISrrVerifyService"/> implementation that runs
 /// <see cref="SRRVerifier.Verify"/> on a thread-pool thread.
 /// </summary>
-public class SrrVerifyService : ISrrVerifyService
+public class SRRVerifyService : ISrrVerifyService
 {
-    public Task<SrrVerifyResult> VerifyAsync(string srrFilePath, CancellationToken ct = default)
+    public Task<SRRVerifyResult> VerifyAsync(string srrFilePath, CancellationToken ct = default)
         => Task.Run(() => SRRVerifier.Verify(srrFilePath), ct);
 }

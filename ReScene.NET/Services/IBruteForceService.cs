@@ -10,5 +10,5 @@ public interface IBruteForceService
     public event EventHandler<BruteForceStatusChangedEventArgs>? StatusChanged;
     public event EventHandler<LogEventArgs>? LogMessage;
     public event EventHandler<FileCopyProgressEventArgs>? FileCopyProgress;
-    public event EventHandler<CrcValidationProgressEventArgs>? CrcValidationProgress;
+    public event EventHandler<CRCValidationProgressEventArgs>? CRCValidationProgress;
 }

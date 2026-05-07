@@ -7,11 +7,11 @@ using ReScene.NET.ViewModels;
 
 namespace ReScene.NET.Views;
 
-public partial class SrsCreatorView : UserControl
+public partial class SRSCreatorView : UserControl
 {
-    private IsoProgressWindow? _isoWindow;
+    private ISOProgressWindow? _iSOWindow;
 
-    public SrsCreatorView()
+    public SRSCreatorView()
     {
         InitializeComponent();
 
@@ -21,7 +21,7 @@ public partial class SrsCreatorView : UserControl
 
     private void OnLoaded(object _, RoutedEventArgs e)
     {
-        if (DataContext is not SrsCreatorViewModel vm)
+        if (DataContext is not SRSCreatorViewModel vm)
         {
             return;
         }
@@ -32,12 +32,12 @@ public partial class SrsCreatorView : UserControl
 
     private void OnDataContextChanged(object _, DependencyPropertyChangedEventArgs e)
     {
-        if (e.OldValue is SrsCreatorViewModel oldVm)
+        if (e.OldValue is SRSCreatorViewModel oldVm)
         {
             oldVm.PropertyChanged -= OnVmPropertyChanged;
         }
 
-        if (e.NewValue is SrsCreatorViewModel newVm)
+        if (e.NewValue is SRSCreatorViewModel newVm)
         {
             newVm.PropertyChanged += OnVmPropertyChanged;
         }
@@ -45,45 +45,45 @@ public partial class SrsCreatorView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(SrsCreatorViewModel.IsoProcessing))
+        if (e.PropertyName != nameof(SRSCreatorViewModel.ISOProcessing))
         {
             return;
         }
 
-        if (sender is not SrsCreatorViewModel vm)
+        if (sender is not SRSCreatorViewModel vm)
         {
             return;
         }
 
-        if (vm.IsoProcessing)
+        if (vm.ISOProcessing)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
             {
-                _isoWindow = new IsoProgressWindow
+                _iSOWindow = new ISOProgressWindow
                 {
                     Owner = Window.GetWindow(this),
                     DataContext = DataContext
                 };
 
-                _isoWindow.Closed += (_, _) =>
+                _iSOWindow.Closed += (_, _) =>
                 {
-                    if (vm.IsoProcessing)
+                    if (vm.ISOProcessing)
                     {
                         vm.CancelCreationCommand.Execute(null);
                     }
 
-                    _isoWindow = null;
+                    _iSOWindow = null;
                 };
 
-                _isoWindow.ShowDialog();
+                _iSOWindow.ShowDialog();
             });
         }
         else
         {
             Dispatcher.BeginInvoke(() =>
             {
-                _isoWindow?.Close();
-                _isoWindow = null;
+                _iSOWindow?.Close();
+                _iSOWindow = null;
             });
         }
     }

@@ -55,7 +55,7 @@ public static class ExtractCommand
             using FileStream input = File.OpenRead(srrPath);
             byte[] buffer = new byte[CopyBufferSize];
 
-            foreach (SrrStoredFileBlock stored in srr.StoredFiles)
+            foreach (SRRStoredFileBlock stored in srr.StoredFiles)
             {
                 string outPath = ResolveSafeOutputPath(outDir, stored.FileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);

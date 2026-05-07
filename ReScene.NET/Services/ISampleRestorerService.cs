@@ -2,9 +2,9 @@ using ReScene.SRS;
 
 namespace ReScene.NET.Services;
 
-public class SrsEntryInfo
+public class SRSEntryInfo
 {
-    public string SrsFileName { get; set; } = string.Empty;
+    public string SRSFileName { get; set; } = string.Empty;
     public string SampleFileName { get; set; } = string.Empty;
     public ulong SampleSize
     {
@@ -18,11 +18,11 @@ public class SrsEntryInfo
 
 public interface ISampleRestorerService
 {
-    public event EventHandler<SrsReconstructionProgressEventArgs>? Progress;
+    public event EventHandler<SRSReconstructionProgressEventArgs>? Progress;
 
-    public List<SrsEntryInfo> GetSrsEntries(string srrFilePath);
+    public List<SRSEntryInfo> GetSrsEntries(string srrFilePath);
 
-    public Task<SrsReconstructionResult> RestoreSampleAsync(
+    public Task<SRSReconstructionResult> RestoreSampleAsync(
         string srrFilePath, string srsFileName,
         string mediaFilePath, string outputPath, CancellationToken ct);
 }

@@ -11,7 +11,7 @@ public class BruteForceService : IBruteForceService
     public event EventHandler<BruteForceStatusChangedEventArgs>? StatusChanged;
     public event EventHandler<LogEventArgs>? LogMessage;
     public event EventHandler<FileCopyProgressEventArgs>? FileCopyProgress;
-    public event EventHandler<CrcValidationProgressEventArgs>? CrcValidationProgress;
+    public event EventHandler<CRCValidationProgressEventArgs>? CRCValidationProgress;
 
     private Manager? _manager;
 
@@ -24,7 +24,7 @@ public class BruteForceService : IBruteForceService
         _manager.BruteForceProgress += (s, e) => Progress?.Invoke(s, e);
         _manager.BruteForceStatusChanged += (s, e) => StatusChanged?.Invoke(s, e);
         _manager.FileCopyProgress += (s, e) => FileCopyProgress?.Invoke(s, e);
-        _manager.CrcValidationProgress += (s, e) => CrcValidationProgress?.Invoke(s, e);
+        _manager.CRCValidationProgress += (s, e) => CRCValidationProgress?.Invoke(s, e);
 
         return await _manager.BruteForceRARVersionAsync(options);
     }

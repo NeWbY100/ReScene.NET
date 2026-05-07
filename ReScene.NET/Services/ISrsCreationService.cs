@@ -10,7 +10,7 @@ public interface ISrsCreationService
     /// <summary>
     /// Raised to report progress during SRS creation.
     /// </summary>
-    public event EventHandler<SrsCreationProgressEventArgs>? Progress;
+    public event EventHandler<SRSCreationProgressEventArgs>? Progress;
 
     /// <summary>
     /// Creates an SRS file from a sample media file.
@@ -30,9 +30,9 @@ public interface ISrsCreationService
     /// <returns>
     /// The creation result including success status and file size.
     /// </returns>
-    public Task<SrsCreationResult> CreateAsync(
+    public Task<SRSCreationResult> CreateAsync(
         string outputPath,
         string sampleFilePath,
-        SrsCreationOptions options,
+        SRSCreationOptions options,
         CancellationToken ct);
 }
