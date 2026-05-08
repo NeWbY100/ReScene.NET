@@ -62,6 +62,10 @@ public class HexViewControl : UserControl
         DependencyProperty.Register(nameof(HighlightRanges), typeof(IReadOnlyList<HexMatchRange>), typeof(HexViewControl),
             new PropertyMetadata(null, OnHighlightRangesChanged));
 
+    public static readonly DependencyProperty DiffRangesProperty =
+        DependencyProperty.Register(nameof(DiffRanges), typeof(IReadOnlyList<HexMatchRange>), typeof(HexViewControl),
+            new PropertyMetadata(null, OnDiffRangesChanged));
+
     private readonly HexCanvas _canvas;
     private readonly ScrollViewer _scrollViewer;
     private readonly HexColumnHeader _columnHeader;
@@ -108,6 +112,12 @@ public class HexViewControl : UserControl
         set => SetValue(HighlightRangesProperty, value);
     }
 
+    public IReadOnlyList<HexMatchRange>? DiffRanges
+    {
+        get => (IReadOnlyList<HexMatchRange>?)GetValue(DiffRangesProperty);
+        set => SetValue(DiffRangesProperty, value);
+    }
+
     private static object CoerceBytesPerLine(DependencyObject _, object baseValue)
     {
         int val = (int)baseValue;
@@ -149,6 +159,14 @@ public class HexViewControl : UserControl
     }
 
     private static void OnHighlightRangesChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
+    {
+        if (d is HexViewControl c)
+        {
+            c._canvas.InvalidateVisual();
+        }
+    }
+
+    private static void OnDiffRangesChanged(DependencyObject d, DependencyPropertyChangedEventArgs _)
     {
         if (d is HexViewControl c)
         {
@@ -637,6 +655,7 @@ public class HexViewControl : UserControl
             Brush asciiBrush = GetBrush("HexAsciiForeground", Brushes.DimGray);
             Brush selectionBrush = GetBrush("HexSelectionBrush", new SolidColorBrush(Color.FromArgb(120, 60, 120, 220)));
             Brush matchBrush = GetBrush("HexMatchHighlightBrush", new SolidColorBrush(Color.FromArgb(80, 240, 140, 0)));
+            Brush diffBrush = GetBrush("HexDiffHighlightBrush", new SolidColorBrush(Color.FromArgb(85, 244, 71, 71)));
 
             long blockStart = _owner.BlockOffset;
             long blockLen = _owner.BlockLength;
@@ -669,6 +688,7 @@ public class HexViewControl : UserControl
             long lastVisible = Math.Min(totalLines - 1, (long)((scrollY + viewportH) / LineHeight) + 1);
 
             IReadOnlyList<HexMatchRange>? highlightRanges = _owner.HighlightRanges;
+            IReadOnlyList<HexMatchRange>? diffRanges = _owner.DiffRanges;
 
             for (long line = firstVisible; line <= lastVisible; line++)
             {
@@ -676,6 +696,31 @@ public class HexViewControl : UserControl
                 long lineFileOffset = blockStart + line * bytesPerLine;
                 long lineDataStart = line * bytesPerLine;
                 int lineBytes = (int)Math.Min(bytesPerLine, blockLen - lineDataStart);
+
+                // Diff highlight (drawn first so search-match and selection layers stack on top).
+                if (diffRanges is not null && diffRanges.Count > 0)
+                {
+                    long lineEnd = lineFileOffset + bytesPerLine;
+                    foreach (HexMatchRange range in diffRanges)
+                    {
+                        long rangeEnd = range.Offset + range.Length;
+                        if (range.Offset >= lineEnd || rangeEnd <= lineFileOffset)
+                        {
+                            continue;
+                        }
+
+                        int dStart = (int)Math.Max(0, range.Offset - lineFileOffset);
+                        int dEnd = (int)Math.Min(bytesPerLine, rangeEnd - lineFileOffset);
+
+                        double dhx1 = _owner.HexStartX + dStart * 3 * _charWidth;
+                        double dhx2 = _owner.HexStartX + (dEnd * 3 - 1) * _charWidth;
+                        context.DrawRectangle(diffBrush, null, new Rect(dhx1, y, dhx2 - dhx1, LineHeight));
+
+                        double dax1 = _owner.AsciiStartX + dStart * _charWidth;
+                        double dax2 = _owner.AsciiStartX + dEnd * _charWidth;
+                        context.DrawRectangle(diffBrush, null, new Rect(dax1, y, dax2 - dax1, LineHeight));
+                    }
+                }
 
                 // All-matches highlight (drawn before the primary selection so the
                 // current match's brighter color renders on top).

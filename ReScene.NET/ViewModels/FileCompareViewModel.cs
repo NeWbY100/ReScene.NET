@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text;
+using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.Core.Comparison;
@@ -130,12 +132,13 @@ public class CompareNodeData
 /// <summary>
 /// ViewModel for the file comparison tab, supporting side-by-side diff of SRR, SRS, and RAR files.
 /// </summary>
-public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog) : ViewModelBase, IDisposable
+public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog, IHexDiffComputer diffComputer) : ViewModelBase, IDisposable
 {
     private const int MaxBlockCompareSize = 10 * 1024 * 1024;
 
     private readonly IFileCompareService _compareService = compareService;
     private readonly IFileDialogService _fileDialog = fileDialog;
+    private readonly IHexDiffComputer _diffComputer = diffComputer;
 
     // Internal state
     private object? _leftData;
@@ -149,6 +152,12 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private CompareResult? _compareResult;
     private MemoryMappedDataSource? _leftFileSource;
     private MemoryMappedDataSource? _rightFileSource;
+
+    // Diff state — CTS lifecycle is owned by RunDiffAsync's finally block.
+#pragma warning disable CA2213
+    private CancellationTokenSource? _diffCts;
+#pragma warning restore CA2213
+    private bool _diffScheduled;
 
     // File paths
     [ObservableProperty]
@@ -209,6 +218,13 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     [ObservableProperty]
     private long _rightHexSelectionLength;
 
+    // Hex view - diff ranges
+    [ObservableProperty]
+    private IReadOnlyList<HexMatchRange>? _leftDiffRanges;
+
+    [ObservableProperty]
+    private IReadOnlyList<HexMatchRange>? _rightDiffRanges;
+
     // Status
     [ObservableProperty]
     private string _statusMessage = "Load files on both sides to compare.";
@@ -257,6 +273,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     [RelayCommand]
     private void CloseLeft()
     {
+        CancelDiff();
+        LeftHexDataSource = null;
         _leftFileSource?.Dispose();
         _leftFileSource = null;
         _leftData = null;
@@ -264,13 +282,16 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         _leftFileSize = 0;
         _leftDetailedBlocks = null;
         LeftFilePath = string.Empty;
-        LeftHexDataSource = null;
+        LeftDiffRanges = null;
+        RightDiffRanges = null;
         RefreshComparison();
     }
 
     [RelayCommand]
     private void CloseRight()
     {
+        CancelDiff();
+        RightHexDataSource = null;
         _rightFileSource?.Dispose();
         _rightFileSource = null;
         _rightData = null;
@@ -278,13 +299,15 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         _rightFileSize = 0;
         _rightDetailedBlocks = null;
         RightFilePath = string.Empty;
-        RightHexDataSource = null;
+        LeftDiffRanges = null;
+        RightDiffRanges = null;
         RefreshComparison();
     }
 
     [RelayCommand]
     private void Swap()
     {
+        CancelDiff();
         (_leftData, _rightData) = (_rightData, _leftData);
         (_leftFilePathInternal, _rightFilePathInternal) = (_rightFilePathInternal, _leftFilePathInternal);
         (_leftFileSize, _rightFileSize) = (_rightFileSize, _leftFileSize);
@@ -295,6 +318,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
         LeftHexDataSource = null;
         RightHexDataSource = null;
+        LeftDiffRanges = null;
+        RightDiffRanges = null;
 
         RefreshComparison();
     }
@@ -313,6 +338,12 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         try
         {
+            CancelDiff();
+            LeftDiffRanges = null;
+            RightDiffRanges = null;
+            // Clear the binding before disposing — a pending render would otherwise
+            // hit the disposed MemoryMappedDataSource via the HexDataSourceSlice.
+            LeftHexDataSource = null;
             _leftFileSource?.Dispose();
             _leftFileSource = null;
 
@@ -348,6 +379,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         try
         {
+            CancelDiff();
+            LeftDiffRanges = null;
+            RightDiffRanges = null;
+            RightHexDataSource = null;
             _rightFileSource?.Dispose();
             _rightFileSource = null;
 
@@ -556,6 +591,116 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 ? new HexDataSourceSlice(source, offset, length)
                 : null;
         }
+
+        ScheduleDiff();
+    }
+
+    private void ScheduleDiff()
+    {
+        if (_diffScheduled)
+        {
+            return;
+        }
+
+        _diffScheduled = true;
+        Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            _diffScheduled = false;
+            StartDiffNow();
+        });
+    }
+
+    private void StartDiffNow()
+    {
+        CancelDiff();
+
+        MemoryMappedDataSource? leftSrc = _leftFileSource;
+        MemoryMappedDataSource? rightSrc = _rightFileSource;
+        long leftLen = LeftHexBlockLength;
+        long rightLen = RightHexBlockLength;
+
+        if (leftSrc is null || rightSrc is null || leftLen <= 0 || rightLen <= 0)
+        {
+            LeftDiffRanges = null;
+            RightDiffRanges = null;
+            return;
+        }
+
+        long leftOff = LeftHexBlockOffset;
+        long rightOff = RightHexBlockOffset;
+
+        var cts = new CancellationTokenSource();
+        _diffCts = cts;
+        CancellationToken token = cts.Token;
+
+        var progress = new Progress<HexDiffProgress>(p =>
+        {
+            if (_diffCts != cts)
+            {
+                return;
+            }
+
+            LeftDiffRanges = p.Left;
+            RightDiffRanges = p.Right;
+            if (p.Percent < 100.0)
+            {
+                StatusMessage = $"Computing byte diff... {p.Percent:F0}%";
+            }
+        });
+
+        _ = RunDiffAsync(leftSrc, leftOff, leftLen, rightSrc, rightOff, rightLen, progress, cts, token);
+    }
+
+    private async Task RunDiffAsync(
+        MemoryMappedDataSource leftSrc, long leftOff, long leftLen,
+        MemoryMappedDataSource rightSrc, long rightOff, long rightLen,
+        IProgress<HexDiffProgress> progress,
+        CancellationTokenSource cts,
+        CancellationToken token)
+    {
+        try
+        {
+            HexDiffResult result = await _diffComputer.ComputeAsync(
+                leftSrc, leftOff, leftLen,
+                rightSrc, rightOff, rightLen,
+                progress, token);
+
+            if (_diffCts != cts)
+            {
+                return;
+            }
+
+            LeftDiffRanges = result.Left;
+            RightDiffRanges = result.Right;
+            UpdateStatus();
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled — newer diff (or close) is responsible for next state.
+        }
+        catch (Exception ex)
+        {
+            if (_diffCts == cts)
+            {
+                StatusMessage = $"Byte diff failed: {ex.Message}";
+            }
+        }
+        finally
+        {
+            if (_diffCts == cts)
+            {
+                _diffCts = null;
+            }
+
+            cts.Dispose();
+        }
+    }
+
+    private void CancelDiff()
+    {
+        CancellationTokenSource? cts = _diffCts;
+        _diffCts = null;
+        cts?.Cancel();
     }
 
     partial void OnSelectedLeftPropertyChanged(PropertyItem? value)
@@ -1850,6 +1995,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     public void Dispose()
     {
+        CancelDiff();
         _leftFileSource?.Dispose();
         _leftFileSource = null;
         _rightFileSource?.Dispose();

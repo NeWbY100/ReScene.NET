@@ -89,11 +89,11 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService())
+        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService(), new HexDiffComputer())
     {
     }
 
-    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService, IPropertyExportService propertyExportService, IAppSettingsService appSettingsService)
+    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService, IPropertyExportService propertyExportService, IAppSettingsService appSettingsService, IHexDiffComputer hexDiffComputer)
     {
         _fileDialog = fileDialog;
         _recentFiles = recentFiles;
@@ -105,7 +105,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
         SRSReconstructor = new SRSReconstructorViewModel(srsReconService, fileDialog, tempDir);
         SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
-        FileCompare = new FileCompareViewModel(fileCompareService, fileDialog);
+        FileCompare = new FileCompareViewModel(fileCompareService, fileDialog, hexDiffComputer);
         Home = new HomeViewModel(
             recentFiles,
             openFile: OpenSceneFile,

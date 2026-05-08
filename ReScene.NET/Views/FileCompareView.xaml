@@ -261,6 +261,7 @@
                                         BlockLength="{Binding LeftHexBlockLength}"
                                         SelectionOffset="{Binding LeftHexSelectionOffset}"
                                         SelectionLength="{Binding LeftHexSelectionLength}"
+                                        DiffRanges="{Binding LeftDiffRanges}"
                                         BytesPerLine="{Binding HexBytesPerLine}" />
             </DockPanel>
           </Border>
@@ -439,6 +440,7 @@
                                         BlockLength="{Binding RightHexBlockLength}"
                                         SelectionOffset="{Binding RightHexSelectionOffset}"
                                         SelectionLength="{Binding RightHexSelectionLength}"
+                                        DiffRanges="{Binding RightDiffRanges}"
                                         BytesPerLine="{Binding HexBytesPerLine}" />
             </DockPanel>
           </Border>
