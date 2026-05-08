@@ -4,6 +4,23 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.3] — 2026-05-08
+
+### Added
+
+- Compare tab now overlays a translucent red highlight on bytes that
+  differ between the left and right files inside the currently
+  selected block. The diff is computed asynchronously in 64 KB
+  chunks with progressive UI updates and is cancelled when the
+  selection changes; trailing bytes on the longer side are marked
+  when block lengths differ. Status text shows a `Computing byte
+  diff… NN%` progress indicator while the scan runs.
+- RAR Reconstructor tab gains Import / Export Config commands that
+  persist all user-editable fields and switches as JSON via the new
+  `ReconstructorConfig` snapshot type.
+- Brute-Force Progress window gets an Auto-scroll toggle that keeps
+  the version grid pinned to the latest entry as runs complete.
+
 ## [1.2.2] — 2026-05-07
 
 ### Fixed
@@ -57,4 +74,5 @@ Releases follow [SemVer](https://semver.org/) and this file follows
 - `RarStream`'s previously-private volume-naming helper extracted to
   `RARVolumeNaming` and shared with `RARArchive`.
 
+[1.2.3]: https://github.com/NeWbY100/ReScene.NET/releases/tag/v1.2.3
 [1.2.2]: https://github.com/NeWbY100/ReScene.NET/releases/tag/v1.2.2
