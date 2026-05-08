@@ -10,6 +10,7 @@ using ReScene.Core.Cryptography;
 using ReScene.Core.Diagnostics;
 using ReScene.Core.IO;
 using ReScene.NET.Helpers;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.RAR;
 using ReScene.SRR;
@@ -29,6 +30,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private readonly Stopwatch _stopwatch = new();
     private double _lastSecondsPerOperation; // cached rate from last progress event
     private long _lastOperationRemaining;    // cached remaining count from last progress event
+    private long _lastOperationSize;         // cached total count from last progress event
 
     // ── Imported SRR state ──
     private HashSet<string> _importedArchiveFiles = new(StringComparer.OrdinalIgnoreCase);
@@ -123,6 +125,8 @@ public partial class ReconstructorViewModel : ViewModelBase
     [ObservableProperty] private string _remainingText = string.Empty;
     [ObservableProperty] private string _speedText = string.Empty;
     [ObservableProperty] private string _etaText = string.Empty;
+    [ObservableProperty] private bool _autoScrollProgress = true;
+    [ObservableProperty] private bool _autoScrollLog = true;
 
     public ObservableCollection<VersionEntry> VersionEntries { get; } = [];
 
@@ -301,7 +305,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     public bool IsRenameToOriginalEnabled => StopOnFirstMatch;
 
     // Host OS patching
-    [ObservableProperty] private bool _enableHostOSPatching;
+    [ObservableProperty] private bool _enableHostOSPatching = true;
 
     // ── Browse Commands ──
 
@@ -412,6 +416,8 @@ public partial class ReconstructorViewModel : ViewModelBase
                 string dirSuffix = _importedArchiveDirectories.Count > 0 ? $", {_importedArchiveDirectories.Count} dirs" : "";
                 Log(LogTarget.System, $"Archive entries: {_importedArchiveFiles.Count} files{dirSuffix}");
             }
+
+            Log(LogTarget.System, $"Per-file timestamps: mtime={_importedFileTimestamps.Count}, ctime={_importedFileCreationTimes.Count}, atime={_importedFileAccessTimes.Count}");
 
             if (_importedCmtCompressedData is { Length: > 0 })
             {
@@ -596,6 +602,323 @@ public partial class ReconstructorViewModel : ViewModelBase
         }
     }
 
+    // ── Import / Export Configuration ──
+
+    private static readonly System.Text.Json.JsonSerializerOptions _configSerializerOptions = new() { WriteIndented = true };
+
+    [RelayCommand]
+    private async Task ImportConfigAsync()
+    {
+        string? path = await _fileDialog.OpenFileAsync("Select Reconstructor Configuration",
+            FileDialogFilters.ReconstructorConfig);
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            string json = await File.ReadAllTextAsync(path);
+            var config = System.Text.Json.JsonSerializer.Deserialize<ReconstructorConfig>(json);
+            if (config is null)
+            {
+                Log(LogTarget.System, "Failed to import configuration: file is empty or invalid");
+                return;
+            }
+
+            ApplyConfig(config);
+            Log(LogTarget.System, $"Configuration imported from {Path.GetFileName(path)}");
+        }
+        catch (Exception ex)
+        {
+            Log(LogTarget.System, $"Failed to import configuration: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportConfigAsync()
+    {
+        string? path = await _fileDialog.SaveFileAsync("Save Reconstructor Configuration",
+            ".json", FileDialogFilters.ReconstructorConfig, "reconstructor-config.json");
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            ReconstructorConfig config = CaptureConfig();
+            string json = System.Text.Json.JsonSerializer.Serialize(config, _configSerializerOptions);
+            await File.WriteAllTextAsync(path, json);
+            Log(LogTarget.System, $"Configuration exported to {Path.GetFileName(path)}");
+        }
+        catch (Exception ex)
+        {
+            Log(LogTarget.System, $"Failed to export configuration: {ex.Message}");
+        }
+    }
+
+    private ReconstructorConfig CaptureConfig() => new()
+    {
+        WinRarPath = WinRarPath,
+        ReleasePath = ReleasePath,
+        VerificationPath = VerificationPath,
+        OutputPath = OutputPath,
+
+        Version2 = Version2,
+        Version3 = Version3,
+        Version4 = Version4,
+        Version5 = Version5,
+        Version6 = Version6,
+        Version7 = Version7,
+
+        SwitchM0 = SwitchM0,
+        SwitchM1 = SwitchM1,
+        SwitchM2 = SwitchM2,
+        SwitchM3 = SwitchM3,
+        SwitchM4 = SwitchM4,
+        SwitchM5 = SwitchM5,
+
+        SwitchMA4 = SwitchMA4,
+        SwitchMA5 = SwitchMA5,
+
+        SwitchMD64K = SwitchMD64K,
+        SwitchMD128K = SwitchMD128K,
+        SwitchMD256K = SwitchMD256K,
+        SwitchMD512K = SwitchMD512K,
+        SwitchMD1024K = SwitchMD1024K,
+        SwitchMD2048K = SwitchMD2048K,
+        SwitchMD4096K = SwitchMD4096K,
+        SwitchMD8M = SwitchMD8M,
+        SwitchMD16M = SwitchMD16M,
+        SwitchMD32M = SwitchMD32M,
+        SwitchMD64M = SwitchMD64M,
+        SwitchMD128M = SwitchMD128M,
+        SwitchMD256M = SwitchMD256M,
+        SwitchMD512M = SwitchMD512M,
+        SwitchMD1G = SwitchMD1G,
+
+        SwitchTSM0 = SwitchTSM0,
+        SwitchTSM1 = SwitchTSM1,
+        SwitchTSM2 = SwitchTSM2,
+        SwitchTSM3 = SwitchTSM3,
+        SwitchTSM4 = SwitchTSM4,
+        SwitchTSC0 = SwitchTSC0,
+        SwitchTSC1 = SwitchTSC1,
+        SwitchTSC2 = SwitchTSC2,
+        SwitchTSC3 = SwitchTSC3,
+        SwitchTSC4 = SwitchTSC4,
+        SwitchTSA0 = SwitchTSA0,
+        SwitchTSA1 = SwitchTSA1,
+        SwitchTSA2 = SwitchTSA2,
+        SwitchTSA3 = SwitchTSA3,
+        SwitchTSA4 = SwitchTSA4,
+
+        SwitchAI = SwitchAI,
+        SwitchR = SwitchR,
+        SwitchDS = SwitchDS,
+        SwitchSDash = SwitchSDash,
+        SwitchMT = SwitchMT,
+        SwitchMTStart = SwitchMTStart,
+        SwitchMTEnd = SwitchMTEnd,
+
+        SwitchV = SwitchV,
+        VolumeSize = VolumeSize,
+        VolumeSizeUnitIndex = VolumeSizeUnitIndex,
+        UseOldVolumeNaming = UseOldVolumeNaming,
+
+        FileA = FileA,
+        FileI = FileI,
+
+        DeleteRARFiles = DeleteRARFiles,
+        DeleteDuplicateCRCFiles = DeleteDuplicateCRCFiles,
+        StopOnFirstMatch = StopOnFirstMatch,
+        CompleteAllVolumes = CompleteAllVolumes,
+        RenameToOriginal = RenameToOriginal,
+
+        EnableHostOSPatching = EnableHostOSPatching,
+
+        ImportedSrr = CaptureImportedSrrState()
+    };
+
+    private ImportedSrrState? CaptureImportedSrrState()
+    {
+        bool hasState = _importedArchiveFiles.Count > 0
+            || _importedArchiveDirectories.Count > 0
+            || _importedFileTimestamps.Count > 0
+            || _importedArchiveFileCrcs.Count > 0
+            || _importedSRRFilePath is not null
+            || _importedCmtCompressedData is { Length: > 0 };
+
+        if (!hasState)
+        {
+            return null;
+        }
+
+        return new ImportedSrrState
+        {
+            SRRFilePath = _importedSRRFilePath,
+            ArchiveFiles = [.. _importedArchiveFiles],
+            ArchiveDirectories = [.. _importedArchiveDirectories],
+            DirTimestamps = new Dictionary<string, DateTime>(_importedDirTimestamps),
+            DirCreationTimes = new Dictionary<string, DateTime>(_importedDirCreationTimes),
+            DirAccessTimes = new Dictionary<string, DateTime>(_importedDirAccessTimes),
+            FileTimestamps = new Dictionary<string, DateTime>(_importedFileTimestamps),
+            FileCreationTimes = new Dictionary<string, DateTime>(_importedFileCreationTimes),
+            FileAccessTimes = new Dictionary<string, DateTime>(_importedFileAccessTimes),
+            ArchiveFileCrcs = new Dictionary<string, string>(_importedArchiveFileCrcs),
+            OriginalRarFileNames = [.. _importedOriginalRarFileNames],
+            ArchiveComment = _importedArchiveComment,
+            ArchiveCommentBytes = _importedArchiveCommentBytes,
+            CmtCompressedData = _importedCmtCompressedData,
+            CmtCompressionMethod = _importedCmtCompressionMethod,
+            DetectedFileHostOS = _detectedFileHostOS,
+            DetectedFileAttributes = _detectedFileAttributes,
+            DetectedCmtHostOS = _detectedCmtHostOS,
+            DetectedCmtFileTime = _detectedCmtFileTime,
+            DetectedCmtFileAttributes = _detectedCmtFileAttributes,
+            DetectedLargeFlag = _detectedLargeFlag,
+            DetectedHighPackSize = _detectedHighPackSize,
+            DetectedHighUnpSize = _detectedHighUnpSize,
+            CustomPackerType = _importedCustomPackerType.ToString(),
+            CustomPackerWarning = CustomPackerWarning
+        };
+    }
+
+    private void ApplyConfig(ReconstructorConfig c)
+    {
+        WinRarPath = c.WinRarPath;
+        ReleasePath = c.ReleasePath;
+        VerificationPath = c.VerificationPath;
+        OutputPath = c.OutputPath;
+
+        Version2 = c.Version2;
+        Version3 = c.Version3;
+        Version4 = c.Version4;
+        Version5 = c.Version5;
+        Version6 = c.Version6;
+        Version7 = c.Version7;
+
+        SwitchM0 = c.SwitchM0;
+        SwitchM1 = c.SwitchM1;
+        SwitchM2 = c.SwitchM2;
+        SwitchM3 = c.SwitchM3;
+        SwitchM4 = c.SwitchM4;
+        SwitchM5 = c.SwitchM5;
+
+        SwitchMA4 = c.SwitchMA4;
+        SwitchMA5 = c.SwitchMA5;
+
+        SwitchMD64K = c.SwitchMD64K;
+        SwitchMD128K = c.SwitchMD128K;
+        SwitchMD256K = c.SwitchMD256K;
+        SwitchMD512K = c.SwitchMD512K;
+        SwitchMD1024K = c.SwitchMD1024K;
+        SwitchMD2048K = c.SwitchMD2048K;
+        SwitchMD4096K = c.SwitchMD4096K;
+        SwitchMD8M = c.SwitchMD8M;
+        SwitchMD16M = c.SwitchMD16M;
+        SwitchMD32M = c.SwitchMD32M;
+        SwitchMD64M = c.SwitchMD64M;
+        SwitchMD128M = c.SwitchMD128M;
+        SwitchMD256M = c.SwitchMD256M;
+        SwitchMD512M = c.SwitchMD512M;
+        SwitchMD1G = c.SwitchMD1G;
+
+        SwitchTSM0 = c.SwitchTSM0;
+        SwitchTSM1 = c.SwitchTSM1;
+        SwitchTSM2 = c.SwitchTSM2;
+        SwitchTSM3 = c.SwitchTSM3;
+        SwitchTSM4 = c.SwitchTSM4;
+        SwitchTSC0 = c.SwitchTSC0;
+        SwitchTSC1 = c.SwitchTSC1;
+        SwitchTSC2 = c.SwitchTSC2;
+        SwitchTSC3 = c.SwitchTSC3;
+        SwitchTSC4 = c.SwitchTSC4;
+        SwitchTSA0 = c.SwitchTSA0;
+        SwitchTSA1 = c.SwitchTSA1;
+        SwitchTSA2 = c.SwitchTSA2;
+        SwitchTSA3 = c.SwitchTSA3;
+        SwitchTSA4 = c.SwitchTSA4;
+
+        SwitchAI = c.SwitchAI;
+        SwitchR = c.SwitchR;
+        SwitchDS = c.SwitchDS;
+        SwitchSDash = c.SwitchSDash;
+        SwitchMT = c.SwitchMT;
+        SwitchMTStart = c.SwitchMTStart;
+        SwitchMTEnd = c.SwitchMTEnd;
+
+        SwitchV = c.SwitchV;
+        VolumeSize = c.VolumeSize;
+        VolumeSizeUnitIndex = c.VolumeSizeUnitIndex;
+        UseOldVolumeNaming = c.UseOldVolumeNaming;
+
+        FileA = c.FileA;
+        FileI = c.FileI;
+
+        DeleteRARFiles = c.DeleteRARFiles;
+        DeleteDuplicateCRCFiles = c.DeleteDuplicateCRCFiles;
+        StopOnFirstMatch = c.StopOnFirstMatch;
+        CompleteAllVolumes = c.CompleteAllVolumes;
+        RenameToOriginal = c.RenameToOriginal;
+
+        EnableHostOSPatching = c.EnableHostOSPatching;
+
+        ApplyImportedSrrState(c.ImportedSrr);
+    }
+
+    private void ApplyImportedSrrState(ImportedSrrState? s)
+    {
+        // Always reset — an absent block means "no SRR imported"
+        _importedSRRFilePath = s?.SRRFilePath;
+        _importedArchiveFiles = s is null
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(s.ArchiveFiles, StringComparer.OrdinalIgnoreCase);
+        _importedArchiveDirectories = s is null
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(s.ArchiveDirectories, StringComparer.OrdinalIgnoreCase);
+
+        _importedDirTimestamps = ToCi(s?.DirTimestamps);
+        _importedDirCreationTimes = ToCi(s?.DirCreationTimes);
+        _importedDirAccessTimes = ToCi(s?.DirAccessTimes);
+        _importedFileTimestamps = ToCi(s?.FileTimestamps);
+        _importedFileCreationTimes = ToCi(s?.FileCreationTimes);
+        _importedFileAccessTimes = ToCi(s?.FileAccessTimes);
+
+        _importedArchiveFileCrcs = s is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(s.ArchiveFileCrcs, StringComparer.OrdinalIgnoreCase);
+
+        _importedOriginalRarFileNames = s?.OriginalRarFileNames is { } names ? [.. names] : [];
+        _importedArchiveComment = s?.ArchiveComment;
+        _importedArchiveCommentBytes = s?.ArchiveCommentBytes;
+        _importedCmtCompressedData = s?.CmtCompressedData;
+        _importedCmtCompressionMethod = s?.CmtCompressionMethod;
+
+        _detectedFileHostOS = s?.DetectedFileHostOS;
+        _detectedFileAttributes = s?.DetectedFileAttributes;
+        _detectedCmtHostOS = s?.DetectedCmtHostOS;
+        _detectedCmtFileTime = s?.DetectedCmtFileTime;
+        _detectedCmtFileAttributes = s?.DetectedCmtFileAttributes;
+        _detectedLargeFlag = s?.DetectedLargeFlag;
+        _detectedHighPackSize = s?.DetectedHighPackSize;
+        _detectedHighUnpSize = s?.DetectedHighUnpSize;
+
+        _importedCustomPackerType = Enum.TryParse(s?.CustomPackerType, out CustomPackerType packer) ? packer : CustomPackerType.None;
+        CustomPackerWarning = s?.CustomPackerWarning;
+
+        if (s is not null)
+        {
+            Log(LogTarget.System, $"Restored SRR state: {_importedArchiveFiles.Count} files, mtime={_importedFileTimestamps.Count}, CRCs={_importedArchiveFileCrcs.Count}, CMT={(_importedCmtCompressedData?.Length ?? 0)} bytes");
+        }
+
+        static Dictionary<string, DateTime> ToCi(Dictionary<string, DateTime>? src) =>
+            src is null
+                ? new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, DateTime>(src, StringComparer.OrdinalIgnoreCase);
+    }
+
     // ── Start / Stop ──
 
     private bool CanStart() => !IsRunning
@@ -700,51 +1023,41 @@ public partial class ReconstructorViewModel : ViewModelBase
         }
 
         // ── Input file existence check ──
-
-        try
+        //
+        // The verify file (.sfv/.sha1) lists the OUTPUT archives we're trying to produce,
+        // so it isn't useful as an input check. The imported SRR's archived files ARE the
+        // expected input contents — verify those exist in the release directory. If no SRR
+        // has been imported, skip this pre-flight; Manager.ValidateInputFiles will run later.
+        if (_importedArchiveFiles.Count > 0)
         {
-            var missingFiles = new List<string>();
-
-            if (verificationExt == ".sfv")
+            try
             {
-                var sfv = SFVFile.ReadFile(VerificationPath);
-                foreach (SFVFileEntry entry in sfv.Entries)
+                var missingFiles = new List<string>();
+                foreach (string archiveFile in _importedArchiveFiles)
                 {
-                    string fullPath = Path.Combine(ReleasePath, entry.FileName);
+                    string fullPath = Path.Combine(ReleasePath, archiveFile);
                     if (!File.Exists(fullPath))
                     {
-                        missingFiles.Add(entry.FileName);
+                        missingFiles.Add(archiveFile);
                     }
                 }
-            }
-            else
-            {
-                var sha1 = SHA1File.ReadFile(VerificationPath);
-                foreach (SHA1FileEntry entry in sha1.Entries)
-                {
-                    string fullPath = Path.Combine(ReleasePath, entry.FileName);
-                    if (!File.Exists(fullPath))
-                    {
-                        missingFiles.Add(entry.FileName);
-                    }
-                }
-            }
 
-            if (missingFiles.Count > 0)
-            {
-                string fileList = string.Join("\n", missingFiles);
-                Log(LogTarget.System, $"Missing {missingFiles.Count} input file(s) in release directory.");
-                MessageBox.Show(
-                    $"The following {missingFiles.Count} file(s) are missing from the release directory:\n\n{fileList}\n\nEnsure all source files are present before starting.",
-                    "Missing Input Files",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-                return;
+                if (missingFiles.Count > 0)
+                {
+                    string fileList = string.Join("\n", missingFiles);
+                    Log(LogTarget.System, $"Missing {missingFiles.Count} input file(s) in release directory.");
+                    MessageBox.Show(
+                        $"The following {missingFiles.Count} file(s) listed in the imported SRR are missing from the release directory:\n\n{fileList}\n\nThe release directory should contain the unpacked archive contents (the files that originally went into the RARs).",
+                        "Missing Input Files",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            Log(LogTarget.System, $"Failed to validate input files: {ex.Message}");
+            catch (Exception ex)
+            {
+                Log(LogTarget.System, $"Failed to validate input files: {ex.Message}");
+            }
         }
 
         // ── Output directory validation & cleanup ──
@@ -858,6 +1171,10 @@ public partial class ReconstructorViewModel : ViewModelBase
             PhaseDescription = success ? "Complete \u2014 Match Found!" : "Complete \u2014 No Match";
             ProgressPercent = 100;
             ProgressPercentText = "100%";
+            if (_lastOperationSize > 0)
+            {
+                TestCountText = $"Test {_lastOperationSize:N0} of {_lastOperationSize:N0}";
+            }
             Log(LogTarget.System, success ? "Brute-force completed: match found!" : "Brute-force completed: no match.");
         }
         catch (OperationCanceledException)
@@ -1504,6 +1821,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             ProgressMessage = $"{e.PhaseDescription} | {version} | {e.RARCommandLineArguments} | {e.OperationProgressed}/{e.OperationSize}";
 
             // Progress window fields
+            _lastOperationSize = e.OperationSize;
             TestCountText = $"Test {e.OperationProgressed:N0} of {e.OperationSize:N0}";
             ProgressPercentText = $"{e.Progress:F1}%";
 

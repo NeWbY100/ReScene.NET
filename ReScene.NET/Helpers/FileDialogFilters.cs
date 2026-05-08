@@ -113,4 +113,13 @@ internal static class FileDialogFilters
     /// All files — for generic save/export dialogs.
     /// </summary>
     public static readonly string[] AllFiles = ["All Files|*.*"];
+
+    /// <summary>
+    /// Reconstructor configuration JSON.
+    /// </summary>
+    public static readonly string[] ReconstructorConfig =
+    [
+        "Reconstructor Config|*.json",
+        "All Files|*.*"
+    ];
 }

@@ -80,6 +80,7 @@
 
         <!-- Version list -->
         <DataGrid Grid.Row="5"
+                  x:Name="VersionGrid"
                   ItemsSource="{Binding VersionEntries}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
@@ -110,8 +111,12 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Stop / Close button -->
+        <!-- Auto-scroll toggle + Stop / Close button -->
         <DockPanel Grid.Row="6" LastChildFill="False">
+            <CheckBox DockPanel.Dock="Left"
+                      Content="Auto-scroll"
+                      IsChecked="{Binding AutoScrollProgress}"
+                      VerticalAlignment="Center" />
             <Button x:Name="btnStopClose"
                     DockPanel.Dock="Right"
                     Content="Stop"

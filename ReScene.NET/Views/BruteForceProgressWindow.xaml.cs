@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +21,7 @@ public partial class BruteForceProgressWindow : Window
             if (DataContext is ReconstructorViewModel vm)
             {
                 vm.PropertyChanged += OnVmPropertyChanged;
+                vm.VersionEntries.CollectionChanged += OnVersionEntriesChanged;
 
                 // Catch up with state that changed before we loaded
                 if (vm.IsCopying)
@@ -32,6 +34,27 @@ public partial class BruteForceProgressWindow : Window
                 }
             }
         };
+    }
+
+    private void OnVersionEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (DataContext is not ReconstructorViewModel { AutoScrollProgress: true } vm
+            || vm.VersionEntries.Count == 0)
+        {
+            return;
+        }
+
+        // Defer the scroll: when the change came from a Dispatcher.Invoke earlier in the
+        // pipeline, the row containers may not exist yet at the moment the event fires.
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            if (vm.VersionEntries.Count == 0)
+            {
+                return;
+            }
+
+            VersionGrid.ScrollIntoView(vm.VersionEntries[^1]);
+        });
     }
 
     private void ShowCopyWindow()
@@ -153,6 +176,7 @@ public partial class BruteForceProgressWindow : Window
         if (DataContext is ReconstructorViewModel vmCleanup)
         {
             vmCleanup.PropertyChanged -= OnVmPropertyChanged;
+            vmCleanup.VersionEntries.CollectionChanged -= OnVersionEntriesChanged;
         }
 
         base.OnClosing(e);

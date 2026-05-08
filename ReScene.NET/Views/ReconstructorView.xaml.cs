@@ -52,26 +52,56 @@ public partial class ReconstructorView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ReconstructorViewModel.IsRunning))
+        if (sender is not ReconstructorViewModel vm)
         {
             return;
         }
 
-        if (sender is ReconstructorViewModel { IsRunning: true })
+        switch (e.PropertyName)
         {
-            // Defer ShowDialog so StartAsync can reach its await point first.
-            // ShowDialog blocks the UI thread, so opening it synchronously from
-            // the PropertyChanged handler would prevent the brute force from starting.
-            // Use Normal priority so the window opens before progress events are processed.
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
-            {
-                var window = new BruteForceProgressWindow
+            case nameof(ReconstructorViewModel.SystemLog):
+                ScrollLogToEnd(vm, SystemLogBox);
+                return;
+
+            case nameof(ReconstructorViewModel.Phase1Log):
+                ScrollLogToEnd(vm, Phase1LogBox);
+                return;
+
+            case nameof(ReconstructorViewModel.Phase2Log):
+                ScrollLogToEnd(vm, Phase2LogBox);
+                return;
+
+            case nameof(ReconstructorViewModel.IsRunning):
+                if (vm.IsRunning)
                 {
-                    Owner = Window.GetWindow(this),
-                    DataContext = DataContext
-                };
-                window.ShowDialog();
-            });
+                    // Defer ShowDialog so StartAsync can reach its await point first.
+                    // ShowDialog blocks the UI thread, so opening it synchronously from
+                    // the PropertyChanged handler would prevent the brute force from starting.
+                    // Use Normal priority so the window opens before progress events are processed.
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
+                    {
+                        var window = new BruteForceProgressWindow
+                        {
+                            Owner = Window.GetWindow(this),
+                            DataContext = DataContext
+                        };
+                        window.ShowDialog();
+                    });
+                }
+
+                return;
         }
+    }
+
+    private void ScrollLogToEnd(ReconstructorViewModel vm, TextBox textBox)
+    {
+        if (!vm.AutoScrollLog)
+        {
+            return;
+        }
+
+        // Defer to Background so the binding-driven re-render finishes first;
+        // ScrollToEnd before the new text is laid out is a no-op.
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, textBox.ScrollToEnd);
     }
 }

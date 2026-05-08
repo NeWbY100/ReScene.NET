@@ -30,6 +30,20 @@
         <!-- ── Top section: Paths, Settings, Action ─────────────── -->
         <DockPanel Grid.Row="1" Margin="0,0,0,2">
 
+            <!-- ── Configuration ─────────────────────────────────────── -->
+            <TextBlock DockPanel.Dock="Top" Text="Configuration" FontWeight="SemiBold" Margin="0,0,0,2" />
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <Button DockPanel.Dock="Left" Content="Import Config"
+              Command="{Binding ImportConfigCommand}"
+              Style="{StaticResource GhostButton}"
+              ToolTip="Load all paths and options from a previously-exported configuration JSON file."
+              Padding="12,4" />
+            </DockPanel>
+
+            <!-- separator -->
+            <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
             <!-- ── Paths ─────────────────────────────────────────────── -->
             <TextBlock DockPanel.Dock="Top" Text="Paths" FontWeight="SemiBold" Margin="0,0,0,2" />
 
@@ -72,15 +86,6 @@
             <!-- separator -->
             <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
-            <!-- ── Import SRR ──────────────────────────────────────── -->
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
-                <Button DockPanel.Dock="Left" Content="Import SRR"
-                Command="{Binding ImportSRRCommand}"
-                Style="{StaticResource PrimaryButton}"
-                ToolTip="Import settings from an SRR file. Auto-configures compression, dictionary, versions, timestamps, and Host OS."
-                Padding="12,4" />
-            </DockPanel>
-
             <!-- Custom packer warning -->
             <Border DockPanel.Dock="Top"
                     Visibility="{Binding HasCustomPackerWarning, Converter={StaticResource BoolToVisibility}}"
@@ -98,30 +103,31 @@
             <!-- ── Action row ─────────────────────────────────────────── -->
             <DockPanel DockPanel.Dock="Bottom" Margin="0,2,0,0">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Export Config"
+                  Command="{Binding ExportConfigCommand}"
+                  Style="{StaticResource GhostButton}"
+                  ToolTip="Save the current paths and options to a configuration JSON file for reuse."
+                  Padding="12,4" Margin="0,0,4,0" />
                     <Button Content="Start"
                   Command="{Binding StartCommand}"
                   Style="{StaticResource PrimaryButton}"
-                  Padding="16,4" Margin="0,0,4,0" />
-                    <Button Content="Stop"
-                  Command="{Binding StopCommand}"
-                  Style="{StaticResource CancelButton}"
-                  Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}"
                   Padding="16,4" />
                 </StackPanel>
-                <TextBlock Text="{Binding ProgressMessage}"
-                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
-                   VerticalAlignment="Center" />
             </DockPanel>
-
-            <!-- Progress bar -->
-            <ProgressBar DockPanel.Dock="Bottom"
-                   Value="{Binding ProgressPercent}"
-                   Maximum="100" Height="19"
-                   Margin="0,0,0,2"
-                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" RenderTransformOrigin="0.5,-1.109" />
 
             <!-- separator above action row -->
             <Border DockPanel.Dock="Bottom" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+            <!-- ── Options ───────────────────────────────────────────── -->
+            <TextBlock DockPanel.Dock="Top" Text="Options" FontWeight="SemiBold" Margin="0,0,0,2" />
+
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <Button DockPanel.Dock="Left" Content="Import from SRR"
+                Command="{Binding ImportSRRCommand}"
+                Style="{StaticResource PrimaryButton}"
+                ToolTip="Import settings from an SRR file. Auto-configures compression, dictionary, versions, timestamps, and Host OS."
+                Padding="12,4" />
+            </DockPanel>
 
             <!-- Settings expanders fill remaining space -->
             <ScrollViewer Margin="0,2,0,0" VerticalScrollBarVisibility="Auto">
@@ -319,7 +325,7 @@
                             <CheckBox Content="Rename matched output files to the original RAR filenames from the SRR. Requires Stop on first match."
                         IsChecked="{Binding RenameToOriginal}"
                         IsEnabled="{Binding IsRenameToOriginalEnabled}" Margin="0,1" />
-                            <CheckBox Content="Patch brute-forced RAR headers to match the original archive (Host OS, attributes, LARGE flag)."
+                            <CheckBox Content="Patch brute-forced RAR headers to match the original archive (Host OS, attributes, LARGE flag, mtime)."
                         IsChecked="{Binding EnableHostOSPatching}" Margin="0,1" />
                         </StackPanel>
                     </Expander>
@@ -342,11 +348,17 @@
                         Command="{Binding SaveLogCommand}"
                         Style="{StaticResource GhostButton}"
                         Padding="8,2" />
+                <CheckBox DockPanel.Dock="Right"
+                          Content="Auto-scroll"
+                          IsChecked="{Binding AutoScrollLog}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,8,0" />
                 <TextBlock Text="Log" FontWeight="SemiBold" VerticalAlignment="Center" />
             </DockPanel>
             <TabControl>
                 <TabItem Header="System">
-                    <TextBox Text="{Binding SystemLog}"
+                    <TextBox x:Name="SystemLogBox"
+                   Text="{Binding SystemLog}"
                    IsReadOnly="True" AcceptsReturn="True"
                    TextWrapping="NoWrap"
                    VerticalScrollBarVisibility="Auto"
@@ -357,7 +369,8 @@
                    Foreground="{DynamicResource LogTerminalForeground}" />
                 </TabItem>
                 <TabItem Header="Phase 1">
-                    <TextBox Text="{Binding Phase1Log}"
+                    <TextBox x:Name="Phase1LogBox"
+                   Text="{Binding Phase1Log}"
                    IsReadOnly="True" AcceptsReturn="True"
                    TextWrapping="NoWrap"
                    VerticalScrollBarVisibility="Auto"
@@ -368,7 +381,8 @@
                    Foreground="{DynamicResource LogTerminalForeground}" />
                 </TabItem>
                 <TabItem Header="Phase 2">
-                    <TextBox Text="{Binding Phase2Log}"
+                    <TextBox x:Name="Phase2LogBox"
+                   Text="{Binding Phase2Log}"
                    IsReadOnly="True" AcceptsReturn="True"
                    TextWrapping="NoWrap"
                    VerticalScrollBarVisibility="Auto"
