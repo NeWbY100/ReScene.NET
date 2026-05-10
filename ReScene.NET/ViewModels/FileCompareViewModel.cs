@@ -432,7 +432,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         if (_leftData is not null && _rightData is not null)
         {
             _compareResult = _compareService.Compare(_leftData, _rightData,
-                _leftDetailedBlocks, _rightDetailedBlocks);
+                _leftDetailedBlocks, _rightDetailedBlocks,
+                _leftFileSource, _rightFileSource);
             ApplyComparisonHighlighting();
             UpdateStatus();
         }
@@ -466,10 +467,21 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
         if (totalDiffs == 0)
         {
-            StatusMessage = "Files are identical.";
-            DiffSummary = "No differences found - files are identical.";
-            HasDiffSummary = true;
-            FilesIdentical = true;
+            int byteDiffRanges = (LeftDiffRanges?.Count ?? 0) + (RightDiffRanges?.Count ?? 0);
+            if (byteDiffRanges > 0)
+            {
+                StatusMessage = "Byte-level differences detected in current hex view but no structural differences found.";
+                DiffSummary = "Byte-level differences detected in current hex view.";
+                HasDiffSummary = true;
+                FilesIdentical = false;
+            }
+            else
+            {
+                StatusMessage = "Files are identical.";
+                DiffSummary = "No differences found - files are identical.";
+                HasDiffSummary = true;
+                FilesIdentical = true;
+            }
         }
         else
         {
@@ -1199,7 +1211,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 {
                     RARDetailedBlock? otherBlock = otherBlocks.FirstOrDefault(b =>
                         b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-                    if (otherBlock is not null && FileComparer.HasFieldDifferences(block, otherBlock))
+                    if (otherBlock is not null
+                        && FileComparer.HasBlockDifferences(block, otherBlock, _leftFileSource, _rightFileSource))
                     {
                         node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
                         node.IsDifferent = true;

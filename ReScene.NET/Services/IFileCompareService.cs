@@ -1,4 +1,5 @@
 using ReScene.Core.Comparison;
+using ReScene.Hex;
 using ReScene.RAR;
 
 namespace ReScene.NET.Services;
@@ -45,9 +46,16 @@ public interface IFileCompareService
     /// <param name="rightBlocks">
     /// Optional detailed RAR blocks for the right file.
     /// </param>
+    /// <param name="leftSource">
+    /// Optional byte-level data source for the left file, used to compare block payloads.
+    /// </param>
+    /// <param name="rightSource">
+    /// Optional byte-level data source for the right file, used to compare block payloads.
+    /// </param>
     /// <returns>
     /// A <see cref="CompareResult"/> describing all differences found.
     /// </returns>
     public CompareResult Compare(object? leftData, object? rightData,
-        List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null);
+        List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null,
+        IHexDataSource? leftSource = null, IHexDataSource? rightSource = null);
 }

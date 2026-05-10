@@ -4,6 +4,29 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.4] — 2026-05-10
+
+### Fixed
+
+- Compare tab no longer reports two RAR files as identical when only
+  their block payload bytes differ. `FileComparer.CompareDetailedBlocks`
+  now byte-compares each block's data region (`StartOffset + HeaderSize`
+  through `+ DataSize`) in 64 KB chunks when both sides supply an
+  `IHexDataSource`, surfacing a `Block Data` property difference and
+  marking the affected file/service block as `[DIFF]` in the structure
+  tree. Previously the comparator only inspected parsed RAR header
+  fields, so two archives with identical metadata (filename, packed
+  size, file CRC32, timestamp) but different compressed payloads — the
+  exact case produced when reconstructing — slipped through as
+  "identical."
+- The status bar can no longer disagree with the hex-view byte diff:
+  when the structural compare finds zero differences but the byte-level
+  hex diff reports differing ranges, the status now reads "Byte-level
+  differences detected in current hex view but no structural
+  differences found." instead of "Files are identical."
+
+[1.2.4]: https://github.com/NeWbY100/ReScene.NET/releases/tag/v1.2.4
+
 ## [1.2.3] — 2026-05-08
 
 ### Added
