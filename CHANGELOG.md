@@ -4,6 +4,33 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.5] — 2026-05-10
+
+### Added
+
+- RAR Reconstructor patcher gains per-file modification-time
+  rewriting. `PatchOptions.FileModifiedTimes` maps file names to target
+  `DateTime`s; the patcher overwrites the matching file header's 4-byte
+  DOS `FTIME` field and, when `LHD_EXTTIME` is set and the EXT_TIME
+  mtime nibble carries the present bit, rewrites the sub-second
+  remainder in-place at its existing precision (0–3 bytes), updating
+  the +1s rounding flag for odd-second targets. `RAROptions` exposes
+  `NeedsMtimePatching` (true when host-OS patching is enabled and
+  `FileTimestamps` has entries) and `Manager` wires the existing
+  `RAROptions.FileTimestamps` into the patch options. Sidesteps file
+  system / WinRAR precision quirks that prevent the source file's
+  mtime from being faithfully captured into the produced archive.
+
+### Fixed
+
+- `RARProcess` now registers `CodePagesEncodingProvider.Instance`
+  before resolving the OEM code page. Without this, `Encoding.GetEncoding`
+  for non-Unicode code pages (437, 850, 1252, …) throws
+  `ArgumentException` on .NET Core / .NET 5+ and the OEM-encoding path
+  silently fell back into its catch arm.
+
+[1.2.5]: https://github.com/NeWbY100/ReScene.NET/releases/tag/v1.2.5
+
 ## [1.2.4] — 2026-05-10
 
 ### Fixed
