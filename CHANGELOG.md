@@ -4,6 +4,73 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.6] — 2026-05-12
+
+### Added
+
+- SRS Creator gains an optional **Main file** input. When set, the
+  writer locates each track's signature inside the main file after
+  profiling and records the offset as `TrackInfo.MatchOffset`, mirroring
+  pyrescene's `-c` flag. Produces SRS files byte-equivalent to scene
+  tooling output (matching `MatchOffset` values rather than 0). MKV
+  uses the EBML walker (handles subtitle-style tracks); other
+  containers fall back to a raw byte scan. Tracks the verifier cannot
+  locate keep `MatchOffset = 0` and emit a warning instead of failing.
+- SRS Reconstructor and SRS Creator both show live scan progress
+  (percent, MB scanned, throughput, ETA) during their long file-walking
+  steps. The Reconstructor modal stays open through the "Rebuilding"
+  and "Verifying CRC" phases — heading transitions through "Rebuilding
+  Sample" → "Verifying CRC" → close — instead of disappearing while the
+  EBML walker traverses the media file silently.
+- RAR Reconstructor warns via `MessageBox` when an imported SRR carries
+  no RAR reconstruction information (no RAR file entries, no archived
+  files, and no detected compression method). The user is told to
+  configure options manually instead of being left wondering why
+  nothing auto-populated.
+- RAR Reconstructor surfaces timestamp-preservation failures. When the
+  brute-force input copy cannot apply the source file's mtime/ctime/atime
+  onto the working copy (denied by ACLs, read-only volume, …), a single
+  summary `MessageBox` lists the affected paths after the run completes,
+  explaining that the produced RAR's File Time (DOS) may not match the
+  original. Per-file warnings continue to flow through the system log
+  in real time.
+
+### Fixed
+
+- MKV sample reconstruction no longer fails with "Unable to locate
+  track signature for track N in the media file" when the SRS was
+  generated from a sample containing subtitle tracks (or any track
+  whose individual Block payloads are smaller than the 256-byte
+  signature). `MKVContainerRebuilder.FindSampleStreams` now walks the
+  media file's EBML structure and matches each track's signature
+  progressively across non-contiguous Block payloads — mirroring
+  pyrescene's `_mkv_block_find`, including partial-match reset/re-try
+  as a fresh match start. The previous raw byte scan in
+  `SRSRebuilder.FindSignature` is preserved as a fallback for non-MKV
+  containers.
+- `MKVContainerRebuilder.ExtractMediaAttachments` skips past `Cluster`
+  bodies during its sweep. Attachments never live inside Clusters, and
+  walking every `SimpleBlock` in a multi-GB MKV turned the attachment
+  pass into a multi-second silent stall.
+- Reconstructor input copies now propagate the source file's
+  `LastWriteTime` / `CreationTime` / `LastAccessTime` onto the
+  destination after the stream copy. Previously the stream copy
+  stamped destinations with "now", so when the SRR carried no archived
+  timestamps WinRAR packed `FILE_HEAD.FTIME` with the copy time
+  instead of the source's mtime. With SRR-driven timestamps the
+  existing `ApplyFileTimestamps` step still overrides — same end
+  result. With an empty SRR, the file's correct mtime now flows
+  through to the produced RAR.
+- Compare tab's `SRSContainerChunks` matcher used to return the first
+  matching node (usually the "Container Structure" parent, whose
+  `Data` is a `List<SRSContainerChunk>` rather than a single chunk),
+  leaving the opposite-side Properties panel empty when clicking
+  through to a Cluster / EBML / Segment / etc. node. `FindMatchingNode`
+  now special-cases the type and matches parent-to-parent and
+  chunk-to-chunk by `Label`.
+
+[1.2.6]: https://github.com/NeWbY100/ReScene.NET/releases/tag/v1.2.6
+
 ## [1.2.5] — 2026-05-10
 
 ### Added
