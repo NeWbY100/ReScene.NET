@@ -438,11 +438,28 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            // Close scan modal when rebuilding starts (scanning is done)
-            if (_scanModalActive && e.Phase is "Rebuilding" or "Verifying CRC" or "Complete")
+            // Keep the scan modal open through Rebuilding (frame-data collection
+            // can take many seconds on large media files) and Verifying CRC.
+            // Close only once reconstruction is complete.
+            if (_scanModalActive)
             {
-                _scanModalActive = false;
-                ISOProcessing = false;
+                if (e.Phase == "Rebuilding")
+                {
+                    ISOProgressHeading = "Rebuilding Sample";
+                    ISOCurrentFileText = "Collecting frame data from media file...";
+                }
+                else if (e.Phase == "Verifying CRC")
+                {
+                    ISOProgressHeading = "Verifying CRC";
+                    ISOCurrentFileText = "Computing checksum of rebuilt sample...";
+                    ISOOverallPercent = 100;
+                    ISOCurrentPercent = 100;
+                }
+                else if (e.Phase == "Complete")
+                {
+                    _scanModalActive = false;
+                    ISOProcessing = false;
+                }
             }
 
             int percent = (int)e.ProgressPercent;

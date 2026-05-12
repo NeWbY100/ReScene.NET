@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -26,6 +27,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
         _settingsService = settingsService;
 
         _sRSService.Progress += OnProgress;
+        _sRSService.ScanProgress += OnScanProgress;
 
         AppSettings settings = _settingsService.Load();
 
@@ -108,10 +110,17 @@ public partial class SRSCreatorViewModel : ViewModelBase
     [ObservableProperty]
     private bool _iSOProcessing;
 
+    private Stopwatch? _scanStopwatch;
+    private bool _scanModalActive;
+
     // Output
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
     private string _outputPath = string.Empty;
+
+    // Optional main file for match-offset verification (mirrors pyrescene -c)
+    [ObservableProperty]
+    private string _mainFilePath = string.Empty;
 
     // Options
     [ObservableProperty]
@@ -179,6 +188,21 @@ public partial class SRSCreatorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task BrowseMainFileAsync()
+    {
+        string? path = await _fileDialog.OpenFileAsync("Select Main File (Full Movie)",
+            FileDialogFilters.MediaFiles);
+
+        if (path is not null)
+        {
+            MainFilePath = path;
+        }
+    }
+
+    [RelayCommand]
+    private void ClearMainFile() => MainFilePath = string.Empty;
+
+    [RelayCommand]
     private async Task BrowseOutputAsync()
     {
         string? path = await _fileDialog.SaveFileAsync(
@@ -219,7 +243,8 @@ public partial class SRSCreatorViewModel : ViewModelBase
         {
             var options = new SRSCreationOptions
             {
-                AppName = string.IsNullOrWhiteSpace(AppName) ? FormatUtilities.GetDefaultAppName() : AppName
+                AppName = string.IsNullOrWhiteSpace(AppName) ? FormatUtilities.GetDefaultAppName() : AppName,
+                MainFilePath = string.IsNullOrWhiteSpace(MainFilePath) ? null : MainFilePath
             };
 
             Log("Starting SRS creation...");
@@ -274,8 +299,29 @@ public partial class SRSCreatorViewModel : ViewModelBase
             Log($"Input:  {samplePath}");
             Log($"Output: {OutputPath}");
 
+            // Show progress modal during profiling (can take many seconds on large samples)
+            ISOProgressHeading = "Profiling Sample";
+            ISOCurrentFileText = Path.GetFileName(samplePath);
+            ISOFileCountText = "Reading sample structure and computing CRC...";
+            ISOOverallPercent = 0;
+            ISOCurrentPercent = 0;
+            ISOCurrentSizeText = string.Empty;
+            ISOProcessedText = string.Empty;
+            ISORemainingText = string.Empty;
+            ISOSpeedText = string.Empty;
+            ISOEtaText = string.Empty;
+            _scanStopwatch = Stopwatch.StartNew();
+            _scanModalActive = true;
+            ISOProcessing = true;
+
+            // Yield to let the dispatcher open the modal before heavy work starts
+            await Task.Yield();
+
             SRSCreationResult result = await _sRSService.CreateAsync(
                 OutputPath, samplePath, options, _cts.Token);
+
+            _scanModalActive = false;
+            ISOProcessing = false;
 
             if (result.Success)
             {
@@ -311,6 +357,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
         }
         finally
         {
+            _scanModalActive = false;
             ISOProcessing = false;
             IsCreating = false;
             _cts?.Dispose();
@@ -359,7 +406,70 @@ public partial class SRSCreatorViewModel : ViewModelBase
         {
             ProgressMessage = e.Message;
             Log(e.Message);
+
+            if (!_scanModalActive)
+            {
+                return;
+            }
+
+            // Transition the modal as we move from profiling -> verifying -> writing -> complete
+            if (e.Message.StartsWith("Verifying sample against main file", StringComparison.OrdinalIgnoreCase))
+            {
+                ISOProgressHeading = "Verifying Against Main File";
+                ISOCurrentFileText = "Searching for track signatures in main file...";
+                ISOOverallPercent = 0;
+                ISOCurrentPercent = 0;
+                _scanStopwatch?.Restart();
+            }
+            else if (e.Message.StartsWith("Writing SRS", StringComparison.OrdinalIgnoreCase))
+            {
+                ISOProgressHeading = "Writing SRS";
+                ISOCurrentFileText = "Writing SRS file...";
+                ISOOverallPercent = 100;
+                ISOCurrentPercent = 100;
+            }
         });
+    }
+
+    private void OnScanProgress(object? _, SRSScanProgressEventArgs e)
+    {
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            if (!_scanModalActive)
+            {
+                return;
+            }
+
+            ISOOverallPercent = e.Percent;
+            ISOCurrentPercent = e.Percent;
+            ISOCurrentFileText = e.Phase;
+            UpdateScanStats(e.BytesScanned, e.BytesTotal);
+        });
+    }
+
+    private void UpdateScanStats(long processed, long total)
+    {
+        if (total <= 0 || _scanStopwatch is null)
+        {
+            return;
+        }
+
+        double elapsed = _scanStopwatch.Elapsed.TotalSeconds;
+        ISOProcessedText = $"{FormatUtilities.FormatSize(processed)} / {FormatUtilities.FormatSize(total)}";
+
+        long remaining = total - processed;
+        ISORemainingText = FormatUtilities.FormatSize(remaining);
+
+        if (elapsed > 0.5 && processed > 0)
+        {
+            double bytesPerSec = processed / elapsed;
+            ISOSpeedText = $"{FormatUtilities.FormatSize((long)bytesPerSec)}/s";
+
+            double secondsRemaining = remaining / bytesPerSec;
+            ISOEtaText = secondsRemaining < 60
+                ? $"{secondsRemaining:F0}s"
+                : $"{(int)(secondsRemaining / 60)}m {(int)(secondsRemaining % 60)}s";
+        }
     }
 
     private void Log(string message) => AppendLogEntry(LogEntries, message);

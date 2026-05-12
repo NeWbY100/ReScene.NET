@@ -36,6 +36,28 @@
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
+    <!-- ── Main file (optional, for MatchOffset verification) ──────── -->
+    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,2">
+      <Run Text="Main file " FontWeight="SemiBold" />
+      <Run Text="(optional — populates MatchOffset, matches pyrescene's -c flag)"
+           Foreground="{DynamicResource ForegroundSecondary}"
+           FontSize="{DynamicResource FontSizeCaption}" />
+    </TextBlock>
+    <DockPanel DockPanel.Dock="Top">
+      <Button DockPanel.Dock="Right" Content="Browse"
+              Command="{Binding BrowseMainFileCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="75" />
+      <Button DockPanel.Dock="Right" Content="Clear"
+              Command="{Binding ClearMainFileCommand}"
+              Style="{StaticResource GhostButton}"
+              Margin="4,0,0,0" MinWidth="60" />
+      <TextBox Text="{Binding MainFilePath}" />
+    </DockPanel>
+
+    <!-- separator -->
+    <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
     <!-- ── Output ────────────────────────────────────────────── -->
     <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
     <DockPanel DockPanel.Dock="Top">

@@ -58,6 +58,12 @@ public partial class ReconstructorViewModel : ViewModelBase
     private CustomPackerType _importedCustomPackerType = CustomPackerType.None;
     private string? _importedSRRFilePath;
 
+    // Timestamp-preservation failures accumulated during the current run.
+    // Surfaced as a single MessageBox when the operation completes so the
+    // user is aware that the resulting RAR's File Time (DOS) may not match
+    // the original for those files.
+    private readonly List<TimestampPreservationFailedEventArgs> _timestampFailures = [];
+
     public ReconstructorViewModel(IBruteForceService bruteForceService, IFileDialogService fileDialog)
     {
         _bruteForceService = bruteForceService;
@@ -68,6 +74,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         _bruteForceService.LogMessage += OnLogMessage;
         _bruteForceService.FileCopyProgress += OnFileCopyProgress;
         _bruteForceService.CRCValidationProgress += OnCRCValidationProgress;
+        _bruteForceService.TimestampPreservationFailed += OnTimestampPreservationFailed;
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += (_, _) => OnElapsedTimerTick();
@@ -368,6 +375,27 @@ public partial class ReconstructorViewModel : ViewModelBase
 
             var srr = SRRFile.Load(path);
             Log(LogTarget.System, "SRR loaded successfully");
+
+            // Detect SRRs that carry no RAR reconstruction information
+            // (no RAR volume entries, no archived-file metadata, no detected
+            // compression method). These can't drive automatic option setup,
+            // so warn the user that they'll need to configure things manually.
+            bool hasRarReconstructionInfo = srr.RARFiles.Count > 0
+                || srr.ArchivedFiles.Count > 0
+                || srr.CompressionMethod.HasValue;
+
+            if (!hasRarReconstructionInfo)
+            {
+                Log(LogTarget.System,
+                    "WARNING: SRR contains no RAR reconstruction information.");
+                MessageBox.Show(
+                    "This SRR file does not contain RAR reconstruction information " +
+                    "(no RAR volume entries, archived files, or compression metadata).\n\n" +
+                    "You will need to configure the RAR options manually before reconstructing.",
+                    "No RAR Reconstruction Info",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
 
             // Custom packer detection
             if (srr.HasCustomPackerHeaders)
@@ -1124,6 +1152,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         SystemLog = string.Empty;
         Phase1Log = string.Empty;
         Phase2Log = string.Empty;
+        _timestampFailures.Clear();
 
         // Reset progress window state
         TestCountText = string.Empty;
@@ -1894,8 +1923,55 @@ public partial class ReconstructorViewModel : ViewModelBase
                     OperationCompletionStatus.Cancelled => "Cancelled.",
                     _ => "Completed."
                 };
+
+                ShowTimestampFailureWarningIfAny();
             }
         });
+    }
+
+    private void OnTimestampPreservationFailed(object? _, TimestampPreservationFailedEventArgs e)
+    {
+        // The library already logs a Warning via its logger (routed through
+        // OnLogMessage). Track the failure here so we can show a single
+        // summary MessageBox when the run finishes.
+        _timestampFailures.Add(e);
+    }
+
+    private void ShowTimestampFailureWarningIfAny()
+    {
+        if (_timestampFailures.Count == 0)
+        {
+            return;
+        }
+
+        const int MaxFilesToList = 10;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Could not copy the source file's modification time onto the working copy " +
+                      "for the following file(s):");
+        sb.AppendLine();
+
+        int shown = Math.Min(_timestampFailures.Count, MaxFilesToList);
+        for (int i = 0; i < shown; i++)
+        {
+            TimestampPreservationFailedEventArgs f = _timestampFailures[i];
+            sb.AppendLine($"  • {f.DestinationPath}");
+            sb.AppendLine($"      ({f.ErrorMessage})");
+        }
+
+        if (_timestampFailures.Count > MaxFilesToList)
+        {
+            sb.AppendLine($"  … and {_timestampFailures.Count - MaxFilesToList} more.");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("WinRAR will pack these files with the copy time instead of the original " +
+                      "modification time, so the resulting RAR's File Time (DOS) may differ " +
+                      "from the original release.");
+
+        MessageBox.Show(sb.ToString(),
+            "Timestamp Preservation Failed",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void OnLogMessage(object? _, LogEventArgs e) => Application.Current.Dispatcher.Invoke(() => AppendLog(e.Target, e.Message));

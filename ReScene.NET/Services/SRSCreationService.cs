@@ -17,6 +17,13 @@ public class SRSCreationService : ISrsCreationService
     }
 
     /// <inheritdoc />
+    public event EventHandler<SRSScanProgressEventArgs>? ScanProgress
+    {
+        add => _writer.ScanProgress += value;
+        remove => _writer.ScanProgress -= value;
+    }
+
+    /// <inheritdoc />
     public Task<SRSCreationResult> CreateAsync(
         string outputPath,
         string sampleFilePath,

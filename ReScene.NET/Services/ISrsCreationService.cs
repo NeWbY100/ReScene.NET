@@ -13,6 +13,11 @@ public interface ISrsCreationService
     public event EventHandler<SRSCreationProgressEventArgs>? Progress;
 
     /// <summary>
+    /// Raised to report byte-level scan progress during sample profiling.
+    /// </summary>
+    public event EventHandler<SRSScanProgressEventArgs>? ScanProgress;
+
+    /// <summary>
     /// Creates an SRS file from a sample media file.
     /// </summary>
     /// <param name="outputPath">

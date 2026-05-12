@@ -1347,6 +1347,27 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                     }
                 }
             }
+            else if (nodeData.NodeType == CompareNodeType.SRSContainerChunks
+                  && sourceData.NodeType == CompareNodeType.SRSContainerChunks)
+            {
+                // SRSContainerChunks NodeType is shared by both the "Container
+                // Structure" parent (Data = List<SRSContainerChunk>) and every
+                // chunk child (Data = SRSContainerChunk). Match parent-to-parent
+                // and chunk-to-chunk by Label so a clicked Cluster lights up the
+                // corresponding Cluster on the other side rather than the first
+                // SRSContainerChunks node encountered.
+                if (nodeData.Data is List<SRSContainerChunk> && sourceData.Data is List<SRSContainerChunk>)
+                {
+                    return node;
+                }
+
+                if (nodeData.Data is SRSContainerChunk nodeChunk
+                    && sourceData.Data is SRSContainerChunk sourceChunk
+                    && nodeChunk.Label == sourceChunk.Label)
+                {
+                    return node;
+                }
+            }
             else if (nodeData.NodeType == sourceData.NodeType && nodeData.FileName == sourceData.FileName)
             {
                 return node;
