@@ -18,7 +18,7 @@ public partial class HomeViewModel : ViewModelBase
     public ObservableCollection<RecentFileEntry> RecentFiles { get; } = [];
 
     [ObservableProperty]
-    private bool _hasRecentFiles;
+    public partial bool HasRecentFiles { get; set; }
 
     public HomeViewModel(
         IRecentFilesService recentFiles,

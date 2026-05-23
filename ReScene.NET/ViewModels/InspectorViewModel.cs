@@ -29,7 +29,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private MemoryMappedDataSource? _fileDataSource;
 
     [ObservableProperty]
-    private string _loadedFilePath = string.Empty;
+    public partial string LoadedFilePath { get; set; } = string.Empty;
 
     [RelayCommand]
     private async Task BrowseFileAsync()
@@ -95,81 +95,81 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     public bool IsStoredFileSelected => IsSRRFileLoaded() && SelectedTreeNode?.Tag is SRRStoredFileBlock;
 
     [ObservableProperty]
-    private TreeNodeViewModel? _selectedTreeNode;
+    public partial TreeNodeViewModel? SelectedTreeNode { get; set; }
 
     [ObservableProperty]
-    private PropertyItem? _selectedProperty;
+    public partial PropertyItem? SelectedProperty { get; set; }
 
     [ObservableProperty]
-    private string _treeFilterText = string.Empty;
+    public partial string TreeFilterText { get; set; } = string.Empty;
 
     // Hex view properties
     [ObservableProperty]
-    private IHexDataSource? _hexDataSource;
+    public partial IHexDataSource? HexDataSource { get; set; }
 
     [ObservableProperty]
-    private long _hexBlockOffset;
+    public partial long HexBlockOffset { get; set; }
 
     [ObservableProperty]
-    private long _hexBlockLength;
+    public partial long HexBlockLength { get; set; }
 
     [ObservableProperty]
-    private long _hexSelectionOffset = -1;
+    public partial long HexSelectionOffset { get; set; } = -1;
 
     [ObservableProperty]
-    private long _hexSelectionLength;
+    public partial long HexSelectionLength { get; set; }
 
     [ObservableProperty]
-    private int _hexBytesPerLine = 16;
+    public partial int HexBytesPerLine { get; set; } = 16;
 
     [ObservableProperty]
-    private bool _showHexView = true;
+    public partial bool ShowHexView { get; set; } = true;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CloseFileCommand))]
-    private bool _hasFile;
+    public partial bool HasFile { get; set; }
 
     [ObservableProperty]
-    private bool _hasProperties;
+    public partial bool HasProperties { get; set; }
 
     [ObservableProperty]
-    private bool _isExporting;
+    public partial bool IsExporting { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasWarning))]
-    private string? _warningMessage;
+    public partial string? WarningMessage { get; set; }
 
     public bool HasWarning => !string.IsNullOrEmpty(WarningMessage);
 
     // Status info
     [ObservableProperty]
-    private string _statusMessage = "No file loaded";
+    public partial string StatusMessage { get; set; } = "No file loaded";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(FindNextCommand))]
     [NotifyCanExecuteChangedFor(nameof(FindPreviousCommand))]
-    private string _hexSearchText = string.Empty;
+    public partial string HexSearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _hexSearchAsHex = true;
+    public partial bool HexSearchAsHex { get; set; } = true;
 
     [ObservableProperty]
-    private bool _isHexSearchVisible;
+    public partial bool IsHexSearchVisible { get; set; }
 
     [ObservableProperty]
-    private string _hexSearchStatus = string.Empty;
+    public partial string HexSearchStatus { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _highlightAllMatches;
+    public partial bool HighlightAllMatches { get; set; }
 
     [ObservableProperty]
-    private IReadOnlyList<HexMatchRange>? _hexMatchRanges;
+    public partial IReadOnlyList<HexMatchRange>? HexMatchRanges { get; set; }
 
     [ObservableProperty]
-    private string _verifyResultText = string.Empty;
+    public partial string VerifyResultText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isVerifyResultVisible;
+    public partial bool IsVerifyResultVisible { get; set; }
 
     public void LoadFile(string filePath)
     {

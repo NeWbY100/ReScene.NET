@@ -161,15 +161,18 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     // File paths
     [ObservableProperty]
-    private string _leftFilePath = string.Empty;
+    public partial string LeftFilePath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _rightFilePath = string.Empty;
+    public partial string RightFilePath { get; set; } = string.Empty;
 
     // Tree views
     public ObservableCollection<TreeNodeViewModel> LeftTreeRoots { get; } = [];
     public ObservableCollection<TreeNodeViewModel> RightTreeRoots { get; } = [];
 
+    // Kept as field-style [ObservableProperty]: the backing field is passed by ref to
+    // SyncTreeSelection to update the opposite tree without re-triggering the changed hook.
+    // The C# 14 'field' keyword cannot be passed by ref, so a partial property won't work here.
     [ObservableProperty]
     private TreeNodeViewModel? _selectedLeftTreeNode;
 
@@ -181,68 +184,68 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     public ObservableCollection<PropertyItem> RightProperties { get; } = [];
 
     [ObservableProperty]
-    private PropertyItem? _selectedLeftProperty;
+    public partial PropertyItem? SelectedLeftProperty { get; set; }
 
     [ObservableProperty]
-    private PropertyItem? _selectedRightProperty;
+    public partial PropertyItem? SelectedRightProperty { get; set; }
 
     // Hex view - left
     [ObservableProperty]
-    private IHexDataSource? _leftHexDataSource;
+    public partial IHexDataSource? LeftHexDataSource { get; set; }
 
     [ObservableProperty]
-    private long _leftHexBlockOffset;
+    public partial long LeftHexBlockOffset { get; set; }
 
     [ObservableProperty]
-    private long _leftHexBlockLength;
+    public partial long LeftHexBlockLength { get; set; }
 
     [ObservableProperty]
-    private long _leftHexSelectionOffset = -1;
+    public partial long LeftHexSelectionOffset { get; set; } = -1;
 
     [ObservableProperty]
-    private long _leftHexSelectionLength;
+    public partial long LeftHexSelectionLength { get; set; }
 
     // Hex view - right
     [ObservableProperty]
-    private IHexDataSource? _rightHexDataSource;
+    public partial IHexDataSource? RightHexDataSource { get; set; }
 
     [ObservableProperty]
-    private long _rightHexBlockOffset;
+    public partial long RightHexBlockOffset { get; set; }
 
     [ObservableProperty]
-    private long _rightHexBlockLength;
+    public partial long RightHexBlockLength { get; set; }
 
     [ObservableProperty]
-    private long _rightHexSelectionOffset = -1;
+    public partial long RightHexSelectionOffset { get; set; } = -1;
 
     [ObservableProperty]
-    private long _rightHexSelectionLength;
+    public partial long RightHexSelectionLength { get; set; }
 
     // Hex view - diff ranges
     [ObservableProperty]
-    private IReadOnlyList<HexMatchRange>? _leftDiffRanges;
+    public partial IReadOnlyList<HexMatchRange>? LeftDiffRanges { get; set; }
 
     [ObservableProperty]
-    private IReadOnlyList<HexMatchRange>? _rightDiffRanges;
+    public partial IReadOnlyList<HexMatchRange>? RightDiffRanges { get; set; }
 
     // Status
     [ObservableProperty]
-    private string _statusMessage = "Load files on both sides to compare.";
+    public partial string StatusMessage { get; set; } = "Load files on both sides to compare.";
 
     [ObservableProperty]
-    private int _hexBytesPerLine = 16;
+    public partial int HexBytesPerLine { get; set; } = 16;
 
     [ObservableProperty]
-    private bool _showHexView = true;
+    public partial bool ShowHexView { get; set; } = true;
 
     [ObservableProperty]
-    private string _diffSummary = string.Empty;
+    public partial string DiffSummary { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _hasDiffSummary;
+    public partial bool HasDiffSummary { get; set; }
 
     [ObservableProperty]
-    private bool _filesIdentical;
+    public partial bool FilesIdentical { get; set; }
 
     #region Commands
 

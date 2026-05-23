@@ -30,85 +30,85 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     // SRS file
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
-    private string _sRSFilePath = string.Empty;
+    public partial string SRSFilePath { get; set; } = string.Empty;
 
     // Media file
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
-    private string _mediaFilePath = string.Empty;
+    public partial string MediaFilePath { get; set; } = string.Empty;
 
     // ISO support
     [ObservableProperty]
-    private bool _isISOSource;
+    public partial bool IsISOSource { get; set; }
 
     [ObservableProperty]
-    private string _iSOFilePath = string.Empty;
+    public partial string ISOFilePath { get; set; } = string.Empty;
 
     // Output
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
-    private string _outputPath = string.Empty;
+    public partial string OutputPath { get; set; } = string.Empty;
 
     // Progress
     [ObservableProperty]
-    private int _progressPercent;
+    public partial int ProgressPercent { get; set; }
 
     [ObservableProperty]
-    private string _progressMessage = string.Empty;
+    public partial string ProgressMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
-    private bool _isRebuilding;
+    public partial bool IsRebuilding { get; set; }
 
     [ObservableProperty]
-    private bool _showProgress;
+    public partial bool ShowProgress { get; set; }
 
     // ISO progress (for modal window)
     [ObservableProperty]
-    private string _iSOProgressHeading = string.Empty;
+    public partial string ISOProgressHeading { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int _iSOOverallPercent;
+    public partial int ISOOverallPercent { get; set; }
 
     [ObservableProperty]
-    private string _iSOFileCountText = string.Empty;
+    public partial string ISOFileCountText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int _iSOCurrentPercent;
+    public partial int ISOCurrentPercent { get; set; }
 
     [ObservableProperty]
-    private string _iSOCurrentFileText = string.Empty;
+    public partial string ISOCurrentFileText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOProcessedText = string.Empty;
+    public partial string ISOProcessedText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSORemainingText = string.Empty;
+    public partial string ISORemainingText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOCurrentSizeText = string.Empty;
+    public partial string ISOCurrentSizeText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOSpeedText = string.Empty;
+    public partial string ISOSpeedText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOEtaText = string.Empty;
+    public partial string ISOEtaText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _iSOProcessing;
+    public partial bool ISOProcessing { get; set; }
 
     private Stopwatch? _iSOStopwatch;
     private bool _scanModalActive;
 
     // Result
     [ObservableProperty]
-    private string _resultSummary = string.Empty;
+    public partial string ResultSummary { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _showResult;
+    public partial bool ShowResult { get; set; }
 
     [ObservableProperty]
-    private bool _resultSuccess;
+    public partial bool ResultSuccess { get; set; }
 
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];

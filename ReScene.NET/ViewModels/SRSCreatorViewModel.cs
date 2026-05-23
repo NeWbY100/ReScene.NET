@@ -55,21 +55,21 @@ public partial class SRSCreatorViewModel : ViewModelBase
     // Input
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
-    private string _inputPath = string.Empty;
+    public partial string InputPath { get; set; } = string.Empty;
 
     // ISO support
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowISOSelection))]
-    private bool _isISOSource;
+    public partial bool IsISOSource { get; set; }
 
     [ObservableProperty]
-    private string _iSOFilePath = string.Empty;
+    public partial string ISOFilePath { get; set; } = string.Empty;
 
     public ObservableCollection<string> ISOMediaFiles { get; } = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
-    private string? _selectedISOMediaFile;
+    public partial string? SelectedISOMediaFile { get; set; }
 
     /// <summary>
     /// Gets whether the ISO file selection combo should be visible.
@@ -78,37 +78,37 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
     // ISO progress (for modal window)
     [ObservableProperty]
-    private string _iSOProgressHeading = string.Empty;
+    public partial string ISOProgressHeading { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int _iSOOverallPercent;
+    public partial int ISOOverallPercent { get; set; }
 
     [ObservableProperty]
-    private string _iSOFileCountText = string.Empty;
+    public partial string ISOFileCountText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int _iSOCurrentPercent;
+    public partial int ISOCurrentPercent { get; set; }
 
     [ObservableProperty]
-    private string _iSOCurrentFileText = string.Empty;
+    public partial string ISOCurrentFileText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOProcessedText = string.Empty;
+    public partial string ISOProcessedText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSORemainingText = string.Empty;
+    public partial string ISORemainingText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOCurrentSizeText = string.Empty;
+    public partial string ISOCurrentSizeText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOSpeedText = string.Empty;
+    public partial string ISOSpeedText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _iSOEtaText = string.Empty;
+    public partial string ISOEtaText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _iSOProcessing;
+    public partial bool ISOProcessing { get; set; }
 
     private Stopwatch? _scanStopwatch;
     private bool _scanModalActive;
@@ -116,29 +116,29 @@ public partial class SRSCreatorViewModel : ViewModelBase
     // Output
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
-    private string _outputPath = string.Empty;
+    public partial string OutputPath { get; set; } = string.Empty;
 
     // Optional main file for match-offset verification (mirrors pyrescene -c)
     [ObservableProperty]
-    private string _mainFilePath = string.Empty;
+    public partial string MainFilePath { get; set; } = string.Empty;
 
     // Options
     [ObservableProperty]
-    private string _appName = string.Empty;
+    public partial string AppName { get; set; } = string.Empty;
 
     // Progress
     [ObservableProperty]
-    private int _progressPercent;
+    public partial int ProgressPercent { get; set; }
 
     [ObservableProperty]
-    private string _progressMessage = string.Empty;
+    public partial string ProgressMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
-    private bool _isCreating;
+    public partial bool IsCreating { get; set; }
 
     [ObservableProperty]
-    private bool _showProgress;
+    public partial bool ShowProgress { get; set; }
 
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];

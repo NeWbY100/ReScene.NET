@@ -6,19 +6,19 @@ namespace ReScene.NET.ViewModels;
 public partial class TreeNodeViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private string _text = string.Empty;
+    public partial string Text { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isExpanded;
+    public partial bool IsExpanded { get; set; }
 
     [ObservableProperty]
-    private bool _isSelected;
+    public partial bool IsSelected { get; set; }
 
     [ObservableProperty]
-    private bool _isVisible = true;
+    public partial bool IsVisible { get; set; } = true;
 
     [ObservableProperty]
-    private bool _isDifferent;
+    public partial bool IsDifferent { get; set; }
 
     public object? Tag
     {

@@ -27,34 +27,34 @@ public partial class SampleRestorerViewModel : ViewModelBase
     // SRR file
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    private string _sRRFilePath = string.Empty;
+    public partial string SRRFilePath { get; set; } = string.Empty;
 
     // Media directory
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    private string _mediaDirectoryPath = string.Empty;
+    public partial string MediaDirectoryPath { get; set; } = string.Empty;
 
     // Output directory
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    private string _outputDirectoryPath = string.Empty;
+    public partial string OutputDirectoryPath { get; set; } = string.Empty;
 
     // Progress
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
-    private bool _isRestoring;
+    public partial bool IsRestoring { get; set; }
 
     [ObservableProperty]
-    private bool _showProgress;
+    public partial bool ShowProgress { get; set; }
 
     [ObservableProperty]
-    private int _progressPercent;
+    public partial int ProgressPercent { get; set; }
 
     [ObservableProperty]
-    private string _progressMessage = string.Empty;
+    public partial string ProgressMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _overallProgressText = string.Empty;
+    public partial string OverallProgressText { get; set; } = string.Empty;
 
     // Entries
     public ObservableCollection<SRSFileEntry> SRSEntries { get; } = [];
@@ -339,18 +339,18 @@ public partial class SampleRestorerViewModel : ViewModelBase
     public partial class SRSFileEntry : ObservableObject
     {
         [ObservableProperty]
-        private string _sRSFileName = string.Empty;
+        public partial string SRSFileName { get; set; } = string.Empty;
 
         [ObservableProperty]
-        private string _sampleFileName = string.Empty;
+        public partial string SampleFileName { get; set; } = string.Empty;
 
         [ObservableProperty]
-        private string _mediaFilePath = string.Empty;
+        public partial string MediaFilePath { get; set; } = string.Empty;
 
         [ObservableProperty]
-        private string _status = "Pending";
+        public partial string Status { get; set; } = "Pending";
 
         [ObservableProperty]
-        private bool _isSelected = true;
+        public partial bool IsSelected { get; set; } = true;
     }
 }

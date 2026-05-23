@@ -50,22 +50,22 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    private int _selectedTabIndex;
+    public partial int SelectedTabIndex { get; set; }
 
     [ObservableProperty]
-    private string _windowTitle = "ReScene.NET";
+    public partial string WindowTitle { get; set; } = "ReScene.NET";
 
     [ObservableProperty]
-    private string _statusMessage = "Ready";
+    public partial string StatusMessage { get; set; } = "Ready";
 
     [ObservableProperty]
-    private bool _isBusy;
+    public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
-    private TaskbarItemProgressState _taskbarProgressState = TaskbarItemProgressState.None;
+    public partial TaskbarItemProgressState TaskbarProgressState { get; set; } = TaskbarItemProgressState.None;
 
     [ObservableProperty]
-    private double _taskbarProgressValue;
+    public partial double TaskbarProgressValue { get; set; }
 
     public string AppVersion { get; } = GetAppVersion();
 

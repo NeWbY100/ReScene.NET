@@ -58,60 +58,60 @@ public partial class CreatorViewModel : ViewModelBase
     // Input
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
-    private string _inputPath = string.Empty;
+    public partial string InputPath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isSFVInput = true;
+    public partial bool IsSFVInput { get; set; } = true;
 
     // Stored Files
     public ObservableCollection<StoredFileItem> StoredFiles { get; } = [];
 
     [ObservableProperty]
-    private StoredFileItem? _selectedStoredFile;
+    public partial StoredFileItem? SelectedStoredFile { get; set; }
 
     // Output
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
-    private string _outputPath = string.Empty;
+    public partial string OutputPath { get; set; } = string.Empty;
 
     // Options
     [ObservableProperty]
-    private bool _allowCompressed = true;
+    public partial bool AllowCompressed { get; set; } = true;
 
     [ObservableProperty]
-    private bool _autoIncludeFiles = true;
+    public partial bool AutoIncludeFiles { get; set; } = true;
 
     [ObservableProperty]
-    private bool _autoCreateSRS = true;
+    public partial bool AutoCreateSRS { get; set; } = true;
 
     [ObservableProperty]
-    private bool _createVobsubSRR = true;
+    public partial bool CreateVobsubSRR { get; set; } = true;
 
     [ObservableProperty]
-    private bool _storeFixRar = true;
+    public partial bool StoreFixRar { get; set; } = true;
 
     [ObservableProperty]
-    private bool _computeOSOHashes;
+    public partial bool ComputeOSOHashes { get; set; }
 
     [ObservableProperty]
-    private bool _generateLanguagesDiz = true;
+    public partial bool GenerateLanguagesDiz { get; set; } = true;
 
     [ObservableProperty]
-    private string _appName = string.Empty;
+    public partial string AppName { get; set; } = string.Empty;
 
     // Progress
     [ObservableProperty]
-    private int _progressPercent;
+    public partial int ProgressPercent { get; set; }
 
     [ObservableProperty]
-    private string _progressMessage = string.Empty;
+    public partial string ProgressMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
-    private bool _isCreating;
+    public partial bool IsCreating { get; set; }
 
     [ObservableProperty]
-    private bool _showProgress;
+    public partial bool ShowProgress { get; set; }
 
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];

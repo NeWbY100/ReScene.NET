@@ -22,13 +22,13 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    private string _defaultAppName = string.Empty;
+    public partial string DefaultAppName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _defaultOutputDirectory = string.Empty;
+    public partial string DefaultOutputDirectory { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int _recentFilesLimit = 10;
+    public partial int RecentFilesLimit { get; set; } = 10;
 
     public bool DialogResult { get; private set; }
 

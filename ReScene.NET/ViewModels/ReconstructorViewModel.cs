@@ -84,7 +84,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasCustomPackerWarning))]
-    private string? _customPackerWarning;
+    public partial string? CustomPackerWarning { get; set; }
 
     public bool HasCustomPackerWarning => !string.IsNullOrEmpty(CustomPackerWarning);
 
@@ -92,48 +92,48 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
-    private string _winRarPath = string.Empty;
+    public partial string WinRarPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
-    private string _releasePath = string.Empty;
+    public partial string ReleasePath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _verificationPath = string.Empty;
+    public partial string VerificationPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
-    private string _outputPath = string.Empty;
+    public partial string OutputPath { get; set; } = string.Empty;
 
     // ── Progress ──
 
     [ObservableProperty]
-    private double _progressPercent;
+    public partial double ProgressPercent { get; set; }
 
     [ObservableProperty]
-    private string _progressMessage = string.Empty;
+    public partial string ProgressMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _phaseDescription = string.Empty;
+    public partial string PhaseDescription { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
-    private bool _isRunning;
+    public partial bool IsRunning { get; set; }
 
     [ObservableProperty]
-    private bool _showProgress;
+    public partial bool ShowProgress { get; set; }
 
     // ── Progress window state ──
 
-    [ObservableProperty] private string _testCountText = string.Empty;
-    [ObservableProperty] private string _progressPercentText = string.Empty;
-    [ObservableProperty] private string _currentDetailText = string.Empty;
-    [ObservableProperty] private string _elapsedText = string.Empty;
-    [ObservableProperty] private string _remainingText = string.Empty;
-    [ObservableProperty] private string _speedText = string.Empty;
-    [ObservableProperty] private string _etaText = string.Empty;
-    [ObservableProperty] private bool _autoScrollProgress = true;
-    [ObservableProperty] private bool _autoScrollLog = true;
+    [ObservableProperty] public partial string TestCountText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string ProgressPercentText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CurrentDetailText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string ElapsedText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string RemainingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SpeedText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string EtaText { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool AutoScrollProgress { get; set; } = true;
+    [ObservableProperty] public partial bool AutoScrollLog { get; set; } = true;
 
     public ObservableCollection<VersionEntry> VersionEntries { get; } = [];
 
@@ -141,33 +141,33 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private readonly Stopwatch _copyStopwatch = new();
 
-    [ObservableProperty] private bool _isCopying;
-    [ObservableProperty] private string _copyHeadingText = string.Empty;
-    [ObservableProperty] private string _copySourceText = string.Empty;
-    [ObservableProperty] private string _copyDestText = string.Empty;
-    [ObservableProperty] private double _copyProgressPercent;
-    [ObservableProperty] private string _copyProgressPercentText = string.Empty;
-    [ObservableProperty] private string _copyCurrentFileText = string.Empty;
-    [ObservableProperty] private string _copyRemainingText = string.Empty;
-    [ObservableProperty] private string _copyElapsedText = string.Empty;
-    [ObservableProperty] private string _copySpeedText = string.Empty;
-    [ObservableProperty] private string _copyTimeRemainingText = string.Empty;
-    [ObservableProperty] private string _copyEtaText = string.Empty;
+    [ObservableProperty] public partial bool IsCopying { get; set; }
+    [ObservableProperty] public partial string CopyHeadingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopySourceText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopyDestText { get; set; } = string.Empty;
+    [ObservableProperty] public partial double CopyProgressPercent { get; set; }
+    [ObservableProperty] public partial string CopyProgressPercentText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopyCurrentFileText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopyRemainingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopyElapsedText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopySpeedText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopyTimeRemainingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CopyEtaText { get; set; } = string.Empty;
 
     // ── CRC validation progress window state ──
 
     private readonly Stopwatch _verifyStopwatch = new();
 
-    [ObservableProperty] private bool _isVerifying;
-    [ObservableProperty] private string _verifyHeadingText = string.Empty;
-    [ObservableProperty] private double _verifyProgressPercent;
-    [ObservableProperty] private string _verifyProgressPercentText = string.Empty;
-    [ObservableProperty] private string _verifyCurrentFileText = string.Empty;
-    [ObservableProperty] private string _verifyRemainingText = string.Empty;
-    [ObservableProperty] private string _verifyElapsedText = string.Empty;
-    [ObservableProperty] private string _verifySpeedText = string.Empty;
-    [ObservableProperty] private string _verifyTimeRemainingText = string.Empty;
-    [ObservableProperty] private string _verifyEtaText = string.Empty;
+    [ObservableProperty] public partial bool IsVerifying { get; set; }
+    [ObservableProperty] public partial string VerifyHeadingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial double VerifyProgressPercent { get; set; }
+    [ObservableProperty] public partial string VerifyProgressPercentText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string VerifyCurrentFileText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string VerifyRemainingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string VerifyElapsedText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string VerifySpeedText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string VerifyTimeRemainingText { get; set; } = string.Empty;
+    [ObservableProperty] public partial string VerifyEtaText { get; set; } = string.Empty;
 
     private string _lastPhaseDescription = "";
     private int _activeVersionIndex = -1;
@@ -178,129 +178,129 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     public partial class VersionEntry : ObservableObject
     {
-        [ObservableProperty] private string _versionName = "";
-        [ObservableProperty] private string _status = "Testing";
-        [ObservableProperty] private string _arguments = "";
-        [ObservableProperty] private string _result = "";
+        [ObservableProperty] public partial string VersionName { get; set; } = "";
+        [ObservableProperty] public partial string Status { get; set; } = "Testing";
+        [ObservableProperty] public partial string Arguments { get; set; } = "";
+        [ObservableProperty] public partial string Result { get; set; } = "";
     }
 
     // ── Logs ──
 
-    [ObservableProperty] private string _systemLog = string.Empty;
-    [ObservableProperty] private string _phase1Log = string.Empty;
-    [ObservableProperty] private string _phase2Log = string.Empty;
+    [ObservableProperty] public partial string SystemLog { get; set; } = string.Empty;
+    [ObservableProperty] public partial string Phase1Log { get; set; } = string.Empty;
+    [ObservableProperty] public partial string Phase2Log { get; set; } = string.Empty;
 
     // ── RAR Versions ──
 
-    [ObservableProperty] private bool _version2;
-    [ObservableProperty] private bool _version3 = true;
-    [ObservableProperty] private bool _version4 = true;
-    [ObservableProperty] private bool _version5 = true;
-    [ObservableProperty] private bool _version6 = true;
-    [ObservableProperty] private bool _version7;
+    [ObservableProperty] public partial bool Version2 { get; set; }
+    [ObservableProperty] public partial bool Version3 { get; set; } = true;
+    [ObservableProperty] public partial bool Version4 { get; set; } = true;
+    [ObservableProperty] public partial bool Version5 { get; set; } = true;
+    [ObservableProperty] public partial bool Version6 { get; set; } = true;
+    [ObservableProperty] public partial bool Version7 { get; set; }
 
     // ── Compression Method ──
 
-    [ObservableProperty] private bool _switchM0;
-    [ObservableProperty] private bool _switchM1;
-    [ObservableProperty] private bool _switchM2;
-    [ObservableProperty] private bool _switchM3 = true;
-    [ObservableProperty] private bool _switchM4;
-    [ObservableProperty] private bool _switchM5;
+    [ObservableProperty] public partial bool SwitchM0 { get; set; }
+    [ObservableProperty] public partial bool SwitchM1 { get; set; }
+    [ObservableProperty] public partial bool SwitchM2 { get; set; }
+    [ObservableProperty] public partial bool SwitchM3 { get; set; } = true;
+    [ObservableProperty] public partial bool SwitchM4 { get; set; }
+    [ObservableProperty] public partial bool SwitchM5 { get; set; }
 
     // ── Archive Format ──
 
-    [ObservableProperty] private bool _switchMA4;
-    [ObservableProperty] private bool _switchMA5;
+    [ObservableProperty] public partial bool SwitchMA4 { get; set; }
+    [ObservableProperty] public partial bool SwitchMA5 { get; set; }
 
     // ── Dictionary Size ──
 
-    [ObservableProperty] private bool _switchMD64K;
-    [ObservableProperty] private bool _switchMD128K;
-    [ObservableProperty] private bool _switchMD256K;
-    [ObservableProperty] private bool _switchMD512K;
-    [ObservableProperty] private bool _switchMD1024K;
-    [ObservableProperty] private bool _switchMD2048K;
-    [ObservableProperty] private bool _switchMD4096K = true;
-    [ObservableProperty] private bool _switchMD8M;
-    [ObservableProperty] private bool _switchMD16M;
-    [ObservableProperty] private bool _switchMD32M;
-    [ObservableProperty] private bool _switchMD64M;
-    [ObservableProperty] private bool _switchMD128M;
-    [ObservableProperty] private bool _switchMD256M;
-    [ObservableProperty] private bool _switchMD512M;
-    [ObservableProperty] private bool _switchMD1G;
+    [ObservableProperty] public partial bool SwitchMD64K { get; set; }
+    [ObservableProperty] public partial bool SwitchMD128K { get; set; }
+    [ObservableProperty] public partial bool SwitchMD256K { get; set; }
+    [ObservableProperty] public partial bool SwitchMD512K { get; set; }
+    [ObservableProperty] public partial bool SwitchMD1024K { get; set; }
+    [ObservableProperty] public partial bool SwitchMD2048K { get; set; }
+    [ObservableProperty] public partial bool SwitchMD4096K { get; set; } = true;
+    [ObservableProperty] public partial bool SwitchMD8M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD16M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD32M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD64M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD128M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD256M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD512M { get; set; }
+    [ObservableProperty] public partial bool SwitchMD1G { get; set; }
 
     // ── Timestamps ──
 
-    [ObservableProperty] private bool _switchTSM0;
-    [ObservableProperty] private bool _switchTSM1;
-    [ObservableProperty] private bool _switchTSM2;
-    [ObservableProperty] private bool _switchTSM3;
-    [ObservableProperty] private bool _switchTSM4;
+    [ObservableProperty] public partial bool SwitchTSM0 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSM1 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSM2 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSM3 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSM4 { get; set; }
 
-    [ObservableProperty] private bool _switchTSC0;
-    [ObservableProperty] private bool _switchTSC1;
-    [ObservableProperty] private bool _switchTSC2;
-    [ObservableProperty] private bool _switchTSC3;
-    [ObservableProperty] private bool _switchTSC4;
+    [ObservableProperty] public partial bool SwitchTSC0 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSC1 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSC2 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSC3 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSC4 { get; set; }
 
-    [ObservableProperty] private bool _switchTSA0;
-    [ObservableProperty] private bool _switchTSA1;
-    [ObservableProperty] private bool _switchTSA2;
-    [ObservableProperty] private bool _switchTSA3;
-    [ObservableProperty] private bool _switchTSA4;
+    [ObservableProperty] public partial bool SwitchTSA0 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSA1 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSA2 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSA3 { get; set; }
+    [ObservableProperty] public partial bool SwitchTSA4 { get; set; }
 
     // ── Other Options ──
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsFileAttributesEnabled))]
-    private bool _switchAI;
+    public partial bool SwitchAI { get; set; }
 
-    [ObservableProperty] private bool _switchR = true;
-    [ObservableProperty] private bool _switchDS;
-    [ObservableProperty] private bool _switchSDash;
+    [ObservableProperty] public partial bool SwitchR { get; set; } = true;
+    [ObservableProperty] public partial bool SwitchDS { get; set; }
+    [ObservableProperty] public partial bool SwitchSDash { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMTRangeEnabled))]
-    private bool _switchMT;
+    public partial bool SwitchMT { get; set; }
 
-    [ObservableProperty] private int _switchMTStart = 1;
-    [ObservableProperty] private int _switchMTEnd = Environment.ProcessorCount;
+    [ObservableProperty] public partial int SwitchMTStart { get; set; } = 1;
+    [ObservableProperty] public partial int SwitchMTEnd { get; set; } = Environment.ProcessorCount;
 
     // Volume
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsVolumeOptionsEnabled))]
-    private bool _switchV;
+    public partial bool SwitchV { get; set; }
 
-    [ObservableProperty] private string _volumeSize = DefaultVolumeSizeKb.ToString();
-    [ObservableProperty] private int _volumeSizeUnitIndex = 1; // default KB
-    [ObservableProperty] private bool _useOldVolumeNaming;
+    [ObservableProperty] public partial string VolumeSize { get; set; } = DefaultVolumeSizeKb.ToString();
+    [ObservableProperty] public partial int VolumeSizeUnitIndex { get; set; } = 1; // default KB
+    [ObservableProperty] public partial bool UseOldVolumeNaming { get; set; }
 
     public static string[] VolumeSizeUnits { get; } = ["Bytes", "KB", "MB", "GB", "KiB", "MiB", "GiB"];
 
     // File attributes (null = Indeterminate)
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSwitchAIEnabled))]
-    private bool? _fileA = false;
+    public partial bool? FileA { get; set; } = false;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSwitchAIEnabled))]
-    private bool? _fileI = false;
+    public partial bool? FileI { get; set; } = false;
 
     // Output options
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDeleteDuplicateCRCEnabled))]
-    private bool _deleteRARFiles;
+    public partial bool DeleteRARFiles { get; set; }
 
-    [ObservableProperty] private bool _deleteDuplicateCRCFiles = true;
+    [ObservableProperty] public partial bool DeleteDuplicateCRCFiles { get; set; } = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRenameToOriginalEnabled))]
-    private bool _stopOnFirstMatch = true;
+    public partial bool StopOnFirstMatch { get; set; } = true;
 
-    [ObservableProperty] private bool _completeAllVolumes;
-    [ObservableProperty] private bool _renameToOriginal;
+    [ObservableProperty] public partial bool CompleteAllVolumes { get; set; }
+    [ObservableProperty] public partial bool RenameToOriginal { get; set; }
 
     // ── Computed enable/disable ──
 
@@ -312,7 +312,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     public bool IsRenameToOriginalEnabled => StopOnFirstMatch;
 
     // Host OS patching
-    [ObservableProperty] private bool _enableHostOSPatching = true;
+    [ObservableProperty] public partial bool EnableHostOSPatching { get; set; } = true;
 
     // ── Browse Commands ──
 
