@@ -133,13 +133,28 @@ public partial class SRSCreatorViewModel : ViewModelBase
             return;
         }
 
-        long size = new FileInfo(value).Length;
-        SampleStatus = FieldGuidance.DescribeSample(Path.GetExtension(value), size);
+        if (Path.GetExtension(value).Equals(".iso", StringComparison.OrdinalIgnoreCase))
+        {
+            SampleStatus = FieldStatus.Info("ISO image — choose the file inside the ISO below.");
+        }
+        else
+        {
+            long size = new FileInfo(value).Length;
+            SampleStatus = FieldGuidance.DescribeSample(Path.GetExtension(value), size);
+        }
 
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
             OutputPath = FieldGuidance.SuggestSiblingPath(value, ".srs");
             OutputStatus = FieldStatus.Info("Auto-filled from the sample name. Change it if needed.");
+        }
+    }
+
+    partial void OnOutputPathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            OutputStatus = FieldStatus.None;
         }
     }
 
@@ -203,8 +218,6 @@ public partial class SRSCreatorViewModel : ViewModelBase
             {
                 SelectedISOMediaFile = ISOMediaFiles[0];
             }
-
-            AutoSetOutputPath(path);
         }
         else
         {
@@ -213,7 +226,6 @@ public partial class SRSCreatorViewModel : ViewModelBase
             ISOMediaFiles.Clear();
             SelectedISOMediaFile = null;
             InputPath = path;
-            AutoSetOutputPath(path);
         }
     }
 
@@ -518,14 +530,4 @@ public partial class SRSCreatorViewModel : ViewModelBase
     }
 
     #endregion
-
-    private void AutoSetOutputPath(string inputPath)
-    {
-        if (string.IsNullOrWhiteSpace(OutputPath))
-        {
-            string dir = Path.GetDirectoryName(inputPath) ?? ".";
-            string name = Path.GetFileNameWithoutExtension(inputPath);
-            OutputPath = Path.Combine(dir, name + ".srs");
-        }
-    }
 }
