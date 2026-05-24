@@ -1,6 +1,7 @@
 <UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             xmlns:c="clr-namespace:ReScene.NET.Controls"
              x:Class="ReScene.NET.Views.ReconstructorView">
 
     <Grid Margin="{DynamicResource PageMargin}">
@@ -55,6 +56,11 @@
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="WinRarTextBox" Text="{Binding WinRarPath}" />
             </DockPanel>
+            <TextBlock DockPanel.Dock="Top"
+                       Text="Folder containing WinRAR version subfolders used to recompress. Older releases need older WinRAR versions."
+                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                       TextWrapping="Wrap" Margin="84,0,0,2" />
+            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding WinRarStatus}" Margin="84,0,0,2" />
 
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
                 <TextBlock DockPanel.Dock="Left" Text="Release:" Width="80" VerticalAlignment="Center" />
@@ -64,6 +70,11 @@
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="ReleaseTextBox" Text="{Binding ReleasePath}" />
             </DockPanel>
+            <TextBlock DockPanel.Dock="Top"
+                       Text="Folder with the extracted original files to recompress into RAR archives."
+                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                       TextWrapping="Wrap" Margin="84,0,0,2" />
+            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding ReleaseStatus}" Margin="84,0,0,2" />
 
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
                 <TextBlock DockPanel.Dock="Left" Text="Verify:" Width="80" VerticalAlignment="Center" />
@@ -73,6 +84,11 @@
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="VerifyTextBox" Text="{Binding VerificationPath}" />
             </DockPanel>
+            <TextBlock DockPanel.Dock="Top"
+                       Text="The .srr file to verify reconstructed archives against."
+                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                       TextWrapping="Wrap" Margin="84,0,0,2" />
+            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding VerifyStatus}" Margin="84,0,0,2" />
 
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
                 <TextBlock DockPanel.Dock="Left" Text="Output:" Width="80" VerticalAlignment="Center" />
@@ -82,6 +98,10 @@
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
             </DockPanel>
+            <TextBlock DockPanel.Dock="Top"
+                       Text="Folder where reconstructed RAR archives are written."
+                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                       TextWrapping="Wrap" Margin="84,0,0,2" />
 
             <!-- separator -->
             <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
@@ -121,6 +141,10 @@
             <!-- ── Options ───────────────────────────────────────────── -->
             <TextBlock DockPanel.Dock="Top" Text="Options" FontWeight="SemiBold" Margin="0,0,0,2" />
 
+            <TextBlock DockPanel.Dock="Top"
+                       Text="Tip: click &#x201C;Import from SRR&#x201D; to auto-configure versions, compression, dictionary, timestamps and Host OS from the release's SRR."
+                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                       TextWrapping="Wrap" Margin="0,0,0,2" />
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
                 <Button DockPanel.Dock="Left" Content="Import from SRR"
                 Command="{Binding ImportSRRCommand}"

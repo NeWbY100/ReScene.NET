@@ -105,6 +105,66 @@ public partial class ReconstructorViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
     public partial string OutputPath { get; set; } = string.Empty;
 
+    // ── Path status ──
+
+    [ObservableProperty]
+    public partial FieldStatus WinRarStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus ReleaseStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus VerifyStatus { get; set; } = FieldStatus.None;
+
+    partial void OnWinRarPathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            WinRarStatus = FieldStatus.None;
+            return;
+        }
+
+        if (!Directory.Exists(value))
+        {
+            WinRarStatus = FieldStatus.Error("This WinRAR directory does not exist.");
+            return;
+        }
+
+        WinRarStatus = FieldStatus.Ok("WinRAR installations directory selected.");
+    }
+
+    partial void OnReleasePathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            ReleaseStatus = FieldStatus.None;
+        }
+        else if (!Directory.Exists(value) && !File.Exists(value))
+        {
+            ReleaseStatus = FieldStatus.Error("This path does not exist.");
+        }
+        else
+        {
+            ReleaseStatus = FieldStatus.Ok("Source files selected.");
+        }
+    }
+
+    partial void OnVerificationPathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            VerifyStatus = FieldStatus.None;
+        }
+        else if (!File.Exists(value))
+        {
+            VerifyStatus = FieldStatus.Error("This .srr file does not exist.");
+        }
+        else
+        {
+            VerifyStatus = FieldStatus.Info("Reconstructed archives will be verified against this SRR.");
+        }
+    }
+
     // ── Progress ──
 
     [ObservableProperty]
