@@ -4,6 +4,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.SRS;
 
@@ -48,6 +49,18 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
     public partial string OutputPath { get; set; } = string.Empty;
+
+    // Field guidance
+    [ObservableProperty]
+    public partial FieldStatus SRSStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus MediaStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus OutputStatus { get; set; } = FieldStatus.None;
+
+    private long _expectedSampleSize;
 
     // Progress
     [ObservableProperty]
@@ -473,6 +486,61 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     }
 
     private void Log(string message) => AppendLogEntry(LogEntries, message);
+
+    partial void OnSRSFilePathChanged(string value)
+    {
+        _expectedSampleSize = 0;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SRSStatus = FieldStatus.None;
+            return;
+        }
+
+        if (!File.Exists(value))
+        {
+            SRSStatus = FieldStatus.Error("This .srs file does not exist.");
+            return;
+        }
+
+        try
+        {
+            SRSFile srs = SRSFile.Load(value);
+            string sampleName = srs.FileData?.FileName ?? string.Empty;
+            long sampleSize = (long)(srs.FileData?.SampleSize ?? 0UL);
+            _expectedSampleSize = sampleSize;
+            SRSStatus = FieldStatus.Ok($"Sample: {sampleName} ({FormatUtilities.FormatSize(sampleSize)}).");
+
+            if (string.IsNullOrWhiteSpace(OutputPath))
+            {
+                string dir = Path.GetDirectoryName(value) ?? ".";
+                OutputPath = Path.Combine(dir, sampleName);
+                OutputStatus = FieldStatus.Info("Auto-filled from the SRS sample name. Change it if needed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            SRSStatus = FieldStatus.Error($"Could not read this SRS: {ex.Message}");
+        }
+    }
+
+    partial void OnMediaFilePathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            MediaStatus = FieldStatus.None;
+            return;
+        }
+
+        if (!File.Exists(value))
+        {
+            MediaStatus = FieldStatus.Error("This media file does not exist.");
+            return;
+        }
+
+        long mediaSize = new FileInfo(value).Length;
+        MediaStatus = FieldGuidance.EvaluateMediaAgainstSample(mediaSize, _expectedSampleSize);
+    }
 
     private void AutoSetOutputPath(string srsPath)
     {

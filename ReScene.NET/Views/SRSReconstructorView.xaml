@@ -1,6 +1,7 @@
 <UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             xmlns:c="clr-namespace:ReScene.NET.Controls"
              x:Class="ReScene.NET.Views.SRSReconstructorView">
 
   <DockPanel Margin="{DynamicResource PageMargin}">
@@ -20,6 +21,11 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="SRSFileTextBox" Text="{Binding SRSFilePath}" />
     </DockPanel>
+    <TextBlock DockPanel.Dock="Top"
+               Text="The .srs file describing the sample to rebuild."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,1,0,0" />
+    <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding SRSStatus}" />
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
@@ -33,6 +39,11 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="MediaFileTextBox" Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsISOSource}" />
     </DockPanel>
+    <TextBlock DockPanel.Dock="Top"
+               Text="The full original media file the sample was cut from."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,1,0,0" />
+    <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding MediaStatus}" />
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
@@ -46,6 +57,11 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
     </DockPanel>
+    <TextBlock DockPanel.Dock="Top"
+               Text="Where the rebuilt sample will be written."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap" Margin="0,1,0,0" />
+    <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding OutputStatus}" />
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
