@@ -1,0 +1,68 @@
+<UserControl x:Class="ReScene.NET.Controls.FieldStatusLine"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="clr-namespace:ReScene.NET.Models"
+             x:Name="Root">
+  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <StackPanel.Style>
+      <Style TargetType="StackPanel">
+        <Setter Property="Visibility" Value="Visible" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.None}">
+            <Setter Property="Visibility" Value="Collapsed" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </StackPanel.Style>
+
+    <!-- Glyph -->
+    <TextBlock x:Name="Glyph"
+               Margin="0,0,4,0"
+               FontSize="{DynamicResource FontSizeCaption}"
+               VerticalAlignment="Center">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Text" Value="" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.Ok}">
+              <Setter Property="Text" Value="&#x2713;" />
+              <Setter Property="Foreground" Value="{DynamicResource AccentSuccess}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.Info}">
+              <Setter Property="Text" Value="&#x2139;" />
+              <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.Warning}">
+              <Setter Property="Text" Value="&#x26A0;" />
+              <Setter Property="Foreground" Value="{DynamicResource AccentWarning}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.Error}">
+              <Setter Property="Text" Value="&#x2717;" />
+              <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
+
+    <!-- Message -->
+    <TextBlock Text="{Binding Status.Message, ElementName=Root}"
+               FontSize="{DynamicResource FontSizeCaption}"
+               TextWrapping="Wrap"
+               VerticalAlignment="Center">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondary}" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.Warning}">
+              <Setter Property="Foreground" Value="{DynamicResource AccentWarning}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.Error}">
+              <Setter Property="Foreground" Value="{DynamicResource AccentError}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
+  </StackPanel>
+</UserControl>
