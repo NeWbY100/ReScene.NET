@@ -63,4 +63,11 @@ public class FieldGuidanceTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public void EvaluateMediaAgainstSample_ZeroSample_ReturnsNone()
+    {
+        FieldStatus status = FieldGuidance.EvaluateMediaAgainstSample(mediaSize: 700_000_000, sampleSize: 0);
+        Assert.Equal(FieldState.None, status.State);
+    }
 }

@@ -152,7 +152,15 @@ public partial class CreatorViewModel : ViewModelBase
         UpdateActionHint();
     }
 
-    partial void OnOutputPathChanged(string value) => UpdateActionHint();
+    partial void OnOutputPathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            OutputStatus = FieldStatus.None;
+        }
+
+        UpdateActionHint();
+    }
 
     partial void OnIsCreatingChanged(bool value) => UpdateActionHint();
 

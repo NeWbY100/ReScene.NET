@@ -82,12 +82,6 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
 
         SRRFilePath = path;
-        LoadSRSEntries();
-
-        if (!string.IsNullOrWhiteSpace(MediaDirectoryPath))
-        {
-            MatchMediaFiles();
-        }
     }
 
     [RelayCommand]
@@ -333,6 +327,22 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
 
         RestoreCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSRRFilePathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SRRStatus = FieldStatus.None;
+            return;
+        }
+
+        LoadSRSEntries();
+
+        if (!string.IsNullOrWhiteSpace(MediaDirectoryPath))
+        {
+            MatchMediaFiles();
+        }
     }
 
     partial void OnMediaDirectoryPathChanged(string value)
