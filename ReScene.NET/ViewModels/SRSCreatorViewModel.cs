@@ -113,6 +113,36 @@ public partial class SRSCreatorViewModel : ViewModelBase
     private Stopwatch? _scanStopwatch;
     private bool _scanModalActive;
 
+    [ObservableProperty]
+    public partial FieldStatus SampleStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus OutputStatus { get; set; } = FieldStatus.None;
+
+    partial void OnInputPathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SampleStatus = FieldStatus.None;
+            return;
+        }
+
+        if (!File.Exists(value))
+        {
+            SampleStatus = FieldStatus.Error("This file does not exist.");
+            return;
+        }
+
+        long size = new FileInfo(value).Length;
+        SampleStatus = FieldGuidance.DescribeSample(Path.GetExtension(value), size);
+
+        if (string.IsNullOrWhiteSpace(OutputPath))
+        {
+            OutputPath = FieldGuidance.SuggestSiblingPath(value, ".srs");
+            OutputStatus = FieldStatus.Info("Auto-filled from the sample name. Change it if needed.");
+        }
+    }
+
     // Output
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
