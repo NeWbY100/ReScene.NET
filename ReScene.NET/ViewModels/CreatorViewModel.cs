@@ -74,6 +74,13 @@ public partial class CreatorViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
     public partial string OutputPath { get; set; } = string.Empty;
 
+    // Field guidance
+    [ObservableProperty]
+    public partial FieldStatus InputStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus OutputStatus { get; set; } = FieldStatus.None;
+
     // Options
     [ObservableProperty]
     public partial bool AllowCompressed { get; set; } = true;
@@ -138,6 +145,30 @@ public partial class CreatorViewModel : ViewModelBase
 
         UpdateStoredNames();
         AutoScanReleaseFiles();
+        UpdateInputStatus(value);
+    }
+
+    private void UpdateInputStatus(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            InputStatus = FieldStatus.None;
+            return;
+        }
+
+        if (!File.Exists(value))
+        {
+            InputStatus = FieldStatus.Error("This file does not exist.");
+            return;
+        }
+
+        string releaseDir = Path.GetDirectoryName(value) ?? ".";
+        string releaseName = Path.GetFileName(releaseDir);
+        int archiveCount = FieldGuidance.CountReleaseArchives(releaseDir);
+
+        InputStatus = archiveCount > 0
+            ? FieldStatus.Ok($"Release \"{releaseName}\" — {archiveCount} archive file(s) in this folder.")
+            : FieldStatus.Info($"Release folder: \"{releaseName}\". No .rar volumes found here (SFV-only is fine).");
     }
 
     [RelayCommand]
@@ -578,9 +609,8 @@ public partial class CreatorViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
-            string dir = Path.GetDirectoryName(inputPath) ?? ".";
-            string name = Path.GetFileNameWithoutExtension(inputPath);
-            OutputPath = Path.Combine(dir, name + ".srr");
+            OutputPath = FieldGuidance.SuggestSiblingPath(inputPath, ".srr");
+            OutputStatus = FieldStatus.Info("Auto-filled next to the input. Change it if you want the SRR elsewhere.");
         }
     }
 
