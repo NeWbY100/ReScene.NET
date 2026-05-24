@@ -48,60 +48,60 @@
             <!-- ── Paths ─────────────────────────────────────────────── -->
             <TextBlock DockPanel.Dock="Top" Text="Paths" FontWeight="SemiBold" Margin="0,0,0,2" />
 
+            <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+                <Run Text="WinRAR " FontWeight="SemiBold" />
+                <Run Text="— Folder containing WinRAR version subfolders used to recompress. Older releases need older WinRAR versions."
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+            </TextBlock>
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
-                <TextBlock DockPanel.Dock="Left" Text="WinRAR:" Width="80" VerticalAlignment="Center" />
                 <Button DockPanel.Dock="Right" Content="Browse"
                 Command="{Binding BrowseWinRarCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="WinRarTextBox" Text="{Binding WinRarPath}" />
             </DockPanel>
-            <TextBlock DockPanel.Dock="Top"
-                       Text="Folder containing WinRAR version subfolders used to recompress. Older releases need older WinRAR versions."
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       TextWrapping="Wrap" Margin="84,0,0,2" />
-            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding WinRarStatus}" Margin="84,0,0,2" />
+            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding WinRarStatus}" Margin="0,1,0,2" />
 
+            <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+                <Run Text="Release " FontWeight="SemiBold" />
+                <Run Text="— Folder with the extracted original files to recompress into RAR archives."
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+            </TextBlock>
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
-                <TextBlock DockPanel.Dock="Left" Text="Release:" Width="80" VerticalAlignment="Center" />
                 <Button DockPanel.Dock="Right" Content="Browse"
                 Command="{Binding BrowseReleaseCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="ReleaseTextBox" Text="{Binding ReleasePath}" />
             </DockPanel>
-            <TextBlock DockPanel.Dock="Top"
-                       Text="Folder with the extracted original files to recompress into RAR archives."
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       TextWrapping="Wrap" Margin="84,0,0,2" />
-            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding ReleaseStatus}" Margin="84,0,0,2" />
+            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding ReleaseStatus}" Margin="0,1,0,2" />
 
+            <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+                <Run Text="Verify " FontWeight="SemiBold" />
+                <Run Text="— The .srr file to verify reconstructed archives against."
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+            </TextBlock>
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
-                <TextBlock DockPanel.Dock="Left" Text="Verify:" Width="80" VerticalAlignment="Center" />
                 <Button DockPanel.Dock="Right" Content="Browse"
                 Command="{Binding BrowseVerificationCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="VerifyTextBox" Text="{Binding VerificationPath}" />
             </DockPanel>
-            <TextBlock DockPanel.Dock="Top"
-                       Text="The .srr file to verify reconstructed archives against."
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       TextWrapping="Wrap" Margin="84,0,0,2" />
-            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding VerifyStatus}" Margin="84,0,0,2" />
+            <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding VerifyStatus}" Margin="0,1,0,2" />
 
+            <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+                <Run Text="Output " FontWeight="SemiBold" />
+                <Run Text="— Folder where reconstructed RAR archives are written."
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+            </TextBlock>
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
-                <TextBlock DockPanel.Dock="Left" Text="Output:" Width="80" VerticalAlignment="Center" />
                 <Button DockPanel.Dock="Right" Content="Browse"
                 Command="{Binding BrowseOutputCommand}"
                 Style="{StaticResource GhostButton}"
                 Margin="4,0,0,0" MinWidth="75" />
                 <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
             </DockPanel>
-            <TextBlock DockPanel.Dock="Top"
-                       Text="Folder where reconstructed RAR archives are written."
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       TextWrapping="Wrap" Margin="84,0,0,2" />
 
             <!-- separator -->
             <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />

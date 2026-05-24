@@ -13,7 +13,11 @@
                TextWrapping="Wrap" Margin="0,0,0,6" />
 
     <!-- ── SRS File ────────────────────────────────────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="SRS File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+      <Run Text="SRS File " FontWeight="SemiBold" />
+      <Run Text="— The .srs file describing the sample to rebuild."
+           Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+    </TextBlock>
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseSRSCommand}"
@@ -21,17 +25,17 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="SRSFileTextBox" Text="{Binding SRSFilePath}" />
     </DockPanel>
-    <TextBlock DockPanel.Dock="Top"
-               Text="The .srs file describing the sample to rebuild."
-               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-               TextWrapping="Wrap" Margin="0,1,0,0" />
     <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding SRSStatus}" />
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
     <!-- ── Media File ──────────────────────────────────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="Media File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+      <Run Text="Media File " FontWeight="SemiBold" />
+      <Run Text="— The full original media file the sample was cut from."
+           Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+    </TextBlock>
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseMediaCommand}"
@@ -39,17 +43,17 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="MediaFileTextBox" Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsISOSource}" />
     </DockPanel>
-    <TextBlock DockPanel.Dock="Top"
-               Text="The full original media file the sample was cut from."
-               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-               TextWrapping="Wrap" Margin="0,1,0,0" />
     <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding MediaStatus}" />
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
     <!-- ── Output ──────────────────────────────────────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+      <Run Text="Output " FontWeight="SemiBold" />
+      <Run Text="— Where the rebuilt sample will be written."
+           Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+    </TextBlock>
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseOutputCommand}"
@@ -57,10 +61,6 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
     </DockPanel>
-    <TextBlock DockPanel.Dock="Top"
-               Text="Where the rebuilt sample will be written."
-               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-               TextWrapping="Wrap" Margin="0,1,0,0" />
     <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding OutputStatus}" />
 
     <!-- separator -->

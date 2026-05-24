@@ -13,7 +13,11 @@
                TextWrapping="Wrap" Margin="0,0,0,6" />
 
     <!-- ── Sample File ─────────────────────────────────────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="Sample File" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+      <Run Text="Sample File " FontWeight="SemiBold" />
+      <Run Text="— The small sample clip (.mkv, .avi, .mp4, …) to store. Usually in a Sample/ subfolder of the release."
+           Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+    </TextBlock>
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseInputCommand}"
@@ -21,10 +25,6 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="InputTextBox" Text="{Binding InputPath}" />
     </DockPanel>
-    <TextBlock DockPanel.Dock="Top"
-               Text="The small sample clip (.mkv, .avi, .mp4, …) to store. Usually in a Sample/ subfolder of the release."
-               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-               TextWrapping="Wrap" Margin="0,1,0,0" />
     <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding SampleStatus}" />
 
     <!-- ── ISO file selection (visible only when ISO loaded, single mode) ── -->
@@ -65,7 +65,11 @@
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
 
     <!-- ── Output ────────────────────────────────────────────── -->
-    <TextBlock DockPanel.Dock="Top" Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,2">
+      <Run Text="Output " FontWeight="SemiBold" />
+      <Run Text="— Where the .srs file will be written."
+           Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+    </TextBlock>
     <DockPanel DockPanel.Dock="Top">
       <Button DockPanel.Dock="Right" Content="Browse"
               Command="{Binding BrowseOutputCommand}"
@@ -73,10 +77,6 @@
               Margin="4,0,0,0" MinWidth="75" />
       <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
     </DockPanel>
-    <TextBlock DockPanel.Dock="Top"
-               Text="Where the .srs file will be written."
-               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-               TextWrapping="Wrap" Margin="0,1,0,0" />
     <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding OutputStatus}" />
 
     <!-- separator -->

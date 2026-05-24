@@ -23,7 +23,11 @@
 
     <!-- ── Input ─────────────────────────────────────────────── -->
     <StackPanel Grid.Row="1">
-      <TextBlock Text="Input" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+        <Run Text="Input " FontWeight="SemiBold" />
+        <Run Text="— The release's .sfv file or first .rar volume. The folder it sits in is treated as the release directory."
+             Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+      </TextBlock>
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse"
                 Command="{Binding BrowseInputCommand}"
@@ -31,9 +35,6 @@
                 Margin="4,0,0,0" MinWidth="75" />
         <TextBox x:Name="InputTextBox" Text="{Binding InputPath}" />
       </DockPanel>
-      <TextBlock Text="The release's .sfv file or first .rar volume. The folder it sits in is treated as the release directory."
-                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,1" />
       <c:FieldStatusLine Status="{Binding InputStatus}" />
     </StackPanel>
 
@@ -98,7 +99,11 @@
 
       <!-- ── Output ────────────────────────────────────────────── -->
       <StackPanel Grid.Row="0">
-        <TextBlock Text="Output" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+          <Run Text="Output " FontWeight="SemiBold" />
+          <Run Text="— Where the .srr file will be written."
+               Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+        </TextBlock>
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Browse"
                   Command="{Binding BrowseOutputCommand}"
@@ -106,9 +111,6 @@
                   Margin="4,0,0,0" MinWidth="75" />
           <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
         </DockPanel>
-        <TextBlock Text="Where the .srr file will be written."
-                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                   TextWrapping="Wrap" Margin="0,0,0,1" />
         <c:FieldStatusLine Status="{Binding OutputStatus}" />
       </StackPanel>
 
