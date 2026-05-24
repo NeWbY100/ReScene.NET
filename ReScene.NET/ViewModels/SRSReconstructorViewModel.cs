@@ -135,7 +135,6 @@ public partial class SRSReconstructorViewModel : ViewModelBase
         if (path is not null)
         {
             SRSFilePath = path;
-            AutoSetOutputPath(path);
         }
     }
 
@@ -506,8 +505,15 @@ public partial class SRSReconstructorViewModel : ViewModelBase
         try
         {
             SRSFile srs = SRSFile.Load(value);
-            string sampleName = srs.FileData?.FileName ?? string.Empty;
-            long sampleSize = (long)(srs.FileData?.SampleSize ?? 0UL);
+            if (srs.FileData is null || string.IsNullOrWhiteSpace(srs.FileData.FileName))
+            {
+                _expectedSampleSize = 0;
+                SRSStatus = FieldStatus.Error("This SRS contains no sample file data.");
+                return;
+            }
+
+            string sampleName = srs.FileData.FileName;
+            long sampleSize = (long)srs.FileData.SampleSize;
             _expectedSampleSize = sampleSize;
             SRSStatus = FieldStatus.Ok($"Sample: {sampleName} ({FormatUtilities.FormatSize(sampleSize)}).");
 
@@ -540,34 +546,5 @@ public partial class SRSReconstructorViewModel : ViewModelBase
 
         long mediaSize = new FileInfo(value).Length;
         MediaStatus = FieldGuidance.EvaluateMediaAgainstSample(mediaSize, _expectedSampleSize);
-    }
-
-    private void AutoSetOutputPath(string srsPath)
-    {
-        if (!string.IsNullOrWhiteSpace(OutputPath))
-        {
-            return;
-        }
-
-        // Try to infer the sample file name from the SRS
-        try
-        {
-            var srs = SRSFile.Load(srsPath);
-            if (srs.FileData is { } fd && !string.IsNullOrWhiteSpace(fd.FileName))
-            {
-                string dir = Path.GetDirectoryName(srsPath) ?? ".";
-                OutputPath = Path.Combine(dir, fd.FileName);
-                return;
-            }
-        }
-        catch
-        {
-            // Fall through to extension-based default
-        }
-
-        // Fallback: same directory, .avi extension
-        string fallbackDir = Path.GetDirectoryName(srsPath) ?? ".";
-        string name = Path.GetFileNameWithoutExtension(srsPath);
-        OutputPath = Path.Combine(fallbackDir, name + ".avi");
     }
 }
