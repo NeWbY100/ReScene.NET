@@ -160,9 +160,15 @@
                     Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}"
                     Padding="16,4" />
           </StackPanel>
-          <TextBlock Text="{Binding ProgressMessage}"
-                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
-                     VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="{Binding ActionHint}"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       FontSize="{DynamicResource FontSizeCaption}"
+                       VerticalAlignment="Center" />
+            <TextBlock Text="{Binding ProgressMessage}"
+                       Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}"
+                       VerticalAlignment="Center" />
+          </StackPanel>
         </DockPanel>
         <ProgressBar Value="{Binding ProgressPercent}"
                      Maximum="100" Height="18"

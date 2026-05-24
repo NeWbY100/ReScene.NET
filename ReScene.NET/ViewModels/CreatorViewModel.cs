@@ -81,6 +81,9 @@ public partial class CreatorViewModel : ViewModelBase
     [ObservableProperty]
     public partial FieldStatus OutputStatus { get; set; } = FieldStatus.None;
 
+    [ObservableProperty]
+    public partial string ActionHint { get; set; } = string.Empty;
+
     // Options
     [ObservableProperty]
     public partial bool AllowCompressed { get; set; } = true;
@@ -146,7 +149,12 @@ public partial class CreatorViewModel : ViewModelBase
         UpdateStoredNames();
         AutoScanReleaseFiles();
         UpdateInputStatus(value);
+        UpdateActionHint();
     }
+
+    partial void OnOutputPathChanged(string value) => UpdateActionHint();
+
+    partial void OnIsCreatingChanged(bool value) => UpdateActionHint();
 
     private void UpdateInputStatus(string value)
     {
@@ -169,6 +177,26 @@ public partial class CreatorViewModel : ViewModelBase
         InputStatus = archiveCount > 0
             ? FieldStatus.Ok($"Release \"{releaseName}\" — {archiveCount} archive file(s) in this folder.")
             : FieldStatus.Info($"Release folder: \"{releaseName}\". No .rar volumes found here (SFV-only is fine).");
+    }
+
+    private void UpdateActionHint()
+    {
+        if (IsCreating)
+        {
+            ActionHint = string.Empty;
+        }
+        else if (string.IsNullOrWhiteSpace(InputPath))
+        {
+            ActionHint = "Select an input file to continue.";
+        }
+        else if (string.IsNullOrWhiteSpace(OutputPath))
+        {
+            ActionHint = "Choose where to save the SRR to continue.";
+        }
+        else
+        {
+            ActionHint = string.Empty;
+        }
     }
 
     [RelayCommand]
