@@ -5,6 +5,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.SRS;
 
@@ -38,6 +39,13 @@ public partial class SampleRestorerViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
     public partial string OutputDirectoryPath { get; set; } = string.Empty;
+
+    // Status indicators
+    [ObservableProperty]
+    public partial FieldStatus SRRStatus { get; set; } = FieldStatus.None;
+
+    [ObservableProperty]
+    public partial FieldStatus MatchStatus { get; set; } = FieldStatus.None;
 
     // Progress
     [ObservableProperty]
@@ -268,10 +276,14 @@ public partial class SampleRestorerViewModel : ViewModelBase
             }
 
             Log($"Found {entries.Count} SRS file(s) in SRR");
+            SRRStatus = entries.Count > 0
+                ? FieldStatus.Ok($"{entries.Count} embedded SRS sample(s) found.")
+                : FieldStatus.Warning("No embedded SRS samples found in this SRR.");
         }
         catch (Exception ex)
         {
             Log($"Error reading SRR: {ex.Message}");
+            SRRStatus = FieldStatus.Error($"Could not read this SRR: {ex.Message}");
         }
     }
 
@@ -308,6 +320,17 @@ public partial class SampleRestorerViewModel : ViewModelBase
         }
 
         Log($"Matched {found} of {SRSEntries.Count} file(s) in media directory");
+
+        MatchStatus = found == SRSEntries.Count && found > 0
+            ? FieldStatus.Ok($"Matched all {found} sample(s) to media files.")
+            : found > 0
+                ? FieldStatus.Warning($"Matched {found} of {SRSEntries.Count} sample(s); the rest need a media file.")
+                : FieldStatus.Warning("No samples matched a file in this folder.");
+
+        if (string.IsNullOrWhiteSpace(OutputDirectoryPath))
+        {
+            OutputDirectoryPath = MediaDirectoryPath;
+        }
 
         RestoreCommand.NotifyCanExecuteChanged();
     }
