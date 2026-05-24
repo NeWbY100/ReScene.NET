@@ -4,6 +4,33 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.7] — 2026-05-24
+
+### Added
+
+- Every input on the five task forms (SRR Creator, SRS Creator, RAR
+  Reconstructor, SRS Reconstructor, SRS Restorer) now explains itself and
+  assists as you go. Each file/folder field carries an inline description,
+  and a ✓/ℹ/⚠/✗ status line gives live feedback: the SRR Creator counts RAR
+  volumes in the chosen release folder, the SRS Creator identifies the
+  sample's container and size, the SRS Reconstructor reads the expected
+  sample name/size from the SRS and sanity-checks the media file against it,
+  the SRS Restorer reports how many embedded samples matched media files,
+  and the RAR Reconstructor validates its WinRAR / Release / Verify paths.
+- Output locations auto-fill from the input where possible — the SRR beside
+  the input, the .srs from the sample name, the rebuilt sample from the SRS,
+  the restore output from the media folder — only when empty, never
+  overwriting a path you typed.
+- The SRR Creator shows a hint next to a disabled "Create SRR" button
+  explaining what's still needed.
+
+### Changed
+
+- Unified the input layout across all five task forms: a bold label with its
+  description inline, the input row beneath, and the status line below —
+  matching the SRS Creator's "Main file" style. The RAR Reconstructor's four
+  paths move from left-aligned labels to this same layout.
+
 ## [1.2.6] — 2026-05-12
 
 ### Added
