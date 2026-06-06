@@ -13,8 +13,35 @@ namespace ReScene.NET.ViewModels;
 /// </summary>
 public partial class BeginnerRestoreViewModel(IFileDialogService fileDialog) : ViewModelBase
 {
-    public SampleRestorerViewModel? BulkRestorer { get; set; }
-    public SRSReconstructorViewModel? SingleRebuilder { get; set; }
+    private SampleRestorerViewModel? _bulkRestorer;
+    public SampleRestorerViewModel? BulkRestorer
+    {
+        get => _bulkRestorer;
+        set
+        {
+            _bulkRestorer = value;
+            if (value is not null)
+            {
+                // Surface sub-VM changes (e.g. MediaDirectoryPath) as our own, so a hosting
+                // wizard — which only observes this facade — re-evaluates its step gating.
+                value.PropertyChanged += (_, _) => OnPropertyChanged(nameof(BulkRestorer));
+            }
+        }
+    }
+
+    private SRSReconstructorViewModel? _singleRebuilder;
+    public SRSReconstructorViewModel? SingleRebuilder
+    {
+        get => _singleRebuilder;
+        set
+        {
+            _singleRebuilder = value;
+            if (value is not null)
+            {
+                value.PropertyChanged += (_, _) => OnPropertyChanged(nameof(SingleRebuilder));
+            }
+        }
+    }
 
     [ObservableProperty]
     public partial string InputPath { get; set; } = string.Empty;

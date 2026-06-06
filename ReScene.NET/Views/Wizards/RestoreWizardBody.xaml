@@ -1,0 +1,132 @@
+<UserControl x:Class="ReScene.NET.Views.Wizards.RestoreWizardBody"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ReScene.NET.Controls">
+  <Grid MinHeight="150">
+
+    <!-- Step 0: pick file (.srr or .srs) -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
+      <TextBlock Text="Pick the .srr (whole release) or .srs (single sample) you have — the right tool is chosen for you."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
+      <TextBlock Text="SRR or SRS file" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseInputCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding InputPath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding InputStatus}" />
+    </StackPanel>
+
+    <!-- Step 1: media + output (bulk or single sub-panels gated by IsBulk/IsSingle) -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+
+      <!-- Bulk sub-panel (SRR): media directory, output directory, SRS entries grid -->
+      <StackPanel Visibility="{Binding IsBulk, Converter={StaticResource BoolToVisibility}}">
+        <TextBlock Text="Folder with the full media files" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <DockPanel Margin="0,0,0,2">
+          <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BulkRestorer.BrowseMediaDirectoryCommand}"
+                  Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+          <TextBox Text="{Binding BulkRestorer.MediaDirectoryPath}" />
+        </DockPanel>
+        <c:FieldStatusLine Status="{Binding BulkRestorer.MatchStatus}" />
+
+        <TextBlock Text="Save restored samples to" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <DockPanel Margin="0,0,0,2">
+          <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BulkRestorer.BrowseOutputDirectoryCommand}"
+                  Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+          <TextBox Text="{Binding BulkRestorer.OutputDirectoryPath}" />
+        </DockPanel>
+
+        <TextBlock Text="Samples found" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <DataGrid ItemsSource="{Binding BulkRestorer.SRSEntries}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserReorderColumns="False" CanUserSortColumns="False"
+                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" SelectionMode="Single"
+                  BorderThickness="0" MinHeight="80" MaxHeight="180" IsReadOnly="True">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Sample" Binding="{Binding SampleFileName}" Width="*" />
+            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="160" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </StackPanel>
+
+      <!-- Single sub-panel (SRS): media file, output path -->
+      <StackPanel Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}">
+        <TextBlock Text="Full original media file" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <DockPanel Margin="0,0,0,2">
+          <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding SingleRebuilder.BrowseMediaCommand}"
+                  Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+          <TextBox Text="{Binding SingleRebuilder.MediaFilePath}"
+                   IsReadOnly="{Binding SingleRebuilder.IsISOSource}" />
+        </DockPanel>
+        <c:FieldStatusLine Status="{Binding SingleRebuilder.MediaStatus}" />
+
+        <TextBlock Text="Save rebuilt sample to" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <DockPanel Margin="0,0,0,2">
+          <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding SingleRebuilder.BrowseOutputCommand}"
+                  Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+          <TextBox Text="{Binding SingleRebuilder.OutputPath}" />
+        </DockPanel>
+        <c:FieldStatusLine Status="{Binding SingleRebuilder.OutputStatus}" />
+      </StackPanel>
+
+    </StackPanel>
+
+    <!-- Step 2: run (bulk or single sub-panels) -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+
+      <!-- Bulk run panel -->
+      <StackPanel Visibility="{Binding IsBulk, Converter={StaticResource BoolToVisibility}}">
+        <TextBlock Text="Ready to restore all matched samples."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,0,0,8" />
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Restore All" Command="{Binding BulkRestorer.RestoreCommand}"
+                  Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
+          <Button Content="Cancel" Command="{Binding BulkRestorer.CancelRestoreCommand}"
+                  Style="{StaticResource CancelButton}" Padding="18,6"
+                  Visibility="{Binding BulkRestorer.IsRestoring, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+        <TextBlock Text="{Binding BulkRestorer.OverallProgressText}"
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,6,0,0" />
+      </StackPanel>
+
+      <!-- Single run panel -->
+      <StackPanel Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}">
+        <TextBlock Text="Ready to rebuild the sample."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,0,0,8" />
+        <Button Content="Rebuild Sample" Command="{Binding SingleRebuilder.RebuildCommand}"
+                Style="{StaticResource PrimaryButton}" Padding="18,6" HorizontalAlignment="Left" />
+        <Border Visibility="{Binding SingleRebuilder.ShowResult, Converter={StaticResource BoolToVisibility}}"
+                Padding="8,6" Margin="0,12,0,0" CornerRadius="4">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Background" Value="#30FF4444" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SingleRebuilder.ResultSuccess}" Value="True">
+                  <Setter Property="Background" Value="#304EC9B0" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <TextBlock Text="{Binding SingleRebuilder.ResultSummary}"
+                     FontWeight="SemiBold" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+
+    </StackPanel>
+
+  </Grid>
+</UserControl>

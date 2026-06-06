@@ -1,14 +1,17 @@
-<UserControl x:Class="ReScene.NET.Views.Beginner.BeginnerSrsCreatorView"
+<UserControl x:Class="ReScene.NET.Views.Wizards.CreateSrsWizardBody"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:ReScene.NET.Controls">
-  <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+  <Grid MinHeight="150">
 
+    <!-- Step 0: sample input -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
       <TextBlock Text="Pick a sample video (or an ISO) — the SRS captures what's needed to rebuild it later."
-                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,12" />
-
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
       <TextBlock Text="Sample file" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseInputCommand}"
@@ -16,35 +19,54 @@
         <TextBox Text="{Binding InputPath}" />
       </DockPanel>
       <c:FieldStatusLine Status="{Binding SampleStatus}" />
-
       <DockPanel Margin="0,8,0,0"
                  Visibility="{Binding ShowISOSelection, Converter={StaticResource BoolToVisibility}}">
         <TextBlock Text="File inside ISO:" VerticalAlignment="Center" Margin="0,0,8,0" />
         <ComboBox ItemsSource="{Binding ISOMediaFiles}" SelectedItem="{Binding SelectedISOMediaFile}"
                   FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource FontSizeCaption}" />
       </DockPanel>
+    </StackPanel>
 
-      <TextBlock Text="Save SRS to" FontWeight="SemiBold" Margin="0,12,0,2" />
+    <!-- Step 1: output -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+      <TextBlock Text="Where should the .srs be saved?"
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
+      <TextBlock Text="Save SRS to" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
         <TextBox Text="{Binding OutputPath}" />
       </DockPanel>
       <c:FieldStatusLine Status="{Binding OutputStatus}" />
+    </StackPanel>
 
-      <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+    <!-- Step 2: run + result -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+      <TextBlock Text="Ready to create the SRS."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 Margin="0,0,0,8" />
+      <StackPanel Orientation="Horizontal">
         <Button Content="Create SRS" Command="{Binding CreateSRSCommand}"
                 Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
         <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
                 Style="{StaticResource CancelButton}" Padding="18,6"
                 Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
-
       <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6" Margin="0,12,0,0"
                    Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-      <TextBlock Text="{Binding ProgressMessage}" Foreground="{DynamicResource ForegroundSecondary}"
-                 FontSize="{DynamicResource FontSizeCaption}" Margin="0,4,0,0"
+      <TextBlock Text="{Binding ProgressMessage}"
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 Margin="0,4,0,0"
                  Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
     </StackPanel>
-  </ScrollViewer>
+
+  </Grid>
 </UserControl>
