@@ -378,6 +378,87 @@ public partial class ReconstructorViewModel : ViewModelBase
     // Host OS patching
     [ObservableProperty] public partial bool EnableHostOSPatching { get; set; } = true;
 
+    // ── Reset ──
+
+    /// <summary>
+    /// Clears the import-gating and UI state back to a freshly-constructed default so a
+    /// Beginner wizard opens clean. No-op while a run is in progress (e.g. started from the
+    /// Advanced tab) so an active run isn't disrupted.
+    /// </summary>
+    public void Reset()
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+
+        // Paths
+        WinRarPath = string.Empty;
+        ReleasePath = string.Empty;
+        VerificationPath = string.Empty;
+        OutputPath = string.Empty;
+
+        // Import gating + warning
+        HasImportedSrr = false;
+        CustomPackerWarning = null;
+
+        // Imported SRR state — back to empty/null
+        _importedArchiveFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        _importedArchiveDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        _importedDirTimestamps = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        _importedDirCreationTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        _importedDirAccessTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        _importedFileTimestamps = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        _importedFileCreationTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        _importedFileAccessTimes = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        _importedArchiveFileCrcs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        _importedArchiveComment = null;
+        _importedArchiveCommentBytes = null;
+        _importedCmtCompressedData = null;
+        _importedCmtCompressionMethod = null;
+        _importedOriginalRarFileNames = [];
+        _importedCustomPackerType = CustomPackerType.None;
+        _importedSRRFilePath = null;
+
+        // Detected header fields
+        _detectedFileHostOS = null;
+        _detectedFileAttributes = null;
+        _detectedCmtHostOS = null;
+        _detectedCmtFileTime = null;
+        _detectedCmtFileAttributes = null;
+        _detectedLargeFlag = null;
+        _detectedHighPackSize = null;
+        _detectedHighUnpSize = null;
+
+        // Path status
+        WinRarStatus = FieldStatus.None;
+        ReleaseStatus = FieldStatus.None;
+        VerifyStatus = FieldStatus.None;
+
+        // Progress
+        ProgressPercent = 0;
+        ProgressMessage = string.Empty;
+        PhaseDescription = string.Empty;
+        ShowProgress = false;
+        TestCountText = string.Empty;
+        ProgressPercentText = string.Empty;
+        CurrentDetailText = string.Empty;
+        ElapsedText = string.Empty;
+        RemainingText = string.Empty;
+        SpeedText = string.Empty;
+        EtaText = string.Empty;
+        VersionEntries.Clear();
+
+        // Logs
+        SystemLog = string.Empty;
+        Phase1Log = string.Empty;
+        Phase2Log = string.Empty;
+
+        // The brute-force option toggles (versions, compression, dictionary, timestamps,
+        // volume, etc.) are intentionally left untouched: they are re-applied wholesale by
+        // the mandatory Import-from-SRR step that opens the reconstruct wizard.
+    }
+
     // ── Browse Commands ──
 
     [RelayCommand]

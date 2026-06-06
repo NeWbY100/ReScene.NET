@@ -70,6 +70,39 @@ public partial class SampleRestorerViewModel : ViewModelBase
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];
 
+    /// <summary>
+    /// Clears all user-entered state back to a freshly-constructed default so a Beginner
+    /// wizard opens clean. No-op while a restore is in progress (e.g. started from the
+    /// Advanced tab) so an active run isn't disrupted.
+    /// </summary>
+    public void Reset()
+    {
+        if (IsRestoring)
+        {
+            return;
+        }
+
+        SRRFilePath = string.Empty;
+        MediaDirectoryPath = string.Empty;
+        OutputDirectoryPath = string.Empty;
+        SRRStatus = FieldStatus.None;
+        MatchStatus = FieldStatus.None;
+
+        // Unsubscribe entry handlers before clearing (mirrors LoadSRSEntries).
+        foreach (SRSFileEntry old in SRSEntries)
+        {
+            old.PropertyChanged -= OnEntryPropertyChanged;
+        }
+
+        SRSEntries.Clear();
+
+        ProgressPercent = 0;
+        ProgressMessage = string.Empty;
+        ShowProgress = false;
+        OverallProgressText = string.Empty;
+        LogEntries.Clear();
+    }
+
     [RelayCommand]
     private async Task BrowseSRRAsync()
     {
