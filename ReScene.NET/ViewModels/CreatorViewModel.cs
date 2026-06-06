@@ -230,7 +230,7 @@ public partial class CreatorViewModel : ViewModelBase
 
         InputStatus = archiveCount > 0
             ? FieldStatus.Ok($"Release \"{releaseName}\" — {archiveCount} archive file(s) in this folder.")
-            : FieldStatus.Info($"Release folder: \"{releaseName}\". No .rar volumes found here (SFV-only is fine).");
+            : FieldStatus.Warning($"No .rar volumes found in \"{releaseName}\". An SRR is built from the release's .rar files — they need to be in this folder next to the .sfv.");
     }
 
     private void UpdateActionHint()
