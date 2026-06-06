@@ -13,22 +13,30 @@ public class AppSettingsService : IAppSettingsService
 
     public event EventHandler? Changed;
 
+    /// <summary>
+    /// Resolves the effective startup mode: a brand-new install (no file) starts in Beginner;
+    /// an existing user whose settings predate this feature (file present, no Mode) stays in Advanced.
+    /// </summary>
+    public static UserMode ResolveStartupMode(bool settingsFileExisted, UserMode? persistedMode)
+        => persistedMode ?? (settingsFileExisted ? UserMode.Advanced : UserMode.Beginner);
+
     public AppSettings Load()
     {
+        bool fileExisted = File.Exists(_filePath);
+        AppSettings settings;
         try
         {
-            if (!File.Exists(_filePath))
-            {
-                return new AppSettings();
-            }
-
-            string json = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            settings = fileExisted
+                ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_filePath)) ?? new AppSettings()
+                : new AppSettings();
         }
         catch
         {
-            return new AppSettings();
+            settings = new AppSettings();
         }
+
+        settings.Mode = ResolveStartupMode(fileExisted, settings.Mode);
+        return settings;
     }
 
     public void Save(AppSettings settings)
