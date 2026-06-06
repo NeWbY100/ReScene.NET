@@ -99,6 +99,12 @@
                    Foreground="{DynamicResource ForegroundSecondary}"
                    FontSize="{DynamicResource FontSizeCaption}"
                    Margin="0,6,0,0" />
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="140">
+          <ListBox ItemsSource="{Binding BulkRestorer.LogEntries}" Style="{StaticResource CompactLogListBox}"
+                   FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
+        </Border>
       </StackPanel>
 
       <!-- Single run panel -->
@@ -123,6 +129,12 @@
           </Border.Style>
           <TextBlock Text="{Binding SingleRebuilder.ResultSummary}"
                      FontWeight="SemiBold" TextWrapping="Wrap" />
+        </Border>
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="140">
+          <ListBox ItemsSource="{Binding SingleRebuilder.LogEntries}" Style="{StaticResource CompactLogListBox}"
+                   FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
         </Border>
       </StackPanel>
 

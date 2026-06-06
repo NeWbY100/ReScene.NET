@@ -74,41 +74,51 @@
     </StackPanel>
 
     <!-- Step 4: run + progress -->
-    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
-                                     RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=4}">
-      <TextBlock Text="Verification file (.sfv or .sha1)" FontWeight="SemiBold" Margin="0,0,0,2" />
-      <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv."
-                 Foreground="{DynamicResource ForegroundSecondary}"
-                 FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,2" />
-      <DockPanel Margin="0,0,0,2">
-        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseVerificationCommand}"
-                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
-        <TextBox Text="{Binding VerificationPath}" />
-      </DockPanel>
-      <c:FieldStatusLine Status="{Binding VerifyStatus}" />
-      <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,8" />
+    <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                    RelativeSource={RelativeSource AncestorType=Window},
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=4}">
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Text="Verification file (.sfv or .sha1)" FontWeight="SemiBold" Margin="0,0,0,2" />
+        <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" Margin="0,0,0,2" />
+        <DockPanel Margin="0,0,0,2">
+          <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseVerificationCommand}"
+                  Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+          <TextBox Text="{Binding VerificationPath}" />
+        </DockPanel>
+        <c:FieldStatusLine Status="{Binding VerifyStatus}" />
+        <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,8" />
 
-      <TextBlock Text="Ready to reconstruct the RAR archives."
-                 Foreground="{DynamicResource ForegroundSecondary}"
-                 FontSize="{DynamicResource FontSizeCaption}"
-                 Margin="0,0,0,8" />
-      <StackPanel Orientation="Horizontal">
-        <Button Content="Start" Command="{Binding StartCommand}"
-                Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
-        <Button Content="Stop" Command="{Binding StopCommand}"
-                Style="{StaticResource CancelButton}" Padding="18,6"
-                Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
-      </StackPanel>
-      <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6" Margin="0,12,0,0"
+        <TextBlock Text="Ready to reconstruct the RAR archives."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,0,0,8" />
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Start" Command="{Binding StartCommand}"
+                  Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
+          <Button Content="Stop" Command="{Binding StopCommand}"
+                  Style="{StaticResource CancelButton}" Padding="18,6"
+                  Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6" Margin="0,12,0,0"
+                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock Text="{Binding ProgressMessage}"
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,4,0,0"
                    Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-      <TextBlock Text="{Binding ProgressMessage}"
-                 Foreground="{DynamicResource ForegroundSecondary}"
-                 FontSize="{DynamicResource FontSizeCaption}"
-                 Margin="0,4,0,0"
-                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-    </StackPanel>
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+      </StackPanel>
+      <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
+        <TextBox Text="{Binding SystemLog}" IsReadOnly="True" VerticalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap" FontFamily="{DynamicResource MonoFontFamily}"
+                 FontSize="{DynamicResource MonoFontSize}" Background="Transparent"
+                 BorderThickness="0" Padding="4" />
+      </Border>
+    </DockPanel>
 
   </Grid>
 </UserControl>
