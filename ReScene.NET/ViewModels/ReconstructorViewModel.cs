@@ -88,6 +88,10 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     public bool HasCustomPackerWarning => !string.IsNullOrEmpty(CustomPackerWarning);
 
+    /// <summary>True once an SRR has been successfully imported (drives the Beginner wizard's step gating).</summary>
+    [ObservableProperty]
+    public partial bool HasImportedSrr { get; set; }
+
     // ── Paths ──
 
     [ObservableProperty]
@@ -429,6 +433,8 @@ public partial class ReconstructorViewModel : ViewModelBase
             return;
         }
 
+        HasImportedSrr = false;
+
         try
         {
             Log(LogTarget.System, $"=== SRR Import: {Path.GetFileName(path)} ===");
@@ -683,6 +689,8 @@ public partial class ReconstructorViewModel : ViewModelBase
             TryExtractStoredSFV(path, srr);
 
             Log(LogTarget.System, "=== SRR Import Complete ===");
+
+            HasImportedSrr = true;
         }
         catch (Exception ex)
         {

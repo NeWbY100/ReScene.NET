@@ -9,11 +9,13 @@ namespace ReScene.NET.ViewModels.Wizards;
 /// per-step validity. The task ViewModel that owns the real data/commands is exposed as
 /// <see cref="Content"/> (used as the DataContext for the step body); this VM only navigates.
 /// </summary>
-public partial class WizardViewModel : ViewModelBase
+public partial class WizardViewModel : ViewModelBase, IDisposable
 {
     public string Title { get; }
     public IReadOnlyList<WizardStep> Steps { get; }
     public object Content { get; }
+
+    private INotifyPropertyChanged? _contentNotifier;
 
     public WizardViewModel(string title, object content, IReadOnlyList<WizardStep> steps)
     {
@@ -24,8 +26,23 @@ public partial class WizardViewModel : ViewModelBase
         // Step validity often depends on fields of the content VM; re-evaluate Next when it changes.
         if (content is INotifyPropertyChanged notifier)
         {
-            notifier.PropertyChanged += (_, _) => NextCommand.NotifyCanExecuteChanged();
+            _contentNotifier = notifier;
+            notifier.PropertyChanged += OnContentPropertyChanged;
         }
+    }
+
+    private void OnContentPropertyChanged(object? sender, PropertyChangedEventArgs e) => NextCommand.NotifyCanExecuteChanged();
+
+    /// <summary>Unsubscribes from the content VM so a closed wizard can be garbage-collected.</summary>
+    public void Dispose()
+    {
+        if (_contentNotifier is not null)
+        {
+            _contentNotifier.PropertyChanged -= OnContentPropertyChanged;
+            _contentNotifier = null;
+        }
+
+        GC.SuppressFinalize(this);
     }
 
     [ObservableProperty]

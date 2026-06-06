@@ -166,7 +166,6 @@ public partial class MainWindowViewModel : ViewModelBase
             SRSCreator = SRSCreator,
             Reconstructor = Reconstructor,
             Restore = beginnerRestore,
-            OpenInAdvancedAction = OpenCardInAdvanced,
         };
 
         Home = new HomeViewModel(
@@ -271,19 +270,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _recentFiles.AddEntry(filePath);
         Home.LoadRecentFiles();
-    }
-
-    private void OpenCardInAdvanced(BeginnerCard card)
-    {
-        Mode = UserMode.Advanced;
-        SelectedTabIndex = card switch
-        {
-            BeginnerCard.CreateSrr => 2,
-            BeginnerCard.CreateSrs => 3,
-            BeginnerCard.Reconstruct => 4,
-            BeginnerCard.Restore => 6,
-            _ => SelectedTabIndex,
-        };
     }
 
     private void UpdateIsBusy()
