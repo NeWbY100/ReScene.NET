@@ -24,42 +24,34 @@
   <DockPanel>
 
     <!-- ══ Menu Bar ══════════════════════════════════════════════════ -->
-    <DockPanel DockPanel.Dock="Top">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
-                  VerticalAlignment="Center" Margin="0,0,8,0">
-        <TextBlock Text="Mode:" VerticalAlignment="Center"
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,6,0" />
-        <ToggleButton Content="Beginner" MinWidth="74"
-                      IsChecked="{Binding IsBeginnerMode, Mode=OneWay}"
-                      Command="{Binding SetBeginnerModeCommand}"
-                      Style="{StaticResource ToolbarToggleButton}" />
-        <ToggleButton Content="Advanced" MinWidth="74"
-                      IsChecked="{Binding IsAdvancedMode, Mode=OneWay}"
-                      Command="{Binding SetAdvancedModeCommand}"
-                      Style="{StaticResource ToolbarToggleButton}" />
-      </StackPanel>
-      <Menu>
-        <MenuItem Header="_File">
-          <MenuItem Header="_Open..."
-                    Command="{Binding OpenFileCommand}"
-                    InputGestureText="Ctrl+O" />
-          <MenuItem Header="_Export Stored File..."
-                    Command="{Binding ExportStoredFileCommand}"
-                    InputGestureText="Ctrl+E" />
-          <Separator />
-          <MenuItem Header="E_xit"
-                    Click="OnExitClick" />
-        </MenuItem>
-        <MenuItem Header="_Help">
-          <MenuItem Header="_Settings..."
-                    Click="OnSettingsClick" />
-          <Separator />
-          <MenuItem Header="_About"
-                    Click="OnAboutClick" />
-        </MenuItem>
-      </Menu>
-    </DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open..."
+                  Command="{Binding OpenFileCommand}"
+                  InputGestureText="Ctrl+O" />
+        <MenuItem Header="_Export Stored File..."
+                  Command="{Binding ExportStoredFileCommand}"
+                  InputGestureText="Ctrl+E" />
+        <Separator />
+        <MenuItem Header="E_xit"
+                  Click="OnExitClick" />
+      </MenuItem>
+      <MenuItem Header="_Mode">
+        <MenuItem Header="_Beginner"
+                  IsChecked="{Binding IsBeginnerMode, Mode=OneWay}"
+                  Command="{Binding SetBeginnerModeCommand}" />
+        <MenuItem Header="_Advanced"
+                  IsChecked="{Binding IsAdvancedMode, Mode=OneWay}"
+                  Command="{Binding SetAdvancedModeCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="_Settings..."
+                  Click="OnSettingsClick" />
+        <Separator />
+        <MenuItem Header="_About"
+                  Click="OnAboutClick" />
+      </MenuItem>
+    </Menu>
 
     <!-- ══ Status Bar ════════════════════════════════════════════════ -->
     <Border DockPanel.Dock="Bottom"

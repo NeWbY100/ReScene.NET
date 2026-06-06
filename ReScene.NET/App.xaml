@@ -936,11 +936,21 @@
                                    Foreground="{DynamicResource ForegroundSecondary}"
                                    Margin="24,0,0,0"
                                    VerticalAlignment="Center" />
+                        <TextBlock x:Name="CheckGlyph"
+                                   Grid.Column="0"
+                                   Text="&#x2713;"
+                                   Foreground="{DynamicResource AccentPrimary}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Visibility="Collapsed" />
                     </Grid>
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="Icon" Value="{x:Null}">
                         <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
                     </Trigger>
                     <Trigger Property="IsHighlighted" Value="True">
                         <Setter TargetName="border" Property="Background" Value="{DynamicResource ActiveBackground}" />
