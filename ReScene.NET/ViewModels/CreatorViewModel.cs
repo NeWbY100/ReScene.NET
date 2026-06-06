@@ -126,6 +126,52 @@ public partial class CreatorViewModel : ViewModelBase
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];
 
+    /// <summary>
+    /// Clears all user-entered state back to a freshly-constructed default so a Beginner
+    /// wizard opens clean. No-op while a creation is in progress (e.g. started from the
+    /// Advanced tab) so an active run isn't disrupted.
+    /// </summary>
+    public void Reset()
+    {
+        if (IsCreating)
+        {
+            return;
+        }
+
+        InputPath = string.Empty;
+        OutputPath = string.Empty;
+        InputStatus = FieldStatus.None;
+        OutputStatus = FieldStatus.None;
+        ActionHint = string.Empty;
+
+        StoredFiles.Clear();
+        SelectedStoredFile = null;
+
+        ProgressPercent = 0;
+        ProgressMessage = string.Empty;
+        ShowProgress = false;
+        LogEntries.Clear();
+
+        // Option toggles back to the same defaults the constructor / property initializers set.
+        IsSFVInput = true;
+        AllowCompressed = true;
+        AutoIncludeFiles = true;
+        AutoCreateSRS = true;
+        CreateVobsubSRR = true;
+        StoreFixRar = true;
+        ComputeOSOHashes = false;
+        GenerateLanguagesDiz = true;
+
+        // Re-derive AppName / OutputPath from settings the same way the constructor does.
+        AppSettings settings = _settingsService.Load();
+        AppName = settings.DefaultAppName;
+
+        if (!string.IsNullOrEmpty(settings.DefaultOutputDirectory))
+        {
+            OutputPath = settings.DefaultOutputDirectory;
+        }
+    }
+
     [RelayCommand]
     private async Task BrowseInputAsync()
     {

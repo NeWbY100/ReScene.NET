@@ -126,6 +126,39 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];
 
+    /// <summary>
+    /// Clears all user-entered state back to a freshly-constructed default so a Beginner
+    /// wizard opens clean. No-op while a rebuild is in progress (e.g. started from the
+    /// Advanced tab) so an active run isn't disrupted.
+    /// </summary>
+    public void Reset()
+    {
+        if (IsRebuilding)
+        {
+            return;
+        }
+
+        SRSFilePath = string.Empty;
+        MediaFilePath = string.Empty;
+        OutputPath = string.Empty;
+        SRSStatus = FieldStatus.None;
+        MediaStatus = FieldStatus.None;
+        OutputStatus = FieldStatus.None;
+
+        IsISOSource = false;
+        ISOFilePath = string.Empty;
+        _expectedSampleSize = 0;
+
+        ShowResult = false;
+        ResultSuccess = false;
+        ResultSummary = string.Empty;
+
+        ProgressPercent = 0;
+        ProgressMessage = string.Empty;
+        ShowProgress = false;
+        LogEntries.Clear();
+    }
+
     [RelayCommand]
     private async Task BrowseSRSAsync()
     {

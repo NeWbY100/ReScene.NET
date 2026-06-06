@@ -10,14 +10,26 @@ public static class BeginnerWizardFactory
 {
     public static (WizardViewModel ViewModel, FrameworkElement Body) Create(BeginnerCard card, BeginnerShellViewModel shell)
     {
-        return card switch
+        // Reset the relevant shared (app-lifetime singleton) VM before building so the wizard
+        // opens with clean state. Reset() is a no-op if that VM is busy with an operation
+        // started from the Advanced tab, so an active run is never disrupted.
+        switch (card)
         {
-            BeginnerCard.CreateSrr => BuildCreateSrr(shell.Creator),
-            BeginnerCard.CreateSrs => BuildCreateSrs(shell.SRSCreator),
-            BeginnerCard.Reconstruct => BuildReconstruct(shell.Reconstructor),
-            BeginnerCard.Restore => BuildRestore(shell.Restore),
-            _ => throw new ArgumentOutOfRangeException(nameof(card)),
-        };
+            case BeginnerCard.CreateSrr:
+                shell.Creator.Reset();
+                return BuildCreateSrr(shell.Creator);
+            case BeginnerCard.CreateSrs:
+                shell.SRSCreator.Reset();
+                return BuildCreateSrs(shell.SRSCreator);
+            case BeginnerCard.Reconstruct:
+                shell.Reconstructor.Reset();
+                return BuildReconstruct(shell.Reconstructor);
+            case BeginnerCard.Restore:
+                shell.Restore.Reset();
+                return BuildRestore(shell.Restore);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(card));
+        }
     }
 
     private static (WizardViewModel, FrameworkElement) BuildCreateSrr(CreatorViewModel vm)

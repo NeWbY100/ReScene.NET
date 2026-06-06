@@ -87,6 +87,20 @@ public partial class BeginnerRestoreViewModel(IFileDialogService fileDialog) : V
         }
     }
 
+    /// <summary>
+    /// Clears this facade's state and cascades a reset to the bulk and single sub-VMs so a
+    /// Beginner "Restore a sample" wizard opens clean.
+    /// </summary>
+    public void Reset()
+    {
+        InputPath = string.Empty;
+        Kind = SampleRestoreKind.Unknown;
+        InputStatus = FieldStatus.None;
+
+        BulkRestorer?.Reset();
+        SingleRebuilder?.Reset();
+    }
+
     [RelayCommand]
     private async Task BrowseInputAsync()
     {

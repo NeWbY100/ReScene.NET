@@ -196,6 +196,39 @@ public partial class SRSCreatorViewModel : ViewModelBase
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];
 
+    /// <summary>
+    /// Clears all user-entered state back to a freshly-constructed default so a Beginner
+    /// wizard opens clean. No-op while a creation is in progress (e.g. started from the
+    /// Advanced tab) so an active run isn't disrupted.
+    /// </summary>
+    public void Reset()
+    {
+        if (IsCreating)
+        {
+            return;
+        }
+
+        InputPath = string.Empty;
+        OutputPath = string.Empty;
+        MainFilePath = string.Empty;
+        SampleStatus = FieldStatus.None;
+        OutputStatus = FieldStatus.None;
+
+        IsISOSource = false;
+        ISOFilePath = string.Empty;
+        ISOMediaFiles.Clear();
+        SelectedISOMediaFile = null;
+
+        ProgressPercent = 0;
+        ProgressMessage = string.Empty;
+        ShowProgress = false;
+        LogEntries.Clear();
+
+        // Re-derive AppName from settings the same way the constructor does.
+        AppSettings settings = _settingsService.Load();
+        AppName = settings.DefaultAppName;
+    }
+
     [RelayCommand]
     private async Task BrowseInputAsync()
     {
