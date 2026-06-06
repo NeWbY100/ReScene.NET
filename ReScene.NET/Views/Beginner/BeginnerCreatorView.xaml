@@ -1,0 +1,47 @@
+<UserControl x:Class="ReScene.NET.Views.Beginner.BeginnerCreatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ReScene.NET.Controls">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel MaxWidth="720" HorizontalAlignment="Left">
+
+      <TextBlock Text="Point at a release's .sfv or first .rar — everything else uses sensible defaults."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,12" />
+
+      <TextBlock Text="Release .sfv or first .rar" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseInputCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding InputPath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding InputStatus}" />
+
+      <TextBlock Text="Save SRR to" FontWeight="SemiBold" Margin="0,12,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding OutputPath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding OutputStatus}" />
+
+      <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+        <Button Content="Create SRR" Command="{Binding CreateSRRCommand}"
+                Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
+        <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
+                Style="{StaticResource CancelButton}" Padding="18,6"
+                Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
+      </StackPanel>
+
+      <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6" Margin="0,12,0,0"
+                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+      <TextBlock Text="{Binding ProgressMessage}" Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}" Margin="0,4,0,0"
+                 Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+
+      <TextBlock Text="Stored files, SRS samples, vobsub, OSO hashes and languages.diz are handled automatically."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,16,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
