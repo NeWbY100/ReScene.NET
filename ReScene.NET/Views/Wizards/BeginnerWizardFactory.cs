@@ -36,7 +36,7 @@ public static class BeginnerWizardFactory
     {
         var steps = new List<WizardStep>
         {
-            new() { Title = "Choose the release", CanAdvance = () => vm.InputStatus.State != FieldState.Error && !string.IsNullOrWhiteSpace(vm.InputPath) },
+            new() { Title = "Choose the release", CanAdvance = () => vm.InputStatus.State == FieldState.Ok },
             new() { Title = "Choose where to save", CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath) },
             new() { Title = "Create" },
         };
