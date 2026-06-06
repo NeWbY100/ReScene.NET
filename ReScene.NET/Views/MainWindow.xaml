@@ -100,10 +100,14 @@
     <!-- ══ Shell Host ════════════════════════════════════════════════ -->
     <Grid>
       <v:AdvancedShellView Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibility}}" />
-      <TextBlock Text="Beginner mode — coming up next"
-                 Visibility="{Binding IsBeginnerMode, Converter={StaticResource BoolToVisibility}}"
-                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                 Foreground="{DynamicResource ForegroundSecondary}" />
+      <ContentControl Content="{Binding Beginner}"
+                      Visibility="{Binding IsBeginnerMode, Converter={StaticResource BoolToVisibility}}">
+        <ContentControl.ContentTemplate>
+          <DataTemplate>
+            <v:BeginnerShellView />
+          </DataTemplate>
+        </ContentControl.ContentTemplate>
+      </ContentControl>
     </Grid>
 
   </DockPanel>

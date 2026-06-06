@@ -1,0 +1,112 @@
+<UserControl x:Class="ReScene.NET.Views.BeginnerShellView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             xmlns:bv="clr-namespace:ReScene.NET.Views.Beginner">
+  <UserControl.Resources>
+    <Style x:Key="HubCardButton" TargetType="Button">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="Margin" Value="6" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{DynamicResource LargeRadius}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+          <Setter Property="Background" Value="{DynamicResource HoverBackground}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid Margin="{DynamicResource PageMargin}">
+
+    <!-- ══ HUB ═══════════════════════════════════════════════════════ -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  Visibility="{Binding IsHubVisible, Converter={StaticResource BoolToVisibility}}">
+      <StackPanel MaxWidth="760" HorizontalAlignment="Center" Margin="0,12,0,0">
+        <TextBlock Text="What would you like to do?"
+                   FontSize="{DynamicResource FontSizeH1}" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" Margin="0,0,0,12" />
+        <UniformGrid Columns="2">
+          <Button Style="{StaticResource HubCardButton}"
+                  Command="{Binding OpenCardCommand}" CommandParameter="{x:Static vm:BeginnerCard.CreateSrr}">
+            <StackPanel>
+              <TextBlock Text="&#x1F4E6;" FontSize="28" Margin="0,0,0,6" />
+              <TextBlock Text="Create an SRR" FontSize="{DynamicResource FontSizeH2}" FontWeight="SemiBold" />
+              <TextBlock Text="Make a recovery file for a release." TextWrapping="Wrap"
+                         Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,2,0,0" />
+            </StackPanel>
+          </Button>
+          <Button Style="{StaticResource HubCardButton}"
+                  Command="{Binding OpenCardCommand}" CommandParameter="{x:Static vm:BeginnerCard.CreateSrs}">
+            <StackPanel>
+              <TextBlock Text="&#x1F3AC;" FontSize="28" Margin="0,0,0,6" />
+              <TextBlock Text="Create a sample SRS" FontSize="{DynamicResource FontSizeH2}" FontWeight="SemiBold" />
+              <TextBlock Text="Capture a movie sample." TextWrapping="Wrap"
+                         Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,2,0,0" />
+            </StackPanel>
+          </Button>
+          <Button Style="{StaticResource HubCardButton}"
+                  Command="{Binding OpenCardCommand}" CommandParameter="{x:Static vm:BeginnerCard.Reconstruct}">
+            <StackPanel>
+              <TextBlock Text="&#x1F527;" FontSize="28" Margin="0,0,0,6" />
+              <TextBlock Text="Reconstruct RAR archives" FontSize="{DynamicResource FontSizeH2}" FontWeight="SemiBold" />
+              <TextBlock Text="Rebuild the original RARs from an SRR." TextWrapping="Wrap"
+                         Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,2,0,0" />
+            </StackPanel>
+          </Button>
+          <Button Style="{StaticResource HubCardButton}"
+                  Command="{Binding OpenCardCommand}" CommandParameter="{x:Static vm:BeginnerCard.Restore}">
+            <StackPanel>
+              <TextBlock Text="&#x21BA;" FontSize="28" Margin="0,0,0,6" />
+              <TextBlock Text="Restore a sample" FontSize="{DynamicResource FontSizeH2}" FontWeight="SemiBold" />
+              <TextBlock Text="Get a sample back from an SRR or SRS." TextWrapping="Wrap"
+                         Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,2,0,0" />
+            </StackPanel>
+          </Button>
+        </UniformGrid>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ══ TASK AREA ═════════════════════════════════════════════════ -->
+    <DockPanel Visibility="{Binding IsHubVisible, Converter={StaticResource InverseBoolToVisibility}}">
+      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+        <Button DockPanel.Dock="Left" Content="&#x2039; Tasks"
+                Command="{Binding BackToHubCommand}"
+                Style="{StaticResource GhostButton}" Padding="8,2" />
+        <Button DockPanel.Dock="Right" Content="Open in Advanced"
+                Command="{Binding OpenInAdvancedCommand}" CommandParameter="{Binding CurrentCard}"
+                Style="{StaticResource GhostButton}" Padding="8,2" />
+        <TextBlock Text="{Binding CurrentTitle}" FontWeight="SemiBold"
+                   VerticalAlignment="Center" HorizontalAlignment="Center" />
+      </DockPanel>
+      <Grid>
+        <bv:BeginnerCreatorView DataContext="{Binding Creator}"
+                                Visibility="{Binding DataContext.ShowCreateSrr, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}" />
+        <bv:BeginnerSrsCreatorView DataContext="{Binding SRSCreator}"
+                                   Visibility="{Binding DataContext.ShowCreateSrs, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}" />
+        <bv:BeginnerReconstructorView DataContext="{Binding Reconstructor}"
+                                      Visibility="{Binding DataContext.ShowReconstruct, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}" />
+        <bv:BeginnerRestoreView DataContext="{Binding Restore}"
+                                Visibility="{Binding DataContext.ShowRestore, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}" />
+      </Grid>
+    </DockPanel>
+
+  </Grid>
+</UserControl>
