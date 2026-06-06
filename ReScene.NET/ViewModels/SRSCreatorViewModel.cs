@@ -50,6 +50,14 @@ public partial class SRSCreatorViewModel : ViewModelBase
                 AppName = updated.DefaultAppName;
             }
         };
+
+        ISOMediaFiles.CollectionChanged += (_, _) =>
+        {
+            if (SelectedISOMediaFile is null && ISOMediaFiles.Count > 0)
+            {
+                SelectedISOMediaFile = ISOMediaFiles[0];
+            }
+        };
     }
 
     // Input

@@ -122,4 +122,15 @@ internal static class FileDialogFilters
         "Reconstructor Config|*.json",
         "All Files|*.*"
     ];
+
+    /// <summary>
+    /// SRR and SRS files — for Beginner restore input.
+    /// </summary>
+    public static readonly string[] SrrAndSrs =
+    [
+        "ReScene Files|*.srr;*.srs",
+        "SRR Files|*.srr",
+        "SRS Files|*.srs",
+        "All Files|*.*"
+    ];
 }

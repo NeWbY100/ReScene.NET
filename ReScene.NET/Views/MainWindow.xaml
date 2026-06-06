@@ -24,26 +24,42 @@
   <DockPanel>
 
     <!-- ══ Menu Bar ══════════════════════════════════════════════════ -->
-    <Menu DockPanel.Dock="Top">
-      <MenuItem Header="_File">
-        <MenuItem Header="_Open..."
-                  Command="{Binding OpenFileCommand}"
-                  InputGestureText="Ctrl+O" />
-        <MenuItem Header="_Export Stored File..."
-                  Command="{Binding ExportStoredFileCommand}"
-                  InputGestureText="Ctrl+E" />
-        <Separator />
-        <MenuItem Header="E_xit"
-                  Click="OnExitClick" />
-      </MenuItem>
-      <MenuItem Header="_Help">
-        <MenuItem Header="_Settings..."
-                  Click="OnSettingsClick" />
-        <Separator />
-        <MenuItem Header="_About"
-                  Click="OnAboutClick" />
-      </MenuItem>
-    </Menu>
+    <DockPanel DockPanel.Dock="Top">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                  VerticalAlignment="Center" Margin="0,0,8,0">
+        <TextBlock Text="Mode:" VerticalAlignment="Center"
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,6,0" />
+        <ToggleButton Content="Beginner" MinWidth="74"
+                      IsChecked="{Binding IsBeginnerMode, Mode=OneWay}"
+                      Command="{Binding SetBeginnerModeCommand}"
+                      Style="{StaticResource ToolbarToggleButton}" />
+        <ToggleButton Content="Advanced" MinWidth="74"
+                      IsChecked="{Binding IsAdvancedMode, Mode=OneWay}"
+                      Command="{Binding SetAdvancedModeCommand}"
+                      Style="{StaticResource ToolbarToggleButton}" />
+      </StackPanel>
+      <Menu>
+        <MenuItem Header="_File">
+          <MenuItem Header="_Open..."
+                    Command="{Binding OpenFileCommand}"
+                    InputGestureText="Ctrl+O" />
+          <MenuItem Header="_Export Stored File..."
+                    Command="{Binding ExportStoredFileCommand}"
+                    InputGestureText="Ctrl+E" />
+          <Separator />
+          <MenuItem Header="E_xit"
+                    Click="OnExitClick" />
+        </MenuItem>
+        <MenuItem Header="_Help">
+          <MenuItem Header="_Settings..."
+                    Click="OnSettingsClick" />
+          <Separator />
+          <MenuItem Header="_About"
+                    Click="OnAboutClick" />
+        </MenuItem>
+      </Menu>
+    </DockPanel>
 
     <!-- ══ Status Bar ════════════════════════════════════════════════ -->
     <Border DockPanel.Dock="Bottom"
@@ -81,34 +97,18 @@
       </DockPanel>
     </Border>
 
-    <!-- ══ Tab Control ═══════════════════════════════════════════════ -->
-    <TabControl SelectedIndex="{Binding SelectedTabIndex}"
-                Padding="0">
-      <TabItem Header="Home">
-        <v:HomeView DataContext="{Binding Home}" />
-      </TabItem>
-      <TabItem Header="Inspector">
-        <v:InspectorView DataContext="{Binding Inspector}" />
-      </TabItem>
-      <TabItem Header="SRR Creator">
-        <v:CreatorView DataContext="{Binding Creator}" />
-      </TabItem>
-      <TabItem Header="SRS Creator">
-        <v:SRSCreatorView DataContext="{Binding SRSCreator}" />
-      </TabItem>
-      <TabItem Header="RAR Reconstructor">
-        <v:ReconstructorView DataContext="{Binding Reconstructor}" />
-      </TabItem>
-      <TabItem Header="SRS Reconstructor">
-        <v:SRSReconstructorView DataContext="{Binding SRSReconstructor}" />
-      </TabItem>
-      <TabItem Header="SRS Restorer">
-        <v:SampleRestorerView DataContext="{Binding SampleRestorer}" />
-      </TabItem>
-      <TabItem Header="Compare">
-        <v:FileCompareView DataContext="{Binding FileCompare}" />
-      </TabItem>
-    </TabControl>
+    <!-- ══ Shell Host ════════════════════════════════════════════════ -->
+    <Grid>
+      <v:AdvancedShellView Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibility}}" />
+      <ContentControl Content="{Binding Beginner}"
+                      Visibility="{Binding IsBeginnerMode, Converter={StaticResource BoolToVisibility}}">
+        <ContentControl.ContentTemplate>
+          <DataTemplate>
+            <v:BeginnerShellView />
+          </DataTemplate>
+        </ContentControl.ContentTemplate>
+      </ContentControl>
+    </Grid>
 
   </DockPanel>
 

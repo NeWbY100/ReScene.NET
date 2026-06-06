@@ -3,6 +3,7 @@ using System.Windows.Shell;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 
 namespace ReScene.NET.ViewModels;
@@ -49,8 +50,55 @@ public partial class MainWindowViewModel : ViewModelBase
         get;
     }
 
+    public BeginnerShellViewModel Beginner
+    {
+        get;
+    }
+
     [ObservableProperty]
     public partial int SelectedTabIndex { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAdvancedMode))]
+    [NotifyPropertyChangedFor(nameof(IsBeginnerMode))]
+    public partial UserMode Mode { get; set; }
+
+    public bool IsAdvancedMode => Mode == UserMode.Advanced;
+
+    public bool IsBeginnerMode => Mode == UserMode.Beginner;
+
+    private bool _applyingExternalModeChange;
+
+    [RelayCommand]
+    private void SetBeginnerMode() => Mode = UserMode.Beginner;
+
+    [RelayCommand]
+    private void SetAdvancedMode() => Mode = UserMode.Advanced;
+
+    partial void OnModeChanged(UserMode value)
+    {
+        if (_applyingExternalModeChange)
+        {
+            return;
+        }
+
+        AppSettings settings = _appSettingsService.Load();
+        settings.Mode = value;
+        _appSettingsService.Save(settings);
+    }
+
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        UserMode resolved = _appSettingsService.Load().Mode ?? Mode;
+        if (resolved == Mode)
+        {
+            return;
+        }
+
+        _applyingExternalModeChange = true;
+        Mode = resolved;
+        _applyingExternalModeChange = false;
+    }
 
     [ObservableProperty]
     public partial string WindowTitle { get; set; } = "ReScene.NET";
@@ -106,6 +154,21 @@ public partial class MainWindowViewModel : ViewModelBase
         SRSReconstructor = new SRSReconstructorViewModel(srsReconService, fileDialog, tempDir);
         SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
         FileCompare = new FileCompareViewModel(fileCompareService, fileDialog, hexDiffComputer);
+
+        var beginnerRestore = new BeginnerRestoreViewModel(fileDialog)
+        {
+            BulkRestorer = SampleRestorer,
+            SingleRebuilder = SRSReconstructor,
+        };
+        Beginner = new BeginnerShellViewModel
+        {
+            Creator = Creator,
+            SRSCreator = SRSCreator,
+            Reconstructor = Reconstructor,
+            Restore = beginnerRestore,
+            OpenInAdvancedAction = OpenCardInAdvanced,
+        };
+
         Home = new HomeViewModel(
             recentFiles,
             openFile: OpenSceneFile,
@@ -168,6 +231,13 @@ public partial class MainWindowViewModel : ViewModelBase
                 UpdateTaskbarProgress();
             }
         };
+
+        // Apply the persisted/resolved mode without writing it back: the value was just
+        // loaded, so suppress OnModeChanged's save. Subscribe to Changed afterwards.
+        _applyingExternalModeChange = true;
+        Mode = _appSettingsService.Load().Mode ?? UserMode.Advanced;
+        _applyingExternalModeChange = false;
+        _appSettingsService.Changed += OnSettingsChanged;
     }
 
     [RelayCommand]
@@ -193,6 +263,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </param>
     public void OpenSceneFile(string filePath)
     {
+        Mode = UserMode.Advanced;
         Inspector.LoadFile(filePath);
         SelectedTabIndex = 1; // Switch to Inspector tab
         WindowTitle = $"ReScene.NET - {Path.GetFileName(filePath)}";
@@ -200,6 +271,19 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _recentFiles.AddEntry(filePath);
         Home.LoadRecentFiles();
+    }
+
+    private void OpenCardInAdvanced(BeginnerCard card)
+    {
+        Mode = UserMode.Advanced;
+        SelectedTabIndex = card switch
+        {
+            BeginnerCard.CreateSrr => 2,
+            BeginnerCard.CreateSrs => 3,
+            BeginnerCard.Reconstruct => 4,
+            BeginnerCard.Restore => 6,
+            _ => SelectedTabIndex,
+        };
     }
 
     private void UpdateIsBusy()

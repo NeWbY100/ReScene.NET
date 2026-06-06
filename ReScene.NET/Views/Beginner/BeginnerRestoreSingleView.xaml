@@ -1,0 +1,42 @@
+<UserControl x:Class="ReScene.NET.Views.Beginner.BeginnerRestoreSingleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ReScene.NET.Controls">
+  <StackPanel>
+    <c:FieldStatusLine Status="{Binding SRSStatus}" />
+
+    <TextBlock Text="Full original media file" FontWeight="SemiBold" Margin="0,8,0,2" />
+    <DockPanel Margin="0,0,0,2">
+      <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseMediaCommand}"
+              Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding MediaFilePath}" IsReadOnly="{Binding IsISOSource}" />
+    </DockPanel>
+    <c:FieldStatusLine Status="{Binding MediaStatus}" />
+
+    <TextBlock Text="Save rebuilt sample to" FontWeight="SemiBold" Margin="0,12,0,2" />
+    <DockPanel Margin="0,0,0,2">
+      <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
+              Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+      <TextBox Text="{Binding OutputPath}" />
+    </DockPanel>
+    <c:FieldStatusLine Status="{Binding OutputStatus}" />
+
+    <Button Content="Rebuild Sample" Command="{Binding RebuildCommand}"
+            Style="{StaticResource PrimaryButton}" Padding="18,6" HorizontalAlignment="Left" Margin="0,14,0,0" />
+
+    <Border Visibility="{Binding ShowResult, Converter={StaticResource BoolToVisibility}}"
+            Padding="8,6" Margin="0,12,0,0" CornerRadius="4">
+      <Border.Style>
+        <Style TargetType="Border">
+          <Setter Property="Background" Value="#30FF4444" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding ResultSuccess}" Value="True">
+              <Setter Property="Background" Value="#304EC9B0" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Border.Style>
+      <TextBlock Text="{Binding ResultSummary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+    </Border>
+  </StackPanel>
+</UserControl>

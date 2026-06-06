@@ -21,4 +21,9 @@ public sealed class AppSettings
     /// Gets or sets the maximum number of entries kept in the recent files list.
     /// </summary>
     public int RecentFilesLimit { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets the persisted UI mode. Null means "not yet chosen" — resolved at load time.
+    /// </summary>
+    public UserMode? Mode { get; set; }
 }

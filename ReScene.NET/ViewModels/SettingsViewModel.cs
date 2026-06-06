@@ -19,6 +19,7 @@ public partial class SettingsViewModel : ViewModelBase
         DefaultAppName = settings.DefaultAppName;
         DefaultOutputDirectory = settings.DefaultOutputDirectory;
         RecentFilesLimit = settings.RecentFilesLimit;
+        Mode = settings.Mode ?? UserMode.Advanced;
     }
 
     [ObservableProperty]
@@ -29,6 +30,23 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial int RecentFilesLimit { get; set; } = 10;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBeginnerMode))]
+    [NotifyPropertyChangedFor(nameof(IsAdvancedMode))]
+    public partial UserMode Mode { get; set; }
+
+    public bool IsBeginnerMode
+    {
+        get => Mode == UserMode.Beginner;
+        set { if (value) { Mode = UserMode.Beginner; } }
+    }
+
+    public bool IsAdvancedMode
+    {
+        get => Mode == UserMode.Advanced;
+        set { if (value) { Mode = UserMode.Advanced; } }
+    }
 
     public bool DialogResult { get; private set; }
 
@@ -50,7 +68,8 @@ public partial class SettingsViewModel : ViewModelBase
         {
             DefaultAppName = DefaultAppName,
             DefaultOutputDirectory = DefaultOutputDirectory,
-            RecentFilesLimit = Math.Clamp(RecentFilesLimit, 1, 100)
+            RecentFilesLimit = Math.Clamp(RecentFilesLimit, 1, 100),
+            Mode = Mode,
         });
         DialogResult = true;
     }

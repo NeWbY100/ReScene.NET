@@ -158,7 +158,7 @@ public partial class MainWindow : Window
 
         if (DataContext is MainWindowViewModel vm)
         {
-            vm.SelectedTabIndex = state.SelectedTabIndex;
+            vm.SelectedTabIndex = Math.Clamp(state.SelectedTabIndex, 0, 7);
         }
     }
 
@@ -255,15 +255,14 @@ public partial class MainWindow : Window
 
     private void OnPreviewKeyDown(object _, KeyEventArgs e)
     {
-        // Ctrl+1 through Ctrl+7 switch tabs
+        // Ctrl+1 through Ctrl+7 switch tabs (Advanced mode only)
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key >= Key.D1 && e.Key <= Key.D7)
         {
-            if (DataContext is MainWindowViewModel vm)
+            if (DataContext is MainWindowViewModel vm && vm.IsAdvancedMode)
             {
                 vm.SelectedTabIndex = e.Key - Key.D1;
+                e.Handled = true;
             }
-
-            e.Handled = true;
         }
     }
 }
