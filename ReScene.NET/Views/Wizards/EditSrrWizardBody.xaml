@@ -1,0 +1,83 @@
+<UserControl x:Class="ReScene.NET.Views.Wizards.EditSrrWizardBody"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:ReScene.NET.Controls">
+  <Grid MinHeight="150">
+
+    <!-- Step 0: Choose the SRR -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
+      <TextBlock Text="Choose the SRR file you want to edit."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
+      <TextBlock Text="SRR file" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseSourceCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding SourcePath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding SourceStatus}" />
+    </StackPanel>
+
+    <!-- Step 1: Manage stored files -->
+    <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                    RelativeSource={RelativeSource AncestorType=Window},
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+        <Button Content="Add files…" Command="{Binding AddStoredFilesCommand}"
+                Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+        <Button Content="Remove" Command="{Binding RemoveStoredFileCommand}"
+                Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+        <Button Content="Rename" Command="{Binding RenameStoredFileCommand}"
+                Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+        <Button Content="Move up" Command="{Binding MoveStoredFileUpCommand}"
+                Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+        <Button Content="Move down" Command="{Binding MoveStoredFileDownCommand}"
+                Style="{StaticResource GhostButton}" Padding="10,4" />
+      </StackPanel>
+      <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
+        <ListBox ItemsSource="{Binding StoredFiles}"
+                 SelectedItem="{Binding SelectedStoredFile}"
+                 Style="{StaticResource CompactLogListBox}" />
+      </Border>
+    </DockPanel>
+
+    <!-- Step 2: Save as -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+      <TextBlock Text="Choose where the edited SRR should be saved."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
+      <TextBlock Text="Save edited SRR to" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding OutputPath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding OutputStatus}" />
+    </StackPanel>
+
+    <!-- Step 3: Done -->
+    <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                    RelativeSource={RelativeSource AncestorType=Window},
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Text="{Binding ResultMessage}"
+                   Visibility="{Binding ShowResult, Converter={StaticResource BoolToVisibility}}"
+                   FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8" />
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,4,0,2" />
+      </StackPanel>
+      <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
+        <ListBox ItemsSource="{Binding LogEntries}" Style="{StaticResource CompactLogListBox}"
+                 FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
+      </Border>
+    </DockPanel>
+
+  </Grid>
+</UserControl>

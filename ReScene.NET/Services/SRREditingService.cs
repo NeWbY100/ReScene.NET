@@ -22,4 +22,8 @@ public class SRREditingService : ISrrEditingService
     /// <inheritdoc />
     public Task MoveStoredFileAsync(string srrPath, string storedName, int offset, CancellationToken ct = default)
         => Task.Run(() => SRREditor.MoveStoredFile(srrPath, storedName, offset), ct);
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetStoredFileNames(string srrFilePath)
+        => SRRFile.Load(srrFilePath).StoredFiles.Select(s => s.FileName).ToList();
 }
