@@ -317,6 +317,12 @@ public partial class CreatorViewModel : ViewModelBase
     [RelayCommand]
     private void RemoveAllStoredFiles() => StoredFiles.Clear();
 
+    /// <summary>
+    /// One-shot flag: when set, the next SRR creation skips its own overwrite prompt because the
+    /// caller (e.g. the Beginner wizard) already confirmed it. Reset at the start of each run.
+    /// </summary>
+    public bool SuppressOverwriteConfirm { get; set; }
+
     private bool CanCreateSRR() => !IsCreating
         && !string.IsNullOrWhiteSpace(InputPath)
         && !string.IsNullOrWhiteSpace(OutputPath);
@@ -324,7 +330,9 @@ public partial class CreatorViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanCreateSRR))]
     private async Task CreateSRRAsync()
     {
-        if (File.Exists(OutputPath))
+        bool skipConfirm = SuppressOverwriteConfirm;
+        SuppressOverwriteConfirm = false;
+        if (File.Exists(OutputPath) && !skipConfirm)
         {
             bool proceed = await _fileDialog.ShowConfirmAsync(
                 "Overwrite existing SRR?",

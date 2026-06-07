@@ -77,4 +77,21 @@ public class WizardViewModelTests
         Assert.Equal(1, w.CurrentStepIndex);
         Assert.Equal("Next ›", w.NextButtonText);
     }
+
+    [Fact]
+    public void Next_DoesNotAdvanceOrRunOnLeave_WhenConfirmLeaveReturnsFalse()
+    {
+        bool left = false;
+        var steps = new List<WizardStep>
+        {
+            new() { Title = "A", ConfirmLeave = () => false, OnLeave = () => left = true },
+            new() { Title = "B" },
+        };
+        var w = new WizardViewModel("T", new object(), steps);
+
+        w.NextCommand.Execute(null);
+
+        Assert.Equal(0, w.CurrentStepIndex);
+        Assert.False(left);
+    }
 }

@@ -11,4 +11,8 @@ public sealed class WizardStep
 
     /// <summary>Optional action run when advancing FROM this step (e.g. start the operation).</summary>
     public Action? OnLeave { get; init; }
+
+    /// <summary>Optional gate run before advancing FROM this step; return false to stay on it
+    /// (e.g. the user declined an overwrite). Runs before <see cref="OnLeave"/>.</summary>
+    public Func<bool>? ConfirmLeave { get; init; }
 }

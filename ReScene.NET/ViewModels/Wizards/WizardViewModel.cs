@@ -74,6 +74,11 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
         }
 
         WizardStep leaving = Steps[CurrentStepIndex];
+        if (leaving.ConfirmLeave is not null && !leaving.ConfirmLeave())
+        {
+            return;
+        }
+
         CurrentStepIndex++;
         leaving.OnLeave?.Invoke();
     }

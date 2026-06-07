@@ -42,6 +42,25 @@ public static class BeginnerWizardFactory
                 Title = "Choose where to save",
                 CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath),
                 NextLabel = "Create",
+                ConfirmLeave = () =>
+                {
+                    if (!File.Exists(vm.OutputPath))
+                    {
+                        return true;
+                    }
+
+                    bool overwrite = MessageBox.Show(
+                        $"An SRR file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
+                        "Overwrite existing SRR?",
+                        MessageBoxButton.OKCancel,
+                        MessageBoxImage.Warning) == MessageBoxResult.OK;
+                    if (overwrite)
+                    {
+                        vm.SuppressOverwriteConfirm = true;
+                    }
+
+                    return overwrite;
+                },
                 OnLeave = () =>
                 {
                     if (vm.CreateSRRCommand.CanExecute(null))
