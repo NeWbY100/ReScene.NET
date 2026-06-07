@@ -30,7 +30,7 @@
                 Style="{StaticResource PrimaryButton}" MinWidth="90"
                 Visibility="{Binding IsLastStep, Converter={StaticResource InverseBoolToVisibility}}" />
         <Button Content="Close" Click="OnCloseClick"
-                Style="{StaticResource GhostButton}" MinWidth="90"
+                Style="{StaticResource PrimaryButton}" MinWidth="90"
                 Visibility="{Binding IsLastStep, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
     </DockPanel>
