@@ -201,8 +201,11 @@
                                     <Setter TargetName="border" Property="Background" Value="#FF333333" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
+                                    <!-- Drop the outline entirely and dim the label so a disabled button
+                                         reads as a flat, faint item beside the outlined, clickable ones. -->
                                     <Setter Property="Foreground" Value="{DynamicResource ForegroundDisabled}" />
-                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+                                    <Setter TargetName="border" Property="Background" Value="Transparent" />
+                                    <Setter TargetName="border" Property="BorderBrush" Value="Transparent" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
