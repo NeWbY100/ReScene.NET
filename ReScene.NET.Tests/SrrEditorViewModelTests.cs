@@ -4,6 +4,11 @@ using ReScene.NET.ViewModels;
 
 namespace ReScene.NET.Tests;
 
+// NOTE: the grid's code-behind handlers in EditSrrWizardBody.xaml.cs — SelectionChanged
+// (forwards DataGrid.SelectedItems to vm.SetSelection) and PreviewMouseDown (clears the
+// selection on an empty-space left-click) — require a live WPF visual tree and are not
+// covered here. These tests drive vm.SetSelection directly, which is exactly what the
+// SelectionChanged handler forwards, so the VM-side selection logic is fully exercised.
 public class SrrEditorViewModelTests
 {
     // ── Fakes ───────────────────────────────────────────────
@@ -26,8 +31,14 @@ public class SrrEditorViewModelTests
         public (string Path, string Name, int Offset)? LastMoved { get; private set; }
         public (string SrrPath, string OutputDir, string StoredName)? LastExtracted { get; private set; }
 
+        /// <summary>Every extraction call, in order — lets multi-select extraction be verified.</summary>
+        public List<(string SrrPath, string OutputDir, string StoredName)> Extractions { get; } = [];
+
         /// <summary>Scripted return value for <see cref="ExtractStoredFileAsync"/>. Null simulates not found.</summary>
         public string? ExtractResult { get; set; }
+
+        /// <summary>Per-name scripted results; takes precedence over <see cref="ExtractResult"/> when present.</summary>
+        public Dictionary<string, string?> ExtractResultByName { get; } = [];
 
         public void AddStoredFiles(string srrFilePath, IReadOnlyList<(string StoredName, string FilePath)> files)
         {
@@ -90,7 +101,9 @@ public class SrrEditorViewModelTests
         {
             Calls.Add(nameof(ExtractStoredFileAsync));
             LastExtracted = (srrFilePath, outputDirectory, storedName);
-            return Task.FromResult(ExtractResult);
+            Extractions.Add((srrFilePath, outputDirectory, storedName));
+            string? result = ExtractResultByName.TryGetValue(storedName, out string? perName) ? perName : ExtractResult;
+            return Task.FromResult(result);
         }
     }
 
@@ -342,7 +355,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "a.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "a.nfo")]);
 
         vm.RemoveStoredFileCommand.Execute(null);
 
@@ -359,7 +372,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("old.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "old.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "old.nfo")]);
         dialog.PromptResult = "new.nfo";
 
         vm.RenameStoredFileCommand.Execute(null);
@@ -378,7 +391,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("old.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "old.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "old.nfo")]);
         dialog.PromptResult = null;
 
         vm.RenameStoredFileCommand.Execute(null);
@@ -394,7 +407,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("same.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "same.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "same.nfo")]);
         dialog.PromptResult = "same.nfo";   // user kept the existing name
 
         vm.RenameStoredFileCommand.Execute(null);
@@ -411,7 +424,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "b.sfv");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "b.sfv")]);
 
         vm.MoveStoredFileUpCommand.Execute(null);
 
@@ -428,7 +441,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "a.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "a.nfo")]);
 
         vm.MoveStoredFileDownCommand.Execute(null);
 
@@ -447,7 +460,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("readme.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "readme.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "readme.nfo")]);
         dialog.OpenFolderResult = @"D:\Output";
         editing.ExtractResult = @"D:\Output\readme.nfo";
 
@@ -458,6 +471,7 @@ public class SrrEditorViewModelTests
         Assert.Equal(@"D:\Output", editing.LastExtracted.Value.OutputDir);
         Assert.Equal("readme.nfo", editing.LastExtracted.Value.StoredName);
         Assert.Equal(FieldState.Ok, vm.ManageStatus.State);
+        Assert.Contains("Saved \"readme.nfo\"", vm.ManageStatus.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -467,7 +481,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("readme.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "readme.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "readme.nfo")]);
         dialog.OpenFolderResult = null;   // user cancelled
 
         await vm.ExtractStoredFileCommand.ExecuteAsync(null);
@@ -481,7 +495,7 @@ public class SrrEditorViewModelTests
     public void ExtractStoredFileCommand_DisabledWithoutSelection()
     {
         TestSrrEditorViewModel vm = CreateVm(out _, out _);
-        vm.SelectedStoredFile = null;
+        vm.SetSelection([]);
 
         Assert.False(vm.ExtractStoredFileCommand.CanExecute(null));
     }
@@ -493,7 +507,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("readme.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "readme.nfo");
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "readme.nfo")]);
         dialog.OpenFolderResult = @"D:\Output";
         editing.ExtractResult = @"D:\Output\readme.nfo";
         await vm.ExtractStoredFileCommand.ExecuteAsync(null);
@@ -510,7 +524,7 @@ public class SrrEditorViewModelTests
     public void EditCommands_DisabledWithoutSelection()
     {
         TestSrrEditorViewModel vm = CreateVm(out _, out _);
-        vm.SelectedStoredFile = null;
+        vm.SetSelection([]);
 
         Assert.False(vm.RemoveStoredFileCommand.CanExecute(null));
         Assert.False(vm.RenameStoredFileCommand.CanExecute(null));
@@ -520,16 +534,156 @@ public class SrrEditorViewModelTests
     }
 
     [Fact]
-    public void EditCommands_EnabledWithSelection()
+    public void EditCommands_EnabledWithSingleSelection()
     {
-        TestSrrEditorViewModel vm = CreateVm(out _, out _);
-        vm.SelectedStoredFile = new StoredFileInfo("a.nfo", 0L);
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
+        editing.StoredFileNames.Add("a.nfo");
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection([vm.StoredFiles.First()]);
 
         Assert.True(vm.RemoveStoredFileCommand.CanExecute(null));
         Assert.True(vm.RenameStoredFileCommand.CanExecute(null));
         Assert.True(vm.MoveStoredFileUpCommand.CanExecute(null));
         Assert.True(vm.MoveStoredFileDownCommand.CanExecute(null));
         Assert.True(vm.ExtractStoredFileCommand.CanExecute(null));
+    }
+
+    // ── Multi-selection ─────────────────────────────────────
+
+    [Fact]
+    public void MultiSelection_EnablesRemoveAndExtract_ButDisablesSingleOnlyCommands()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
+        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+
+        // With a single selection the single-only commands are enabled…
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "a.nfo")]);
+        Assert.True(vm.RenameStoredFileCommand.CanExecute(null));
+        Assert.True(vm.MoveStoredFileUpCommand.CanExecute(null));
+        Assert.True(vm.MoveStoredFileDownCommand.CanExecute(null));
+
+        // …and adding a second selected file disables them, while Remove/Extract stay enabled.
+        vm.SetSelection(vm.StoredFiles.ToList());
+
+        Assert.Equal(2, vm.SelectedStoredFiles.Count);
+        Assert.True(vm.RemoveStoredFileCommand.CanExecute(null));
+        Assert.True(vm.ExtractStoredFileCommand.CanExecute(null));
+        Assert.False(vm.RenameStoredFileCommand.CanExecute(null));
+        Assert.False(vm.MoveStoredFileUpCommand.CanExecute(null));
+        Assert.False(vm.MoveStoredFileDownCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void RemoveStoredFile_RemovesAllSelectedFiles()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
+        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv", "c.txt"]);
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection([
+            vm.StoredFiles.First(f => f.Name == "a.nfo"),
+            vm.StoredFiles.First(f => f.Name == "c.txt"),
+        ]);
+
+        vm.RemoveStoredFileCommand.Execute(null);
+
+        Assert.Equal(["a.nfo", "c.txt"], editing.LastRemoved);
+        Assert.Equal(["b.sfv"], vm.StoredFiles.Select(f => f.Name));
+    }
+
+    [Fact]
+    public async Task ExtractStoredFile_ExtractsAllSelectedFiles()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out FakeFileDialogService dialog);
+        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection(vm.StoredFiles.ToList());
+        dialog.OpenFolderResult = @"D:\Output";
+        editing.ExtractResult = @"D:\Output\file";   // non-null = success for each
+
+        await vm.ExtractStoredFileCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, editing.Extractions.Count);
+        Assert.Equal(["a.nfo", "b.sfv"], editing.Extractions.Select(e => e.StoredName));
+        Assert.All(editing.Extractions, e => Assert.Equal(@"D:\Output", e.OutputDir));
+        Assert.All(editing.Extractions, e => Assert.Equal(TestSrrEditorViewModel.DummyWorkingPath, e.SrrPath));
+        Assert.Equal(FieldState.Ok, vm.ManageStatus.State);
+        Assert.Contains("Saved 2 files", vm.ManageStatus.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractStoredFile_WhenSomeSelectedMissing_SetsWarningStatus()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out FakeFileDialogService dialog);
+        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection(vm.StoredFiles.ToList());
+        dialog.OpenFolderResult = @"D:\Output";
+        editing.ExtractResultByName["a.nfo"] = @"D:\Output\a.nfo";   // saved
+        editing.ExtractResultByName["b.sfv"] = null;                  // not found
+
+        await vm.ExtractStoredFileCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, editing.Extractions.Count);
+        Assert.Equal(FieldState.Warning, vm.ManageStatus.State);
+    }
+
+    [Fact]
+    public async Task ExtractStoredFile_WhenAllSelectedMissing_SetsErrorStatus()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out FakeFileDialogService dialog);
+        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection(vm.StoredFiles.ToList());
+        dialog.OpenFolderResult = @"D:\Output";
+        editing.ExtractResult = null;   // every extract reports "not found"
+
+        await vm.ExtractStoredFileCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, editing.Extractions.Count);
+        Assert.Equal(FieldState.Error, vm.ManageStatus.State);
+    }
+
+    [Fact]
+    public void SetSelection_ReplacesPreviousSelection()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
+        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+
+        vm.SetSelection(vm.StoredFiles.ToList());
+        Assert.Equal(2, vm.SelectedStoredFiles.Count);
+
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == "b.sfv")]);
+
+        Assert.Equal(["b.sfv"], vm.SelectedStoredFiles.Select(f => f.Name));
+    }
+
+    [Fact]
+    public void SetSelection_Empty_ClearsSelection_AndDisablesCommands()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
+        editing.StoredFileNames.Add("a.nfo");
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection(vm.StoredFiles.ToList());
+        Assert.True(vm.RemoveStoredFileCommand.CanExecute(null));
+
+        vm.SetSelection([]);
+
+        Assert.Empty(vm.SelectedStoredFiles);
+        Assert.False(vm.RemoveStoredFileCommand.CanExecute(null));
+        Assert.False(vm.ExtractStoredFileCommand.CanExecute(null));
+        Assert.False(vm.RenameStoredFileCommand.CanExecute(null));
+        Assert.False(vm.MoveStoredFileUpCommand.CanExecute(null));
+        Assert.False(vm.MoveStoredFileDownCommand.CanExecute(null));
     }
 
     // ── Reset ───────────────────────────────────────────────
@@ -577,7 +731,7 @@ public class SrrEditorViewModelTests
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.OutputPath = @"C:\rel\movie (edited).srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = vm.StoredFiles.FirstOrDefault();
+        vm.SetSelection([vm.StoredFiles.First()]);
 
         vm.Reset();
 
@@ -588,6 +742,7 @@ public class SrrEditorViewModelTests
         Assert.Equal(FieldState.None, vm.OutputStatus.State);
         Assert.Empty(vm.StoredFiles);
         Assert.Null(vm.SelectedStoredFile);
+        Assert.Empty(vm.SelectedStoredFiles);
         Assert.Empty(vm.LogEntries);
         Assert.Equal(string.Empty, vm.ResultMessage);
         Assert.False(vm.ShowResult);
