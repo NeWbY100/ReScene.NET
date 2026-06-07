@@ -383,17 +383,10 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        try
-        {
-            if (File.Exists(_workingCopyPath))
-            {
-                File.Delete(_workingCopyPath);
-            }
-        }
-        catch
-        {
-            // Best-effort cleanup; a leftover temp is harmless and is also swept on app shutdown.
-        }
+        // Remove the whole working-copy temp directory (the copied .srr plus its GUID folder),
+        // not just the file, so temp directories don't accumulate across edits and opens.
+        // Cleanup is best-effort (it suppresses its own exceptions).
+        _tempDir.Cleanup(Path.GetDirectoryName(_workingCopyPath));
     }
 
     private static string SuggestEditedSiblingPath(string sourcePath)
