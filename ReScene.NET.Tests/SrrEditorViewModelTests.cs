@@ -24,6 +24,10 @@ public class SrrEditorViewModelTests
         public IReadOnlyList<string>? LastRemoved { get; private set; }
         public (string Path, string Old, string New)? LastRenamed { get; private set; }
         public (string Path, string Name, int Offset)? LastMoved { get; private set; }
+        public (string SrrPath, string OutputDir, string StoredName)? LastExtracted { get; private set; }
+
+        /// <summary>Scripted return value for <see cref="ExtractStoredFileAsync"/>. Null simulates not found.</summary>
+        public string? ExtractResult { get; set; }
 
         public void AddStoredFiles(string srrFilePath, IReadOnlyList<(string StoredName, string FilePath)> files)
         {
@@ -81,6 +85,13 @@ public class SrrEditorViewModelTests
             LastPath = srrFilePath;
             return StoredFileNames.Select(n => new StoredFileInfo(n, 0L)).ToList();
         }
+
+        public Task<string?> ExtractStoredFileAsync(string srrFilePath, string outputDirectory, string storedName, CancellationToken ct = default)
+        {
+            Calls.Add(nameof(ExtractStoredFileAsync));
+            LastExtracted = (srrFilePath, outputDirectory, storedName);
+            return Task.FromResult(ExtractResult);
+        }
     }
 
     /// <summary>Fake dialog: serves scripted responses and records prompts.</summary>
@@ -89,6 +100,7 @@ public class SrrEditorViewModelTests
         public string? OpenFileResult { get; set; }
         public IReadOnlyList<string> OpenFilesResult { get; set; } = [];
         public string? SaveFileResult { get; set; }
+        public string? OpenFolderResult { get; set; }
         public string? PromptResult { get; set; }
 
         public string? LastPromptInitialValue { get; private set; }
@@ -96,7 +108,7 @@ public class SrrEditorViewModelTests
         public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFileResult);
         public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFilesResult);
         public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null) => Task.FromResult(SaveFileResult);
-        public Task<string?> OpenFolderAsync(string title) => Task.FromResult<string?>(null);
+        public Task<string?> OpenFolderAsync(string title) => Task.FromResult(OpenFolderResult);
         public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
 
         public Task<string?> PromptForTextAsync(string title, string message, string initialValue)
@@ -426,6 +438,72 @@ public class SrrEditorViewModelTests
         Assert.Equal("a.nfo", vm.SelectedStoredFile?.Name);
     }
 
+    // ── Extract ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExtractStoredFile_CallsServiceAndSetsOkStatus()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out FakeFileDialogService dialog);
+        editing.StoredFileNames.Add("readme.nfo");
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "readme.nfo");
+        dialog.OpenFolderResult = @"D:\Output";
+        editing.ExtractResult = @"D:\Output\readme.nfo";
+
+        await vm.ExtractStoredFileCommand.ExecuteAsync(null);
+
+        Assert.NotNull(editing.LastExtracted);
+        Assert.Equal(TestSrrEditorViewModel.DummyWorkingPath, editing.LastExtracted!.Value.SrrPath);
+        Assert.Equal(@"D:\Output", editing.LastExtracted.Value.OutputDir);
+        Assert.Equal("readme.nfo", editing.LastExtracted.Value.StoredName);
+        Assert.Equal(FieldState.Ok, vm.ManageStatus.State);
+    }
+
+    [Fact]
+    public async Task ExtractStoredFile_WhenFolderDialogCancelled_DoesNothing()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out FakeFileDialogService dialog);
+        editing.StoredFileNames.Add("readme.nfo");
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "readme.nfo");
+        dialog.OpenFolderResult = null;   // user cancelled
+
+        await vm.ExtractStoredFileCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain(nameof(FakeSrrEditingService.ExtractStoredFileAsync), editing.Calls);
+        Assert.Null(editing.LastExtracted);
+        Assert.Equal(FieldState.None, vm.ManageStatus.State);
+    }
+
+    [Fact]
+    public void ExtractStoredFileCommand_DisabledWithoutSelection()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out _, out _);
+        vm.SelectedStoredFile = null;
+
+        Assert.False(vm.ExtractStoredFileCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Reset_ClearsManageStatus()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out FakeFileDialogService dialog);
+        editing.StoredFileNames.Add("readme.nfo");
+        vm.SourcePath = @"C:\rel\movie.srr";
+        vm.EnsureWorkingCopy();
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "readme.nfo");
+        dialog.OpenFolderResult = @"D:\Output";
+        editing.ExtractResult = @"D:\Output\readme.nfo";
+        await vm.ExtractStoredFileCommand.ExecuteAsync(null);
+        Assert.Equal(FieldState.Ok, vm.ManageStatus.State);
+
+        vm.Reset();
+
+        Assert.Equal(FieldState.None, vm.ManageStatus.State);
+    }
+
     // ── HasSelection gating ─────────────────────────────────
 
     [Fact]
@@ -438,6 +516,7 @@ public class SrrEditorViewModelTests
         Assert.False(vm.RenameStoredFileCommand.CanExecute(null));
         Assert.False(vm.MoveStoredFileUpCommand.CanExecute(null));
         Assert.False(vm.MoveStoredFileDownCommand.CanExecute(null));
+        Assert.False(vm.ExtractStoredFileCommand.CanExecute(null));
     }
 
     [Fact]
@@ -450,6 +529,7 @@ public class SrrEditorViewModelTests
         Assert.True(vm.RenameStoredFileCommand.CanExecute(null));
         Assert.True(vm.MoveStoredFileUpCommand.CanExecute(null));
         Assert.True(vm.MoveStoredFileDownCommand.CanExecute(null));
+        Assert.True(vm.ExtractStoredFileCommand.CanExecute(null));
     }
 
     // ── Reset ───────────────────────────────────────────────

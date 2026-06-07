@@ -50,7 +50,13 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     [NotifyCanExecuteChangedFor(nameof(RenameStoredFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveStoredFileUpCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveStoredFileDownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExtractStoredFileCommand))]
     public partial StoredFileInfo? SelectedStoredFile { get; set; }
+
+    // ── Manage step status ──────────────────────────────────
+
+    [ObservableProperty]
+    public partial FieldStatus ManageStatus { get; set; } = FieldStatus.None;
 
     // ── Result / log ────────────────────────────────────────
 
@@ -302,6 +308,41 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         }
     }
 
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task ExtractStoredFileAsync()
+    {
+        if (SelectedStoredFile is null || _workingCopyPath is null)
+        {
+            return;
+        }
+
+        string name = SelectedStoredFile.Name;
+        string? folder = await _fileDialog.OpenFolderAsync("Choose where to save the file");
+        if (folder is null)
+        {
+            return;
+        }
+
+        try
+        {
+            string? path = await _srrEditing.ExtractStoredFileAsync(_workingCopyPath, folder, name);
+            if (path is not null)
+            {
+                ManageStatus = FieldStatus.Ok($"Saved \"{name}\" to {path}");
+                Log($"Extracted \"{name}\" to {path}");
+            }
+            else
+            {
+                ManageStatus = FieldStatus.Warning($"Could not find \"{name}\" to extract.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ManageStatus = FieldStatus.Error($"Extract failed: {ex.Message}");
+            Log($"Extract failed: {ex.Message}");
+        }
+    }
+
     // ── Save ────────────────────────────────────────────────
 
     /// <summary>
@@ -372,6 +413,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
         StoredFiles.Clear();
         SelectedStoredFile = null;
+        ManageStatus = FieldStatus.None;
 
         LogEntries.Clear();
         ResultMessage = string.Empty;

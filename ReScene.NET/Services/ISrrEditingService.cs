@@ -73,4 +73,25 @@ public interface ISrrEditingService
     /// The stored files, in the order they appear in the SRR.
     /// </returns>
     public IReadOnlyList<StoredFileInfo> GetStoredFiles(string srrFilePath);
+
+    /// <summary>
+    /// Extracts the first stored file whose name matches <paramref name="storedName"/> and
+    /// writes it (by leaf filename) into <paramref name="outputDirectory"/>.
+    /// </summary>
+    /// <param name="srrFilePath">
+    /// Path to the SRR file to extract from.
+    /// </param>
+    /// <param name="outputDirectory">
+    /// Directory to write the extracted file into.
+    /// </param>
+    /// <param name="storedName">
+    /// The stored file name to match.
+    /// </param>
+    /// <param name="ct">
+    /// Cancellation token.
+    /// </param>
+    /// <returns>
+    /// The full path of the written file, or <see langword="null"/> if no match was found.
+    /// </returns>
+    public Task<string?> ExtractStoredFileAsync(string srrFilePath, string outputDirectory, string storedName, CancellationToken ct = default);
 }
