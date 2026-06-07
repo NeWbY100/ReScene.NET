@@ -31,7 +31,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     public partial string SourcePath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial FieldStatus SourceStatus { get; set; } = FieldStatus.Error("Choose the SRR file you want to edit.");
+    public partial FieldStatus SourceStatus { get; set; } = FieldStatus.None;
 
     // ── Output ──────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            SourceStatus = FieldStatus.Error("Choose the SRR file you want to edit.");
+            SourceStatus = FieldStatus.None;
             return;
         }
 
@@ -365,9 +365,9 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
         SourcePath = string.Empty;
         OutputPath = string.Empty;
-        // Restore the same "choose an SRR" guidance a freshly-constructed VM shows, so a
-        // re-opened wizard's Next gate (SourceStatus == Ok) behaves identically.
-        SourceStatus = FieldStatus.Error("Choose the SRR file you want to edit.");
+        // Empty source shows no status (the step's intro text already guides the user); the
+        // Next gate (SourceStatus == Ok) stays blocked until a valid .srr is chosen.
+        SourceStatus = FieldStatus.None;
         OutputStatus = FieldStatus.None;
 
         StoredFiles.Clear();

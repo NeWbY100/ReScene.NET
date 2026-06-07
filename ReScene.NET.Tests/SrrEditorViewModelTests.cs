@@ -168,19 +168,19 @@ public class SrrEditorViewModelTests
     // ── OnSourcePathChanged ─────────────────────────────────
 
     [Fact]
-    public void FreshVm_SourceStatusIsError()
+    public void FreshVm_SourceStatusIsNone()
     {
         TestSrrEditorViewModel vm = CreateVm(out _, out _);
-        Assert.Equal(FieldState.Error, vm.SourceStatus.State);
+        Assert.Equal(FieldState.None, vm.SourceStatus.State);
     }
 
     [Fact]
-    public void ClearingSource_SetsError()
+    public void ClearingSource_SetsNone()
     {
         TestSrrEditorViewModel vm = CreateVm(out _, out _);
         vm.SourcePath = @"C:\rel\movie.srr";   // non-existent path → Error, but a definite change
         vm.SourcePath = string.Empty;          // exercises the empty branch of OnSourcePathChanged
-        Assert.Equal(FieldState.Error, vm.SourceStatus.State);
+        Assert.Equal(FieldState.None, vm.SourceStatus.State);
     }
 
     [Fact]
@@ -503,8 +503,8 @@ public class SrrEditorViewModelTests
 
         Assert.Equal(string.Empty, vm.SourcePath);
         Assert.Equal(string.Empty, vm.OutputPath);
-        // Reset restores the fresh-construction "choose an SRR" guidance (Next gate stays correct).
-        Assert.Equal(FieldState.Error, vm.SourceStatus.State);
+        // Reset clears the source status to None (an empty field shows no error).
+        Assert.Equal(FieldState.None, vm.SourceStatus.State);
         Assert.Equal(FieldState.None, vm.OutputStatus.State);
         Assert.Empty(vm.StoredFiles);
         Assert.Null(vm.SelectedStoredFile);
