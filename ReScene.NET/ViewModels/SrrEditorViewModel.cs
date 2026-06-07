@@ -232,7 +232,16 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     [RelayCommand]
     private async Task BrowseOutputAsync()
     {
-        string? path = await _fileDialog.SaveFileAsync("Save Edited SRR", ".srr", FileDialogFilters.SRRSave);
+        // Pre-fill the save dialog with the intended output: the current OutputPath (already
+        // auto-filled to a "(edited)" sibling), or one derived from the source if it was cleared.
+        string? suggested = !string.IsNullOrWhiteSpace(OutputPath)
+            ? OutputPath
+            : !string.IsNullOrWhiteSpace(SourcePath)
+                ? SuggestEditedSiblingPath(SourcePath)
+                : null;
+
+        string? path = await _fileDialog.SaveFileAsync(
+            "Save Edited SRR", ".srr", FileDialogFilters.SRRSave, suggested);
         if (path is not null)
         {
             OutputPath = path;

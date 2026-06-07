@@ -117,10 +117,16 @@ public class SrrEditorViewModelTests
         public string? PromptResult { get; set; }
 
         public string? LastPromptInitialValue { get; private set; }
+        public string? LastSaveDefaultFileName { get; private set; }
 
         public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFileResult);
         public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFilesResult);
-        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null) => Task.FromResult(SaveFileResult);
+
+        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null)
+        {
+            LastSaveDefaultFileName = defaultFileName;
+            return Task.FromResult(SaveFileResult);
+        }
         public Task<string?> OpenFolderAsync(string title) => Task.FromResult(OpenFolderResult);
         public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
 
@@ -271,6 +277,44 @@ public class SrrEditorViewModelTests
         vm.OutputPath = @"D:\mine\custom.srr";
         vm.OutputPath = string.Empty;
         Assert.Equal(FieldState.None, vm.OutputStatus.State);
+    }
+
+    // ── Browse output ───────────────────────────────────────
+
+    [Fact]
+    public async Task BrowseOutput_PrefillsCurrentOutputPathAsDefaultFileName()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out _, out FakeFileDialogService dialog);
+        vm.OutputPath = @"D:\rel\movie (edited).srr";
+        dialog.SaveFileResult = @"D:\chosen\out.srr";
+
+        await vm.BrowseOutputCommand.ExecuteAsync(null);
+
+        Assert.Equal(@"D:\rel\movie (edited).srr", dialog.LastSaveDefaultFileName);
+        Assert.Equal(@"D:\chosen\out.srr", vm.OutputPath);
+    }
+
+    [Fact]
+    public async Task BrowseOutput_FallsBackToSiblingName_WhenOutputCleared()
+    {
+        TestSrrEditorViewModel vm = CreateVm(out _, out FakeFileDialogService dialog);
+        string srr = Path.Combine(Path.GetTempPath(), $"srr-edit-{Guid.NewGuid():N}.srr");
+        File.WriteAllText(srr, "x");
+        try
+        {
+            vm.SourcePath = srr;            // auto-fills OutputPath
+            vm.OutputPath = string.Empty;   // user cleared it
+            dialog.SaveFileResult = null;   // cancelled
+
+            await vm.BrowseOutputCommand.ExecuteAsync(null);
+
+            Assert.NotNull(dialog.LastSaveDefaultFileName);
+            Assert.EndsWith(" (edited).srr", dialog.LastSaveDefaultFileName!, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(srr);
+        }
     }
 
     // ── EnsureWorkingCopy / ReloadList ──────────────────────
