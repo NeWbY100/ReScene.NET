@@ -43,14 +43,14 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
     // ── Stored files ────────────────────────────────────────
 
-    public ObservableCollection<string> StoredFiles { get; } = [];
+    public ObservableCollection<StoredFileInfo> StoredFiles { get; } = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RemoveStoredFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(RenameStoredFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveStoredFileUpCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveStoredFileDownCommand))]
-    public partial string? SelectedStoredFile { get; set; }
+    public partial StoredFileInfo? SelectedStoredFile { get; set; }
 
     // ── Result / log ────────────────────────────────────────
 
@@ -141,8 +141,11 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
     /// <summary>
     /// Reloads <see cref="StoredFiles"/> from the working copy, via the editing service.
+    /// Optionally restores the selection to the entry whose <see cref="StoredFileInfo.Name"/>
+    /// matches <paramref name="selectName"/> (pass <see langword="null"/> to leave the
+    /// selection cleared).
     /// </summary>
-    public void ReloadList()
+    public void ReloadList(string? selectName = null)
     {
         StoredFiles.Clear();
 
@@ -151,10 +154,14 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        foreach (string name in _srrEditing.GetStoredFileNames(_workingCopyPath))
+        foreach (StoredFileInfo info in _srrEditing.GetStoredFiles(_workingCopyPath))
         {
-            StoredFiles.Add(name);
+            StoredFiles.Add(info);
         }
+
+        SelectedStoredFile = selectName is not null
+            ? StoredFiles.FirstOrDefault(f => f.Name == selectName)
+            : null;
     }
 
     // ── Browse ──────────────────────────────────────────────
@@ -213,7 +220,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         }
     }
 
-    private bool HasSelection() => !string.IsNullOrEmpty(SelectedStoredFile);
+    private bool HasSelection() => SelectedStoredFile is not null;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void RemoveStoredFile()
@@ -223,7 +230,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        string name = SelectedStoredFile;
+        string name = SelectedStoredFile.Name;
 
         try
         {
@@ -245,7 +252,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        string oldName = SelectedStoredFile;
+        string oldName = SelectedStoredFile.Name;
 
         string? newName = await _fileDialog.PromptForTextAsync(
             "Rename stored file", "New name:", oldName);
@@ -258,8 +265,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         try
         {
             await _srrEditing.RenameStoredFileAsync(_workingCopyPath, oldName, newName);
-            ReloadList();
-            SelectedStoredFile = StoredFiles.Contains(newName) ? newName : null;
+            ReloadList(selectName: newName);
             Log($"Renamed stored file: {oldName} → {newName}");
         }
         catch (Exception ex)
@@ -281,14 +287,13 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        string name = SelectedStoredFile;
+        string name = SelectedStoredFile.Name;
 
         try
         {
             await _srrEditing.MoveStoredFileAsync(_workingCopyPath, name, offset);
-            ReloadList();
             // Preserve the selection across the reload so the user can keep nudging it.
-            SelectedStoredFile = StoredFiles.Contains(name) ? name : null;
+            ReloadList(selectName: name);
             Log($"Moved stored file {(offset < 0 ? "up" : "down")}: {name}");
         }
         catch (Exception ex)

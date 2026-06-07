@@ -1,3 +1,4 @@
+using ReScene.NET.Models;
 using ReScene.SRR;
 
 namespace ReScene.NET.Services;
@@ -24,6 +25,6 @@ public class SRREditingService : ISrrEditingService
         => Task.Run(() => SRREditor.MoveStoredFile(srrPath, storedName, offset), ct);
 
     /// <inheritdoc />
-    public IReadOnlyList<string> GetStoredFileNames(string srrFilePath)
-        => SRRFile.Load(srrFilePath).StoredFiles.Select(s => s.FileName).ToList();
+    public IReadOnlyList<StoredFileInfo> GetStoredFiles(string srrFilePath)
+        => SRRFile.Load(srrFilePath).StoredFiles.Select(s => new StoredFileInfo(s.FileName, s.FileLength)).ToList();
 }

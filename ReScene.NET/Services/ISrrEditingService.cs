@@ -1,3 +1,5 @@
+using ReScene.NET.Models;
+
 namespace ReScene.NET.Services;
 
 /// <summary>
@@ -62,13 +64,13 @@ public interface ISrrEditingService
     public Task MoveStoredFileAsync(string srrPath, string storedName, int offset, CancellationToken ct = default);
 
     /// <summary>
-    /// Lists the stored-file names currently inside an SRR file, in stored order.
+    /// Lists the stored files currently inside an SRR file, in stored order.
     /// </summary>
     /// <param name="srrFilePath">
     /// Path to the SRR file to read.
     /// </param>
     /// <returns>
-    /// The stored-file names, in the order they appear in the SRR.
+    /// The stored files, in the order they appear in the SRR.
     /// </returns>
-    public IReadOnlyList<string> GetStoredFileNames(string srrFilePath);
+    public IReadOnlyList<StoredFileInfo> GetStoredFiles(string srrFilePath);
 }
