@@ -25,7 +25,7 @@
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
         <Button Content="&#x2039; Back" Command="{Binding BackCommand}"
                 Style="{StaticResource GhostButton}" MinWidth="90" Margin="0,0,8,0" />
-        <Button Content="Next &#x203A;" Command="{Binding NextCommand}"
+        <Button Content="{Binding NextButtonText}" Command="{Binding NextCommand}"
                 Style="{StaticResource PrimaryButton}" MinWidth="90"
                 Visibility="{Binding IsLastStep, Converter={StaticResource InverseBoolToVisibility}}" />
       </StackPanel>

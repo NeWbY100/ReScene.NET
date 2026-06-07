@@ -38,30 +38,23 @@
       <c:FieldStatusLine Status="{Binding OutputStatus}" />
     </StackPanel>
 
-    <!-- Step 2: run + result -->
+    <!-- Step 2: progress + details (creation is started by the "Create" button on Step 1) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
       <StackPanel DockPanel.Dock="Top">
-        <TextBlock Text="Ready to create the SRR."
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,0,0,8" />
-        <StackPanel Orientation="Horizontal">
-          <Button Content="Create SRR" Command="{Binding CreateSRRCommand}"
-                  Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
-          <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
-                  Style="{StaticResource CancelButton}" Padding="18,6"
-                  Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
-        </StackPanel>
-        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6" Margin="0,12,0,0"
+        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6"
                      Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock Text="{Binding ProgressMessage}"
                    Foreground="{DynamicResource ForegroundSecondary}"
                    FontSize="{DynamicResource FontSizeCaption}"
                    Margin="0,4,0,0"
                    Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-        <TextBlock DockPanel.Dock="Top" Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
+                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
       </StackPanel>
       <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
               Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">

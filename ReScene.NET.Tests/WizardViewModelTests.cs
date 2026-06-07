@@ -57,4 +57,24 @@ public class WizardViewModelTests
         Assert.Equal(0, w.CurrentStepIndex);
         Assert.True(w.IsFirstStep);
     }
+
+    [Fact]
+    public void Next_RunsLeavingStepOnLeave_AndUsesItsNextLabel()
+    {
+        bool left = false;
+        var steps = new List<WizardStep>
+        {
+            new() { Title = "A", NextLabel = "Create", OnLeave = () => left = true },
+            new() { Title = "B" },
+        };
+        var w = new WizardViewModel("T", new object(), steps);
+
+        Assert.Equal("Create", w.NextButtonText);
+
+        w.NextCommand.Execute(null);
+
+        Assert.True(left);
+        Assert.Equal(1, w.CurrentStepIndex);
+        Assert.Equal("Next ›", w.NextButtonText);
+    }
 }

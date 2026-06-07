@@ -37,8 +37,20 @@ public static class BeginnerWizardFactory
         var steps = new List<WizardStep>
         {
             new() { Title = "Choose the release", CanAdvance = () => vm.InputStatus.State == FieldState.Ok },
-            new() { Title = "Choose where to save", CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath) },
-            new() { Title = "Create" },
+            new()
+            {
+                Title = "Choose where to save",
+                CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath),
+                NextLabel = "Create",
+                OnLeave = () =>
+                {
+                    if (vm.CreateSRRCommand.CanExecute(null))
+                    {
+                        vm.CreateSRRCommand.Execute(null);
+                    }
+                },
+            },
+            new() { Title = "Creating" },
         };
         return (new WizardViewModel("Create an SRR", vm, steps), new CreateSrrWizardBody());
     }

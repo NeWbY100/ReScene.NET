@@ -50,6 +50,7 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(IsLastStep))]
     [NotifyPropertyChangedFor(nameof(CurrentStepNumber))]
     [NotifyPropertyChangedFor(nameof(StepHeader))]
+    [NotifyPropertyChangedFor(nameof(NextButtonText))]
     [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     [NotifyCanExecuteChangedFor(nameof(BackCommand))]
     public partial int CurrentStepIndex { get; set; }
@@ -59,6 +60,7 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
     public bool IsFirstStep => CurrentStepIndex == 0;
     public bool IsLastStep => CurrentStepIndex == Steps.Count - 1;
     public string StepHeader => $"{Steps[CurrentStepIndex].Title}  —  Step {CurrentStepNumber} of {StepCount}";
+    public string NextButtonText => Steps[CurrentStepIndex].NextLabel ?? "Next ›";
 
     private bool CanGoNext() => !IsLastStep && Steps[CurrentStepIndex].CanAdvance();
     private bool CanGoBack() => !IsFirstStep;
@@ -66,10 +68,14 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
     [RelayCommand(CanExecute = nameof(CanGoNext))]
     private void Next()
     {
-        if (CanGoNext())
+        if (!CanGoNext())
         {
-            CurrentStepIndex++;
+            return;
         }
+
+        WizardStep leaving = Steps[CurrentStepIndex];
+        CurrentStepIndex++;
+        leaving.OnLeave?.Invoke();
     }
 
     [RelayCommand(CanExecute = nameof(CanGoBack))]
