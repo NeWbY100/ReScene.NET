@@ -27,4 +27,8 @@ public class SRREditingService : ISrrEditingService
     /// <inheritdoc />
     public IReadOnlyList<StoredFileInfo> GetStoredFiles(string srrFilePath)
         => SRRFile.Load(srrFilePath).StoredFiles.Select(s => new StoredFileInfo(s.FileName, s.FileLength)).ToList();
+
+    /// <inheritdoc />
+    public Task<string?> ExtractStoredFileAsync(string srrFilePath, string outputDirectory, string storedName, CancellationToken ct = default)
+        => Task.Run(() => SRRFile.Load(srrFilePath).ExtractStoredFile(srrFilePath, outputDirectory, name => name == storedName), ct);
 }
