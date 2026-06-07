@@ -15,6 +15,7 @@ public class SrrEditorViewModelTests
     /// </summary>
     private sealed class FakeSrrEditingService : ISrrEditingService
     {
+        // Internal list of names; sizes default to 0 for fakes that don't care about size.
         public List<string> StoredFileNames { get; } = [];
         public List<string> Calls { get; } = [];
 
@@ -74,11 +75,11 @@ public class SrrEditorViewModelTests
             return Task.CompletedTask;
         }
 
-        public IReadOnlyList<string> GetStoredFileNames(string srrFilePath)
+        public IReadOnlyList<StoredFileInfo> GetStoredFiles(string srrFilePath)
         {
-            Calls.Add(nameof(GetStoredFileNames));
+            Calls.Add(nameof(GetStoredFiles));
             LastPath = srrFilePath;
-            return StoredFileNames.ToList();
+            return StoredFileNames.Select(n => new StoredFileInfo(n, 0L)).ToList();
         }
     }
 
@@ -145,6 +146,23 @@ public class SrrEditorViewModelTests
         editing = new FakeSrrEditingService();
         dialog = new FakeFileDialogService();
         return new TestSrrEditorViewModel(editing, dialog, new FakeTempDirectoryService());
+    }
+
+    // ── StoredFileInfo model ────────────────────────────────
+
+    [Fact]
+    public void StoredFileInfo_SizeText_IsFormattedForKnownSize()
+    {
+        var info = new StoredFileInfo("readme.nfo", 2048L);
+        // 2048 B = 2 KB
+        Assert.Equal("2 KB", info.SizeText);
+    }
+
+    [Fact]
+    public void StoredFileInfo_SizeText_IsNonEmptyForZeroBytes()
+    {
+        var info = new StoredFileInfo("empty.nfo", 0L);
+        Assert.False(string.IsNullOrEmpty(info.SizeText));
     }
 
     // ── OnSourcePathChanged ─────────────────────────────────
@@ -242,7 +260,7 @@ public class SrrEditorViewModelTests
         vm.EnsureWorkingCopy();
 
         Assert.Equal(1, vm.CreateWorkingCopyCalls);
-        Assert.Equal(["a.nfo", "b.sfv"], vm.StoredFiles);
+        Assert.Equal(["a.nfo", "b.sfv"], vm.StoredFiles.Select(f => f.Name));
         Assert.Equal(TestSrrEditorViewModel.DummyWorkingPath, editing.LastPath);
     }
 
@@ -288,7 +306,7 @@ public class SrrEditorViewModelTests
         Assert.Equal(TestSrrEditorViewModel.DummyWorkingPath, editing.LastPath);
         Assert.NotNull(editing.LastAdded);
         Assert.Equal("new.nfo", editing.LastAdded![0].StoredName);
-        Assert.Contains("new.nfo", vm.StoredFiles);
+        Assert.Contains("new.nfo", vm.StoredFiles.Select(f => f.Name));
     }
 
     [Fact]
@@ -312,14 +330,14 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "a.nfo";
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "a.nfo");
 
         vm.RemoveStoredFileCommand.Execute(null);
 
         Assert.Equal(["a.nfo"], editing.LastRemoved);
         Assert.Equal(TestSrrEditorViewModel.DummyWorkingPath, editing.LastPath);
-        Assert.DoesNotContain("a.nfo", vm.StoredFiles);
-        Assert.Contains("b.sfv", vm.StoredFiles);
+        Assert.DoesNotContain("a.nfo", vm.StoredFiles.Select(f => f.Name));
+        Assert.Contains("b.sfv", vm.StoredFiles.Select(f => f.Name));
     }
 
     [Fact]
@@ -329,7 +347,7 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("old.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "old.nfo";
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "old.nfo");
         dialog.PromptResult = "new.nfo";
 
         vm.RenameStoredFileCommand.Execute(null);
@@ -337,8 +355,8 @@ public class SrrEditorViewModelTests
         Assert.NotNull(editing.LastRenamed);
         Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "old.nfo", "new.nfo"), editing.LastRenamed!.Value);
         Assert.Equal("old.nfo", dialog.LastPromptInitialValue);
-        Assert.Contains("new.nfo", vm.StoredFiles);
-        Assert.Equal("new.nfo", vm.SelectedStoredFile);
+        Assert.Contains("new.nfo", vm.StoredFiles.Select(f => f.Name));
+        Assert.Equal("new.nfo", vm.SelectedStoredFile?.Name);
     }
 
     [Fact]
@@ -348,13 +366,13 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("old.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "old.nfo";
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "old.nfo");
         dialog.PromptResult = null;
 
         vm.RenameStoredFileCommand.Execute(null);
 
         Assert.Null(editing.LastRenamed);
-        Assert.Contains("old.nfo", vm.StoredFiles);
+        Assert.Contains("old.nfo", vm.StoredFiles.Select(f => f.Name));
     }
 
     [Fact]
@@ -364,14 +382,14 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.Add("same.nfo");
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "same.nfo";
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "same.nfo");
         dialog.PromptResult = "same.nfo";   // user kept the existing name
 
         vm.RenameStoredFileCommand.Execute(null);
 
         Assert.Null(editing.LastRenamed);
         Assert.DoesNotContain(nameof(FakeSrrEditingService.RenameStoredFileAsync), editing.Calls);
-        Assert.Contains("same.nfo", vm.StoredFiles);
+        Assert.Contains("same.nfo", vm.StoredFiles.Select(f => f.Name));
     }
 
     [Fact]
@@ -381,14 +399,14 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "b.sfv";
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "b.sfv");
 
         vm.MoveStoredFileUpCommand.Execute(null);
 
         Assert.NotNull(editing.LastMoved);
         Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "b.sfv", -1), editing.LastMoved!.Value);
-        Assert.Equal(["b.sfv", "a.nfo"], vm.StoredFiles);
-        Assert.Equal("b.sfv", vm.SelectedStoredFile);
+        Assert.Equal(["b.sfv", "a.nfo"], vm.StoredFiles.Select(f => f.Name));
+        Assert.Equal("b.sfv", vm.SelectedStoredFile?.Name);
     }
 
     [Fact]
@@ -398,14 +416,14 @@ public class SrrEditorViewModelTests
         editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "a.nfo";
+        vm.SelectedStoredFile = vm.StoredFiles.First(f => f.Name == "a.nfo");
 
         vm.MoveStoredFileDownCommand.Execute(null);
 
         Assert.NotNull(editing.LastMoved);
         Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "a.nfo", +1), editing.LastMoved!.Value);
-        Assert.Equal(["b.sfv", "a.nfo"], vm.StoredFiles);
-        Assert.Equal("a.nfo", vm.SelectedStoredFile);
+        Assert.Equal(["b.sfv", "a.nfo"], vm.StoredFiles.Select(f => f.Name));
+        Assert.Equal("a.nfo", vm.SelectedStoredFile?.Name);
     }
 
     // ── HasSelection gating ─────────────────────────────────
@@ -426,7 +444,7 @@ public class SrrEditorViewModelTests
     public void EditCommands_EnabledWithSelection()
     {
         TestSrrEditorViewModel vm = CreateVm(out _, out _);
-        vm.SelectedStoredFile = "a.nfo";
+        vm.SelectedStoredFile = new StoredFileInfo("a.nfo", 0L);
 
         Assert.True(vm.RemoveStoredFileCommand.CanExecute(null));
         Assert.True(vm.RenameStoredFileCommand.CanExecute(null));
@@ -479,7 +497,7 @@ public class SrrEditorViewModelTests
         vm.SourcePath = @"C:\rel\movie.srr";
         vm.OutputPath = @"C:\rel\movie (edited).srr";
         vm.EnsureWorkingCopy();
-        vm.SelectedStoredFile = "a.nfo";
+        vm.SelectedStoredFile = vm.StoredFiles.FirstOrDefault();
 
         vm.Reset();
 

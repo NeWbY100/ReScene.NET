@@ -37,12 +37,15 @@
         <Button Content="Move down" Command="{Binding MoveStoredFileDownCommand}"
                 Style="{StaticResource GhostButton}" Padding="10,4" />
       </StackPanel>
-      <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
-              Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
-        <ListBox ItemsSource="{Binding StoredFiles}"
-                 SelectedItem="{Binding SelectedStoredFile}"
-                 Style="{StaticResource CompactLogListBox}" />
-      </Border>
+      <DataGrid ItemsSource="{Binding StoredFiles}" SelectedItem="{Binding SelectedStoredFile}"
+                AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserSortColumns="False"
+                CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                SelectionMode="Single" BorderThickness="0" IsReadOnly="True" MinHeight="120">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+          <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="Auto" />
+        </DataGrid.Columns>
+      </DataGrid>
     </DockPanel>
 
     <!-- Step 2: Save as -->
