@@ -27,6 +27,9 @@ public static class BeginnerWizardFactory
             case BeginnerCard.Restore:
                 shell.Restore.Reset();
                 return BuildRestore(shell.Restore);
+            case BeginnerCard.EditSrr:
+                shell.SrrEditor.Reset();
+                return BuildEditSrr(shell.SrrEditor);
             default:
                 throw new ArgumentOutOfRangeException(nameof(card));
         }
@@ -109,5 +112,36 @@ public static class BeginnerWizardFactory
             new() { Title = "Restore" },
         };
         return (new WizardViewModel("Restore a sample", vm, steps), new RestoreWizardBody());
+    }
+
+    private static (WizardViewModel, FrameworkElement) BuildEditSrr(SrrEditorViewModel vm)
+    {
+        var steps = new List<WizardStep>
+        {
+            new() { Title = "Choose the SRR", CanAdvance = () => vm.SourceStatus.State == FieldState.Ok, OnLeave = vm.EnsureWorkingCopy },
+            new() { Title = "Manage stored files" },
+            new()
+            {
+                Title = "Save as",
+                CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath),
+                NextLabel = "Save",
+                ConfirmLeave = () =>
+                {
+                    if (!File.Exists(vm.OutputPath))
+                    {
+                        return true;
+                    }
+
+                    return MessageBox.Show(
+                        $"A file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
+                        "Overwrite existing file?",
+                        MessageBoxButton.OKCancel,
+                        MessageBoxImage.Warning) == MessageBoxResult.OK;
+                },
+                OnLeave = vm.Save,
+            },
+            new() { Title = "Done" },
+        };
+        return (new WizardViewModel("Edit an SRR", vm, steps), new EditSrrWizardBody());
     }
 }

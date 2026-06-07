@@ -11,4 +11,5 @@ public partial class BeginnerShellViewModel : ViewModelBase
     public SRSCreatorViewModel SRSCreator { get; set; } = null!;
     public ReconstructorViewModel Reconstructor { get; set; } = null!;
     public BeginnerRestoreViewModel Restore { get; set; } = null!;
+    public SrrEditorViewModel SrrEditor { get; set; } = null!;
 }

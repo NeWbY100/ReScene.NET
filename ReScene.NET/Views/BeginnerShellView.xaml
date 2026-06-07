@@ -78,6 +78,15 @@
                          Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,2,0,0" />
             </StackPanel>
           </Button>
+          <Button Style="{StaticResource HubCardButton}"
+                  Click="OnCardClick" Tag="{x:Static vm:BeginnerCard.EditSrr}">
+            <StackPanel>
+              <TextBlock Text="&#x270E;" FontSize="28" Margin="0,0,0,6" />
+              <TextBlock Text="Edit an SRR" FontSize="{DynamicResource FontSizeH2}" FontWeight="SemiBold" />
+              <TextBlock Text="Add, remove, rename or reorder an SRR's stored files." TextWrapping="Wrap"
+                         Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,2,0,0" />
+            </StackPanel>
+          </Button>
         </UniformGrid>
       </StackPanel>
     </ScrollViewer>

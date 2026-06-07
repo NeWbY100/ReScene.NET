@@ -9,4 +9,5 @@ public enum BeginnerCard
     CreateSrs,
     Reconstruct,
     Restore,
+    EditSrr,
 }
