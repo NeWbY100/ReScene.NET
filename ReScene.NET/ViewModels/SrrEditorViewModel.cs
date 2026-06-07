@@ -45,12 +45,19 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
     public ObservableCollection<StoredFileInfo> StoredFiles { get; } = [];
 
+    /// <summary>
+    /// The current multi-selection from the stored-file grid — the source of truth for which
+    /// stored files the edit commands act on. Maintained via <see cref="SetSelection"/> because
+    /// <c>DataGrid.SelectedItems</c> is not bindable, so the view forwards selection changes.
+    /// </summary>
+    public ObservableCollection<StoredFileInfo> SelectedStoredFiles { get; } = [];
+
+    /// <summary>
+    /// The single "anchor" row, kept in sync with the grid's primary <c>SelectedItem</c>. Used
+    /// only to re-highlight a row after rename/move; command enablement and the operation targets
+    /// come from <see cref="SelectedStoredFiles"/>.
+    /// </summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RemoveStoredFileCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RenameStoredFileCommand))]
-    [NotifyCanExecuteChangedFor(nameof(MoveStoredFileUpCommand))]
-    [NotifyCanExecuteChangedFor(nameof(MoveStoredFileDownCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExtractStoredFileCommand))]
     public partial StoredFileInfo? SelectedStoredFile { get; set; }
 
     // ── Manage step status ──────────────────────────────────
@@ -157,6 +164,8 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
         if (_workingCopyPath is null)
         {
+            SelectedStoredFile = null;
+            SetSelection([]);
             return;
         }
 
@@ -165,9 +174,47 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             StoredFiles.Add(info);
         }
 
-        SelectedStoredFile = selectName is not null
+        StoredFileInfo? match = selectName is not null
             ? StoredFiles.FirstOrDefault(f => f.Name == selectName)
             : null;
+
+        // Re-highlight the single row (VM → grid), and mirror it into the selection collection
+        // so command enablement/targets stay correct even without the view (e.g. in unit tests).
+        SelectedStoredFile = match;
+        SetSelection(match is not null ? [match] : []);
+    }
+
+    // ── Selection ───────────────────────────────────────────
+
+    /// <summary>
+    /// Replaces the current selection with <paramref name="items"/> and re-evaluates the edit
+    /// commands' enablement. The view calls this when the grid selection changes (and it is used
+    /// internally after list reloads), because <c>DataGrid.SelectedItems</c> cannot be data-bound.
+    /// </summary>
+    public void SetSelection(IReadOnlyList<StoredFileInfo> items)
+    {
+        // Idempotent: re-highlighting after a reload bounces the grid's SelectedItem binding back
+        // through SelectionChanged, calling this again with the same selection. Short-circuiting
+        // avoids redundant command re-notification and any binding re-entrancy.
+        if (SelectedStoredFiles.SequenceEqual(items))
+        {
+            return;
+        }
+
+        SelectedStoredFiles.Clear();
+        foreach (StoredFileInfo item in items)
+        {
+            SelectedStoredFiles.Add(item);
+        }
+
+        // Command enablement depends ONLY on SelectedStoredFiles.Count (HasSelection /
+        // HasSingleSelection) — not on SelectedStoredFile — so this is the single place that
+        // re-evaluates it. (That is also why SelectedStoredFile carries no NotifyCanExecuteChangedFor.)
+        RemoveStoredFileCommand.NotifyCanExecuteChanged();
+        RenameStoredFileCommand.NotifyCanExecuteChanged();
+        MoveStoredFileUpCommand.NotifyCanExecuteChanged();
+        MoveStoredFileDownCommand.NotifyCanExecuteChanged();
+        ExtractStoredFileCommand.NotifyCanExecuteChanged();
     }
 
     // ── Browse ──────────────────────────────────────────────
@@ -226,39 +273,43 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         }
     }
 
-    private bool HasSelection() => SelectedStoredFile is not null;
+    /// <summary>True when at least one stored file is selected (Remove / Extract).</summary>
+    private bool HasSelection() => SelectedStoredFiles.Count > 0;
+
+    /// <summary>True when exactly one stored file is selected (Rename / Move up / Move down).</summary>
+    private bool HasSingleSelection() => SelectedStoredFiles.Count == 1;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void RemoveStoredFile()
     {
-        if (_workingCopyPath is null || SelectedStoredFile is null)
+        if (_workingCopyPath is null || SelectedStoredFiles.Count == 0)
         {
             return;
         }
 
-        string name = SelectedStoredFile.Name;
+        List<string> names = SelectedStoredFiles.Select(f => f.Name).ToList();
 
         try
         {
-            _srrEditing.RemoveStoredFiles(_workingCopyPath, [name]);
+            _srrEditing.RemoveStoredFiles(_workingCopyPath, names);
             ReloadList();
-            Log($"Removed stored file: {name}");
+            Log($"Removed {names.Count} stored file(s): {string.Join(", ", names)}");
         }
         catch (Exception ex)
         {
-            Log($"ERROR removing {name}: {ex.Message}");
+            Log($"ERROR removing files: {ex.Message}");
         }
     }
 
-    [RelayCommand(CanExecute = nameof(HasSelection))]
+    [RelayCommand(CanExecute = nameof(HasSingleSelection))]
     private async Task RenameStoredFileAsync()
     {
-        if (_workingCopyPath is null || SelectedStoredFile is null)
+        if (_workingCopyPath is null || SelectedStoredFiles.Count != 1)
         {
             return;
         }
 
-        string oldName = SelectedStoredFile.Name;
+        string oldName = SelectedStoredFiles[0].Name;
 
         string? newName = await _fileDialog.PromptForTextAsync(
             "Rename stored file", "New name:", oldName);
@@ -280,20 +331,20 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         }
     }
 
-    [RelayCommand(CanExecute = nameof(HasSelection))]
+    [RelayCommand(CanExecute = nameof(HasSingleSelection))]
     private Task MoveStoredFileUpAsync() => MoveStoredFileAsync(-1);
 
-    [RelayCommand(CanExecute = nameof(HasSelection))]
+    [RelayCommand(CanExecute = nameof(HasSingleSelection))]
     private Task MoveStoredFileDownAsync() => MoveStoredFileAsync(+1);
 
     private async Task MoveStoredFileAsync(int offset)
     {
-        if (_workingCopyPath is null || SelectedStoredFile is null)
+        if (_workingCopyPath is null || SelectedStoredFiles.Count != 1)
         {
             return;
         }
 
-        string name = SelectedStoredFile.Name;
+        string name = SelectedStoredFiles[0].Name;
 
         try
         {
@@ -311,36 +362,69 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private async Task ExtractStoredFileAsync()
     {
-        if (SelectedStoredFile is null || _workingCopyPath is null)
+        if (_workingCopyPath is null || SelectedStoredFiles.Count == 0)
         {
             return;
         }
 
-        string name = SelectedStoredFile.Name;
-        string? folder = await _fileDialog.OpenFolderAsync("Choose where to save the file");
+        List<string> names = SelectedStoredFiles.Select(f => f.Name).ToList();
+        string? folder = await _fileDialog.OpenFolderAsync(
+            names.Count == 1 ? "Choose where to save the file" : "Choose where to save the files");
         if (folder is null)
         {
             return;
         }
 
-        try
+        int saved = 0;
+        var failures = new List<string>();
+        string? lastPath = null;
+
+        foreach (string name in names)
         {
-            string? path = await _srrEditing.ExtractStoredFileAsync(_workingCopyPath, folder, name);
-            if (path is not null)
+            try
             {
-                ManageStatus = FieldStatus.Ok($"Saved \"{name}\" to {path}");
-                Log($"Extracted \"{name}\" to {path}");
+                string? path = await _srrEditing.ExtractStoredFileAsync(_workingCopyPath, folder, name);
+                if (path is not null)
+                {
+                    saved++;
+                    lastPath = path;
+                    Log($"Extracted \"{name}\" to {path}");
+                }
+                else
+                {
+                    failures.Add(name);
+                    Log($"Could not find \"{name}\" to extract.");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                ManageStatus = FieldStatus.Warning($"Could not find \"{name}\" to extract.");
+                failures.Add(name);
+                Log($"Extract failed for \"{name}\": {ex.Message}");
             }
         }
-        catch (Exception ex)
+
+        ManageStatus = BuildExtractStatus(saved, failures, folder, lastPath, names);
+    }
+
+    /// <summary>Summarises the outcome of an extract over one or more selected files.</summary>
+    private static FieldStatus BuildExtractStatus(
+        int saved, IReadOnlyList<string> failures, string folder, string? lastPath, IReadOnlyList<string> names)
+    {
+        if (failures.Count == 0)
         {
-            ManageStatus = FieldStatus.Error($"Extract failed: {ex.Message}");
-            Log($"Extract failed: {ex.Message}");
+            return saved == 1
+                ? FieldStatus.Ok($"Saved \"{names[0]}\" to {lastPath}")
+                : FieldStatus.Ok($"Saved {saved} files to {folder}");
         }
+
+        if (saved == 0)
+        {
+            return failures.Count == 1
+                ? FieldStatus.Error($"Could not extract \"{failures[0]}\".")
+                : FieldStatus.Error($"Could not extract {failures.Count} files.");
+        }
+
+        return FieldStatus.Warning($"Saved {saved} file(s); {failures.Count} could not be extracted.");
     }
 
     // ── Save ────────────────────────────────────────────────
@@ -413,6 +497,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
         StoredFiles.Clear();
         SelectedStoredFile = null;
+        SetSelection([]);
         ManageStatus = FieldStatus.None;
 
         LogEntries.Clear();

@@ -40,10 +40,13 @@
                 Style="{StaticResource GhostButton}" Padding="10,4" />
       </StackPanel>
       <c:FieldStatusLine DockPanel.Dock="Bottom" Status="{Binding ManageStatus}" Margin="0,4,0,0" />
-      <DataGrid ItemsSource="{Binding StoredFiles}" SelectedItem="{Binding SelectedStoredFile}"
+      <DataGrid x:Name="StoredFilesGrid"
+                ItemsSource="{Binding StoredFiles}" SelectedItem="{Binding SelectedStoredFile}"
+                SelectionChanged="StoredFilesGrid_SelectionChanged"
+                PreviewMouseDown="StoredFilesGrid_PreviewMouseDown"
                 AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserSortColumns="False"
                 CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                SelectionMode="Single" BorderThickness="0" IsReadOnly="True" MinHeight="120">
+                SelectionMode="Extended" SelectionUnit="FullRow" BorderThickness="0" IsReadOnly="True" MinHeight="120">
         <DataGrid.Columns>
           <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
           <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="110" />
