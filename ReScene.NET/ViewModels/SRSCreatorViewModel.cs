@@ -127,6 +127,9 @@ public partial class SRSCreatorViewModel : ViewModelBase
     [ObservableProperty]
     public partial FieldStatus OutputStatus { get; set; } = FieldStatus.None;
 
+    [ObservableProperty]
+    public partial FieldStatus MainFileStatus { get; set; } = FieldStatus.None;
+
     partial void OnInputPathChanged(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -164,6 +167,19 @@ public partial class SRSCreatorViewModel : ViewModelBase
         {
             OutputStatus = FieldStatus.None;
         }
+    }
+
+    partial void OnMainFilePathChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            MainFileStatus = FieldStatus.None;
+            return;
+        }
+
+        MainFileStatus = File.Exists(value)
+            ? FieldStatus.Ok("Will record where each track lives in this movie, for faster, exact restores.")
+            : FieldStatus.Warning("This file doesn't exist — match offsets will stay 0.");
     }
 
     // Output
@@ -213,6 +229,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
         MainFilePath = string.Empty;
         SampleStatus = FieldStatus.None;
         OutputStatus = FieldStatus.None;
+        MainFileStatus = FieldStatus.None;
 
         IsISOSource = false;
         ISOFilePath = string.Empty;

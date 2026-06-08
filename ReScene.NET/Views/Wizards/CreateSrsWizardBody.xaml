@@ -27,10 +27,29 @@
       </DockPanel>
     </StackPanel>
 
-    <!-- Step 1: output -->
+    <!-- Step 1: optional full movie (populates each track's match offset) -->
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
                                      Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+      <TextBlock Text="Optional: point at the full movie this sample came from. The SRS will record where each track's data sits inside it, so the sample can be restored faster and exactly. Skip this for a signature-only SRS (the restore then searches for each track)."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
+      <TextBlock Text="Full movie (optional)" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseMainFileCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearMainFileCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="60" />
+        <TextBox Text="{Binding MainFilePath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding MainFileStatus}" />
+    </StackPanel>
+
+    <!-- Step 2: output -->
+    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                     RelativeSource={RelativeSource AncestorType=Window},
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
       <TextBlock Text="Where should the .srs be saved?"
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
@@ -44,10 +63,10 @@
       <c:FieldStatusLine Status="{Binding OutputStatus}" />
     </StackPanel>
 
-    <!-- Step 2: run + result (creation is started by the "Create" button on Step 1) -->
+    <!-- Step 3: run + result (creation is started by the "Create" button on the save step) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
-                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
       <StackPanel DockPanel.Dock="Top">
         <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6"
                      Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />

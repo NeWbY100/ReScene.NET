@@ -82,6 +82,7 @@ public static class BeginnerWizardFactory
         var steps = new List<WizardStep>
         {
             new() { Title = "Choose the sample", CanAdvance = () => vm.SampleStatus.State != FieldState.Error && !string.IsNullOrWhiteSpace(vm.InputPath) && (!vm.IsISOSource || vm.SelectedISOMediaFile is not null) },
+            new() { Title = "Match against the full movie" },   // optional — no gating; sets MatchOffset when a movie is chosen
             new()
             {
                 Title = "Choose where to save",
