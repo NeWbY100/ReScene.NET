@@ -82,7 +82,32 @@ public static class BeginnerWizardFactory
         var steps = new List<WizardStep>
         {
             new() { Title = "Choose the sample", CanAdvance = () => vm.SampleStatus.State != FieldState.Error && !string.IsNullOrWhiteSpace(vm.InputPath) && (!vm.IsISOSource || vm.SelectedISOMediaFile is not null) },
-            new() { Title = "Choose where to save", CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath) },
+            new()
+            {
+                Title = "Choose where to save",
+                CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath),
+                NextLabel = "Create",
+                ConfirmLeave = () =>
+                {
+                    if (!File.Exists(vm.OutputPath))
+                    {
+                        return true;
+                    }
+
+                    return MessageBox.Show(
+                        $"An SRS file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
+                        "Overwrite existing SRS?",
+                        MessageBoxButton.OKCancel,
+                        MessageBoxImage.Warning) == MessageBoxResult.OK;
+                },
+                OnLeave = () =>
+                {
+                    if (vm.CreateSRSCommand.CanExecute(null))
+                    {
+                        vm.CreateSRSCommand.Execute(null);
+                    }
+                },
+            },
             new() { Title = "Create" },
         };
         return (new WizardViewModel("Create a sample SRS", vm, steps), new CreateSrsWizardBody());
