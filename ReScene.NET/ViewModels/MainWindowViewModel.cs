@@ -162,7 +162,11 @@ public partial class MainWindowViewModel : ViewModelBase
         };
         Beginner = new BeginnerShellViewModel
         {
-            Creator = Creator,
+            // A dedicated CreatorViewModel (not the Advanced tab's shared one) so the wizard's draft
+            // build never collides with — or leaves a temp path in — the Advanced SRR Creator tab.
+            CreateSrrWizard = new CreateSrrWizardViewModel(
+                new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService),
+                new SrrEditorViewModel(srrEditingService, fileDialog, tempDir), tempDir),
             SRSCreator = SRSCreator,
             Reconstructor = Reconstructor,
             Restore = beginnerRestore,

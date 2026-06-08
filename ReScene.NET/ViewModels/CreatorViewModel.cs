@@ -123,6 +123,13 @@ public partial class CreatorViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool ShowProgress { get; set; }
 
+    /// <summary>
+    /// True only after the most recent creation finished successfully. Lets a hosting wizard gate
+    /// the step that follows the build (e.g. the Create-an-SRR "build a draft, then curate" flow).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool BuildSucceeded { get; set; }
+
     // Log
     public ObservableCollection<string> LogEntries { get; } = [];
 
@@ -150,6 +157,7 @@ public partial class CreatorViewModel : ViewModelBase
         ProgressPercent = 0;
         ProgressMessage = string.Empty;
         ShowProgress = false;
+        BuildSucceeded = false;
         LogEntries.Clear();
 
         // Option toggles back to the same defaults the constructor / property initializers set.
@@ -344,6 +352,7 @@ public partial class CreatorViewModel : ViewModelBase
         }
 
         IsCreating = true;
+        BuildSucceeded = false;
         ShowProgress = true;
         ProgressPercent = 0;
         ProgressMessage = "Starting...";
@@ -415,6 +424,7 @@ public partial class CreatorViewModel : ViewModelBase
 
             if (result.Success)
             {
+                BuildSucceeded = true;
                 ProgressPercent = 100;
                 ProgressMessage = "Complete!";
                 Log($"SRR created successfully.");

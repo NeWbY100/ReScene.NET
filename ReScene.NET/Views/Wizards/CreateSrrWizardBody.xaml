@@ -1,7 +1,9 @@
 <UserControl x:Class="ReScene.NET.Views.Wizards.CreateSrrWizardBody"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:ReScene.NET.Controls">
+             xmlns:c="clr-namespace:ReScene.NET.Controls"
+             xmlns:wizards="clr-namespace:ReScene.NET.Views.Wizards">
+  <!-- DataContext is a CreateSrrWizardViewModel: steps 0-1 bind to Creator, 2-4 to Editor. -->
   <Grid MinHeight="150">
 
     <!-- Step 0: release input -->
@@ -14,51 +16,79 @@
                  TextWrapping="Wrap" Margin="0,0,0,8" />
       <TextBlock Text="Release .sfv or first .rar" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
-        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseInputCommand}"
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding Creator.BrowseInputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
-        <TextBox Text="{Binding InputPath}" />
+        <TextBox Text="{Binding Creator.InputPath}" />
       </DockPanel>
-      <c:FieldStatusLine Status="{Binding InputStatus}" />
+      <c:FieldStatusLine Status="{Binding Creator.InputStatus}" />
     </StackPanel>
 
-    <!-- Step 1: output -->
+    <!-- Step 1: building the draft (progress + details) -->
+    <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                    RelativeSource={RelativeSource AncestorType=Window},
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Text="Building a draft SRR you can curate before saving."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" Margin="0,0,0,8" />
+        <ProgressBar Value="{Binding Creator.ProgressPercent}" Maximum="100" Height="6"
+                     Visibility="{Binding Creator.ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock Text="{Binding Creator.ProgressMessage}"
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,4,0,0"
+                   Visibility="{Binding Creator.ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+        <Button Content="Cancel" Command="{Binding Creator.CancelCreationCommand}"
+                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Visibility="{Binding Creator.IsCreating, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+      </StackPanel>
+      <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
+        <ListBox ItemsSource="{Binding Creator.LogEntries}" Style="{StaticResource CompactLogListBox}"
+                 FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
+      </Border>
+    </DockPanel>
+
+    <!-- Step 2: manage stored files (shared panel, bound to the editor sub-VM) -->
+    <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
+                                    RelativeSource={RelativeSource AncestorType=Window},
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+      <wizards:StoredFilesManagePanel DataContext="{Binding Editor}" />
+    </DockPanel>
+
+    <!-- Step 3: save as -->
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
-      <TextBlock Text="Where should the .srr be saved?"
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
+      <TextBlock Text="Choose where the SRR should be saved."
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
                  TextWrapping="Wrap" Margin="0,0,0,8" />
       <TextBlock Text="Save SRR to" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
-        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding Editor.BrowseOutputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
-        <TextBox Text="{Binding OutputPath}" />
+        <TextBox Text="{Binding Editor.OutputPath}" />
       </DockPanel>
-      <c:FieldStatusLine Status="{Binding OutputStatus}" />
+      <c:FieldStatusLine Status="{Binding Editor.OutputStatus}" />
     </StackPanel>
 
-    <!-- Step 2: progress + details (creation is started by the "Create" button on Step 1) -->
+    <!-- Step 4: done -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
-                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=4}">
       <StackPanel DockPanel.Dock="Top">
-        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6"
-                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-        <TextBlock Text="{Binding ProgressMessage}"
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,4,0,0"
-                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-        <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
-                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
-        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+        <TextBlock Text="{Binding Editor.ResultMessage}"
+                   Visibility="{Binding Editor.ShowResult, Converter={StaticResource BoolToVisibility}}"
+                   FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8" />
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,4,0,2" />
       </StackPanel>
       <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
               Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
-        <ListBox ItemsSource="{Binding LogEntries}" Style="{StaticResource CompactLogListBox}"
+        <ListBox ItemsSource="{Binding Editor.LogEntries}" Style="{StaticResource CompactLogListBox}"
                  FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
       </Border>
     </DockPanel>

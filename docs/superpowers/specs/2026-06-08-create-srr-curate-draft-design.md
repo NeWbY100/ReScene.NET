@@ -121,8 +121,9 @@ the manage UI and its tree-walking logic, used by both wizards.
   and app shutdown. A leftover draft between close and next open is harmless.
 - **Save:** reuses the editor's `Save()` (copy working copy → output), overwrite
   confirm, and the output name pre-fill already in place.
-- **Shared `Creator` caveat:** `Reset()` is a no-op while a creation started from the
-  Advanced tab is in progress — identical to today's `BuildCreateSrr` behavior.
+- **Dedicated `Creator`:** the facade owns its own `CreatorViewModel` (not the Advanced
+  tab's shared one), so the wizard's draft build never collides with the Advanced SRR
+  Creator tab nor leaves a temp draft path behind in it.
 
 ## Testing
 

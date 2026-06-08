@@ -141,6 +141,29 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     }
 
     /// <summary>
+    /// Adopts an already-built SRR (e.g. a freshly created draft) as the working copy to edit,
+    /// instead of copying from a <see cref="SourcePath"/>. Loads its stored-file list and pre-fills
+    /// <see cref="OutputPath"/> with <paramref name="suggestedOutputPath"/>. Idempotent for the same
+    /// draft so navigating Back → Next does not discard in-place edits.
+    /// </summary>
+    public void AdoptWorkingCopy(string draftPath, string suggestedOutputPath)
+    {
+        if (_workingCopyPath == draftPath)
+        {
+            ReloadList();
+            return;
+        }
+
+        DeleteWorkingCopy();
+        _workingCopyPath = draftPath;
+        _workingCopySource = null;   // adopted, not copied from a source
+        ReloadList();
+
+        OutputPath = suggestedOutputPath;
+        OutputStatus = FieldStatus.Info("Auto-filled next to the release. Change it if you want the SRR elsewhere.");
+    }
+
+    /// <summary>
     /// Creates the temp working copy of <paramref name="sourcePath"/> and returns its full path.
     /// Overridable so tests can substitute a dummy path without touching the file system.
     /// </summary>

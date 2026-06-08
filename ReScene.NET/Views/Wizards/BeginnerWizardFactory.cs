@@ -16,8 +16,8 @@ public static class BeginnerWizardFactory
         switch (card)
         {
             case BeginnerCard.CreateSrr:
-                shell.Creator.Reset();
-                return BuildCreateSrr(shell.Creator);
+                shell.CreateSrrWizard.Reset();
+                return BuildCreateSrr(shell.CreateSrrWizard);
             case BeginnerCard.CreateSrs:
                 shell.SRSCreator.Reset();
                 return BuildCreateSrs(shell.SRSCreator);
@@ -35,44 +35,44 @@ public static class BeginnerWizardFactory
         }
     }
 
-    private static (WizardViewModel, FrameworkElement) BuildCreateSrr(CreatorViewModel vm)
+    private static (WizardViewModel, FrameworkElement) BuildCreateSrr(CreateSrrWizardViewModel vm)
     {
         var steps = new List<WizardStep>
         {
-            new() { Title = "Choose the release", CanAdvance = () => vm.InputStatus.State == FieldState.Ok },
             new()
             {
-                Title = "Choose where to save",
-                CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath),
-                NextLabel = "Create",
+                Title = "Choose the release",
+                CanAdvance = () => vm.Creator.InputStatus.State == FieldState.Ok,
+                OnLeave = vm.PrepareDraft,
+            },
+            new()
+            {
+                Title = "Building draft",
+                CanAdvance = () => !vm.Creator.IsCreating && vm.Creator.BuildSucceeded,
+                OnLeave = vm.AdoptDraftIntoEditor,
+            },
+            new() { Title = "Manage stored files" },
+            new()
+            {
+                Title = "Save as",
+                CanAdvance = () => !string.IsNullOrWhiteSpace(vm.Editor.OutputPath),
+                NextLabel = "Save",
                 ConfirmLeave = () =>
                 {
-                    if (!File.Exists(vm.OutputPath))
+                    if (!File.Exists(vm.Editor.OutputPath))
                     {
                         return true;
                     }
 
-                    bool overwrite = MessageBox.Show(
-                        $"An SRR file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
-                        "Overwrite existing SRR?",
+                    return MessageBox.Show(
+                        $"A file already exists at:\n\n{vm.Editor.OutputPath}\n\nDo you want to overwrite it?",
+                        "Overwrite existing file?",
                         MessageBoxButton.OKCancel,
                         MessageBoxImage.Warning) == MessageBoxResult.OK;
-                    if (overwrite)
-                    {
-                        vm.SuppressOverwriteConfirm = true;
-                    }
-
-                    return overwrite;
                 },
-                OnLeave = () =>
-                {
-                    if (vm.CreateSRRCommand.CanExecute(null))
-                    {
-                        vm.CreateSRRCommand.Execute(null);
-                    }
-                },
+                OnLeave = vm.Editor.Save,
             },
-            new() { Title = "Creating" },
+            new() { Title = "Done" },
         };
         return (new WizardViewModel("Create an SRR", vm, steps), new CreateSrrWizardBody());
     }
