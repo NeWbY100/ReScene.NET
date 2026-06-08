@@ -194,6 +194,45 @@ public sealed class CreateSrrWizardViewModelTests : IDisposable
         Assert.False(vm.Creator.BuildSucceeded);
     }
 
+    // ── Draft lifecycle ─────────────────────────────────────
+
+    [Fact]
+    public async Task PrepareDraft_Rebuild_CleansPriorDraftAndCreatesAFreshOne()
+    {
+        CreateSrrWizardViewModel vm = CreateFacade(out _, out _, out _);
+        vm.Creator.InputPath = CreateTempSfv();
+
+        vm.PrepareDraft();
+        await vm.Creator.CreateSRRCommand.ExecutionTask!;
+        string firstDraftDir = Path.GetDirectoryName(vm.Creator.OutputPath)!;
+        Assert.True(Directory.Exists(firstDraftDir));
+
+        vm.Creator.InputPath = CreateTempSfv();   // user went Back and changed the input
+        vm.PrepareDraft();
+        await vm.Creator.CreateSRRCommand.ExecutionTask!;
+        string secondDraftDir = Path.GetDirectoryName(vm.Creator.OutputPath)!;
+
+        Assert.NotEqual(firstDraftDir, secondDraftDir);
+        Assert.False(Directory.Exists(firstDraftDir));   // prior draft cleaned on rebuild
+        Assert.True(Directory.Exists(secondDraftDir));
+        Assert.True(vm.Creator.BuildSucceeded);
+    }
+
+    [Fact]
+    public async Task Reset_DeletesDraftDirectory()
+    {
+        CreateSrrWizardViewModel vm = CreateFacade(out _, out _, out _);
+        vm.Creator.InputPath = CreateTempSfv();
+        vm.PrepareDraft();
+        await vm.Creator.CreateSRRCommand.ExecutionTask!;
+        string draftDir = Path.GetDirectoryName(vm.Creator.OutputPath)!;
+        Assert.True(Directory.Exists(draftDir));
+
+        vm.Reset();
+
+        Assert.False(Directory.Exists(draftDir));
+    }
+
     // ── AdoptDraftIntoEditor ────────────────────────────────
 
     [Fact]

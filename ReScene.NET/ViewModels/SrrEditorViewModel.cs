@@ -547,10 +547,15 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        // Remove the whole working-copy temp directory (the copied .srr plus its GUID folder),
-        // not just the file, so temp directories don't accumulate across edits and opens.
+        // Only clean a working copy this VM created itself (copied from a source — its whole GUID
+        // temp folder, not just the file, so temps don't accumulate). An adopted draft
+        // (_workingCopySource is null) lives in a temp directory owned by whoever built it — e.g. the
+        // Create-an-SRR wizard facade — which is solely responsible for cleaning it.
         // Cleanup is best-effort (it suppresses its own exceptions).
-        _tempDir.Cleanup(Path.GetDirectoryName(_workingCopyPath));
+        if (_workingCopySource is not null)
+        {
+            _tempDir.Cleanup(Path.GetDirectoryName(_workingCopyPath));
+        }
     }
 
     private static string SuggestEditedSiblingPath(string sourcePath)

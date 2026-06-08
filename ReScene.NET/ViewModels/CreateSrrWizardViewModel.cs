@@ -48,7 +48,7 @@ public partial class CreateSrrWizardViewModel : ViewModelBase
 
         _draftDir = _tempDir.CreateTempDirectory();
 
-        string releaseName = Path.GetFileNameWithoutExtension(Creator.InputPath);
+        string releaseName = Path.GetFileNameWithoutExtension(Creator.InputPath).TrimEnd('.');
         if (string.IsNullOrWhiteSpace(releaseName))
         {
             releaseName = "release";
@@ -56,6 +56,11 @@ public partial class CreateSrrWizardViewModel : ViewModelBase
 
         Creator.OutputPath = Path.Combine(_draftDir, releaseName + ".srr");
         Creator.SuppressOverwriteConfirm = true;
+
+        // Set the build-gate state synchronously so the "Building draft" step can never be left with
+        // a stale BuildSucceeded from a previous build, and shows progress the moment it appears.
+        Creator.BuildSucceeded = false;
+        Creator.ShowProgress = true;
 
         if (Creator.CreateSRRCommand.CanExecute(null))
         {
@@ -78,8 +83,9 @@ public partial class CreateSrrWizardViewModel : ViewModelBase
     {
         if (_draftDir is not null)
         {
-            // Covers a draft built but never adopted (user closed before the manage step). An
-            // adopted draft is also cleaned by the editor's working-copy cleanup below.
+            // The facade is the sole owner of the draft temp directory (the editor skips cleanup of
+            // an adopted working copy), so clean it here — covers both an adopted draft and one that
+            // was built but never adopted (the user closed before the manage step).
             _tempDir.Cleanup(_draftDir);
             _draftDir = null;
         }
