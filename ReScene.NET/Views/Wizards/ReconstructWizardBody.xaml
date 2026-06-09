@@ -15,6 +15,53 @@
       <Button Content="Import from SRR..." Command="{Binding ImportSRRCommand}"
               Style="{StaticResource PrimaryButton}" Padding="14,6" HorizontalAlignment="Left"
               ToolTip="Pick the release's .srr file. Compression, version, dictionary and timestamps are configured automatically." />
+
+      <!-- Details of the imported SRR -->
+      <Border Visibility="{Binding HasImportedSrr, Converter={StaticResource BoolToVisibility}}"
+              BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+              CornerRadius="3" Margin="0,12,0,0" Padding="12,10">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                     Text="{Binding ImportedSrrName}" FontWeight="SemiBold"
+                     TextWrapping="Wrap" Margin="0,0,0,8" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="Created with"
+                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,4" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ImportedSrrAppName}"
+                     TextWrapping="Wrap" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="RAR volumes"
+                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,4" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ImportedRarVolumeText}" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="3" Grid.Column="0" Text="Archived files"
+                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,4" />
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ImportedArchivedFilesText}" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="4" Grid.Column="0" Text="Compression"
+                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,4" />
+          <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ImportedCompressionText}" Margin="0,0,0,4" />
+
+          <TextBlock Grid.Row="5" Grid.Column="0" Text="Stored files"
+                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,0" />
+          <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ImportedStoredFilesText}" TextWrapping="Wrap" />
+        </Grid>
+      </Border>
+
       <Border Visibility="{Binding HasCustomPackerWarning, Converter={StaticResource BoolToVisibility}}"
               Background="#3DE0A030" BorderBrush="#E0A030" BorderThickness="1"
               CornerRadius="3" Margin="0,8,0,0" Padding="8,5">
