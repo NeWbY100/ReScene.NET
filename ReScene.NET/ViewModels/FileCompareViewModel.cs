@@ -1864,6 +1864,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             Name = "Signature Size",
             Value = track.SignatureSize.ToString(),
+            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Signature Size") == true,
             ByteRange = new ByteRange { PropertyName = "Signature Size", Offset = track.SignatureSizeOffset, Length = 2 }
         });
 
@@ -1902,7 +1903,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem
         {
             Name = "Block Size",
-            Value = $"{track.BlockSize:N0} bytes"
+            Value = $"{track.BlockSize:N0} bytes",
+            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Block Size") == true
         });
     }
 
