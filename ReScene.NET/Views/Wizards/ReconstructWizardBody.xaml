@@ -74,12 +74,15 @@
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
                                      Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
-      <TextBlock Text="Point at your WinRAR versions, the extracted release files, where to save the rebuilt archives, and the verification file."
+      <TextBlock Text="ReScene rebuilds the original RAR archives from these — here's what to pick for each:"
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
                  TextWrapping="Wrap" Margin="0,0,0,12" />
 
       <TextBlock Text="WinRAR versions folder" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <TextBlock Text="The folder holding your different WinRAR versions, each in its own subfolder. ReScene uses the version that matches the release so the rebuilt archives are byte-identical."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseWinRarCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
@@ -88,6 +91,9 @@
       <c:FieldStatusLine Status="{Binding WinRarStatus}" />
 
       <TextBlock Text="Extracted release files" FontWeight="SemiBold" Margin="0,12,0,2" />
+      <TextBlock Text="The folder with the release's already-extracted files — the originals that were inside the .rar archives (the movie, sample, subtitles, …)."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseReleaseCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
@@ -96,6 +102,9 @@
       <c:FieldStatusLine Status="{Binding ReleaseStatus}" />
 
       <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,12,0,2" />
+      <TextBlock Text="Where the rebuilt .rar / .r00… volumes are written. Pick an empty folder so nothing is overwritten."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
@@ -103,7 +112,7 @@
       </DockPanel>
 
       <TextBlock Text="Verification file (.sfv or .sha1)" FontWeight="SemiBold" Margin="0,12,0,2" />
-      <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv."
+      <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv. The rebuilt archives are checked against it to confirm they came out identical."
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
                  TextWrapping="Wrap" Margin="0,0,0,2" />
