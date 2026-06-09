@@ -90,16 +90,29 @@ public static class BeginnerWizardFactory
                 NextLabel = "Create",
                 ConfirmLeave = () =>
                 {
-                    if (!File.Exists(vm.OutputPath))
+                    if (!vm.HasValidMainFile && MessageBox.Show(
+                            "No full movie was selected, so match offsets will be 0. The SRS will still rebuild " +
+                            "the sample, but restoring is slower and could match the wrong data if a track's " +
+                            "signature isn't unique.\n\nCreate a signature-only SRS anyway?",
+                            "Create a signature-only SRS?",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Warning) != MessageBoxResult.OK)
                     {
-                        return true;
+                        return false;
                     }
 
-                    return MessageBox.Show(
-                        $"An SRS file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
-                        "Overwrite existing SRS?",
-                        MessageBoxButton.OKCancel,
-                        MessageBoxImage.Warning) == MessageBoxResult.OK;
+                    if (File.Exists(vm.OutputPath) && MessageBox.Show(
+                            $"An SRS file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
+                            "Overwrite existing SRS?",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Warning) != MessageBoxResult.OK)
+                    {
+                        return false;
+                    }
+
+                    // Already warned here (or a movie is present); don't re-ask inside CreateSRSAsync.
+                    vm.SuppressNoMovieConfirm = true;
+                    return true;
                 },
                 OnLeave = () =>
                 {

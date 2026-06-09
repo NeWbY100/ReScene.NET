@@ -60,6 +60,7 @@
               Margin="4,0,0,0" MinWidth="60" />
       <TextBox Text="{Binding MainFilePath}" />
     </DockPanel>
+    <c:FieldStatusLine DockPanel.Dock="Top" Status="{Binding MainFileStatus}" Margin="0,2,0,0" />
 
     <!-- separator -->
     <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />

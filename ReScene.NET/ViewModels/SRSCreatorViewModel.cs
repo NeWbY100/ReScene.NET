@@ -58,6 +58,8 @@ public partial class SRSCreatorViewModel : ViewModelBase
                 SelectedISOMediaFile = ISOMediaFiles[0];
             }
         };
+
+        UpdateMainFileStatus();
     }
 
     // Input
@@ -169,18 +171,25 @@ public partial class SRSCreatorViewModel : ViewModelBase
         }
     }
 
-    partial void OnMainFilePathChanged(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            MainFileStatus = FieldStatus.None;
-            return;
-        }
+    partial void OnMainFilePathChanged(string value) => UpdateMainFileStatus();
 
-        MainFileStatus = File.Exists(value)
-            ? FieldStatus.Ok("Will record where each track lives in this movie, for faster, exact restores.")
-            : FieldStatus.Warning("This file doesn't exist — match offsets will stay 0.");
+    private void UpdateMainFileStatus()
+    {
+        MainFileStatus = string.IsNullOrWhiteSpace(MainFilePath)
+            ? FieldStatus.Info("Optional but recommended: without the full movie this SRS is signature-only (match offsets stay 0).")
+            : File.Exists(MainFilePath)
+                ? FieldStatus.Ok("Will record where each track lives in this movie, for faster, exact restores.")
+                : FieldStatus.Warning("This file doesn't exist — match offsets will stay 0.");
     }
+
+    /// <summary>True when a usable full-movie path is set (exists on disk).</summary>
+    public bool HasValidMainFile => !string.IsNullOrWhiteSpace(MainFilePath) && File.Exists(MainFilePath);
+
+    /// <summary>
+    /// One-shot flag: when set, the next creation skips its own "no full movie" warning because the
+    /// caller (e.g. the Beginner wizard) already warned. Reset at the start of each run.
+    /// </summary>
+    public bool SuppressNoMovieConfirm { get; set; }
 
     // Output
     [ObservableProperty]
@@ -227,9 +236,10 @@ public partial class SRSCreatorViewModel : ViewModelBase
         InputPath = string.Empty;
         OutputPath = string.Empty;
         MainFilePath = string.Empty;
+        SuppressNoMovieConfirm = false;
         SampleStatus = FieldStatus.None;
         OutputStatus = FieldStatus.None;
-        MainFileStatus = FieldStatus.None;
+        UpdateMainFileStatus();
 
         IsISOSource = false;
         ISOFilePath = string.Empty;
@@ -331,6 +341,21 @@ public partial class SRSCreatorViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanCreateSRS))]
     private async Task CreateSRSAsync()
     {
+        bool skipNoMovie = SuppressNoMovieConfirm;
+        SuppressNoMovieConfirm = false;
+        if (!skipNoMovie && !HasValidMainFile)
+        {
+            bool proceed = await _fileDialog.ShowConfirmAsync(
+                "Create a signature-only SRS?",
+                "No full movie was selected, so match offsets will be 0. The SRS will still rebuild the sample, " +
+                "but restoring is slower and could match the wrong data if a track's signature isn't unique.\n\n" +
+                "Create a signature-only SRS anyway?");
+            if (!proceed)
+            {
+                return;
+            }
+        }
+
         IsCreating = true;
         ShowProgress = true;
         ProgressPercent = 0;
