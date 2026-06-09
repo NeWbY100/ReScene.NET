@@ -9,6 +9,10 @@ public sealed class WizardStep
     /// <summary>Optional override for the Next button's label while on this step (e.g. "Create").</summary>
     public string? NextLabel { get; init; }
 
+    /// <summary>Optional dynamic Next-button label, evaluated each time this step is shown (takes
+    /// precedence over <see cref="NextLabel"/>). Use when the label depends on runtime state.</summary>
+    public Func<string>? NextLabelFunc { get; init; }
+
     /// <summary>Optional action run when advancing FROM this step (e.g. start the operation).</summary>
     public Action? OnLeave { get; init; }
 

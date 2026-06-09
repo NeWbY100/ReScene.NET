@@ -158,9 +158,30 @@ public static class BeginnerWizardFactory
         var steps = new List<WizardStep>
         {
             new() { Title = "Choose your file", CanAdvance = () => vm.ShowFlow },
-            new() { Title = "Media & output", CanAdvance = () => vm.IsBulk
-                ? !string.IsNullOrWhiteSpace(vm.BulkRestorer?.MediaDirectoryPath)
-                : !string.IsNullOrWhiteSpace(vm.SingleRebuilder?.MediaFilePath) },
+            new()
+            {
+                Title = "Media & output",
+                // Gate on the underlying command so all prerequisites (paths, a selected sample) are met
+                // before the rebuild/restore can be started.
+                CanAdvance = () => vm.IsBulk
+                    ? vm.BulkRestorer?.RestoreCommand.CanExecute(null) == true
+                    : vm.SingleRebuilder?.RebuildCommand.CanExecute(null) == true,
+                NextLabelFunc = () => vm.IsBulk ? "Restore All" : "Rebuild",
+                OnLeave = () =>
+                {
+                    if (vm.IsBulk)
+                    {
+                        if (vm.BulkRestorer?.RestoreCommand.CanExecute(null) == true)
+                        {
+                            vm.BulkRestorer.RestoreCommand.Execute(null);
+                        }
+                    }
+                    else if (vm.SingleRebuilder?.RebuildCommand.CanExecute(null) == true)
+                    {
+                        vm.SingleRebuilder.RebuildCommand.Execute(null);
+                    }
+                },
+            },
             new() { Title = "Restore" },
         };
         return (new WizardViewModel("Restore a sample", vm, steps), new RestoreWizardBody());
