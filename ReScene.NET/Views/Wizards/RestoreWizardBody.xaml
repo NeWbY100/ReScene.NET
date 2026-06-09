@@ -77,54 +77,58 @@
 
     </StackPanel>
 
-    <!-- Step 2: run (bulk or single sub-panels) -->
-    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
-                                     RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+    <!-- Step 2: run (bulk or single sub-panels). DockPanels so the details log fills and scrolls. -->
+    <Grid Visibility="{Binding DataContext.CurrentStepIndex,
+                               RelativeSource={RelativeSource AncestorType=Window},
+                               Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
 
       <!-- Bulk run panel (restore is started by the "Restore All" button on the previous step) -->
-      <StackPanel Visibility="{Binding IsBulk, Converter={StaticResource BoolToVisibility}}">
-        <TextBlock Text="{Binding BulkRestorer.OverallProgressText}"
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}" />
-        <Button Content="Cancel" Command="{Binding BulkRestorer.CancelRestoreCommand}"
-                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Visibility="{Binding BulkRestorer.IsRestoring, Converter={StaticResource BoolToVisibility}}" />
-        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+      <DockPanel Visibility="{Binding IsBulk, Converter={StaticResource BoolToVisibility}}">
+        <StackPanel DockPanel.Dock="Top">
+          <TextBlock Text="{Binding BulkRestorer.OverallProgressText}"
+                     Foreground="{DynamicResource ForegroundSecondary}"
+                     FontSize="{DynamicResource FontSizeCaption}" />
+          <Button Content="Cancel" Command="{Binding BulkRestorer.CancelRestoreCommand}"
+                  Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
+                  HorizontalAlignment="Left"
+                  Visibility="{Binding BulkRestorer.IsRestoring, Converter={StaticResource BoolToVisibility}}" />
+          <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+        </StackPanel>
         <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
                 Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="140">
           <ListBox ItemsSource="{Binding BulkRestorer.LogEntries}" Style="{StaticResource CompactLogListBox}"
                    FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
         </Border>
-      </StackPanel>
+      </DockPanel>
 
       <!-- Single run panel (rebuild is started by the "Rebuild" button on the previous step) -->
-      <StackPanel Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}">
-        <Border Visibility="{Binding SingleRebuilder.ShowResult, Converter={StaticResource BoolToVisibility}}"
-                Padding="8,6" Margin="0,12,0,0" CornerRadius="4">
-          <Border.Style>
-            <Style TargetType="Border">
-              <Setter Property="Background" Value="#30FF4444" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding SingleRebuilder.ResultSuccess}" Value="True">
-                  <Setter Property="Background" Value="#304EC9B0" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </Border.Style>
-          <TextBlock Text="{Binding SingleRebuilder.ResultSummary}"
-                     FontWeight="SemiBold" TextWrapping="Wrap" />
-        </Border>
-        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
+      <DockPanel Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}">
+        <StackPanel DockPanel.Dock="Top">
+          <Border Visibility="{Binding SingleRebuilder.ShowResult, Converter={StaticResource BoolToVisibility}}"
+                  Padding="8,6" Margin="0,0,0,12" CornerRadius="4">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Background" Value="#30FF4444" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SingleRebuilder.ResultSuccess}" Value="True">
+                    <Setter Property="Background" Value="#304EC9B0" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding SingleRebuilder.ResultSummary}"
+                       FontWeight="SemiBold" TextWrapping="Wrap" />
+          </Border>
+          <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,0,0,2" />
+        </StackPanel>
         <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
                 Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="140">
           <ListBox ItemsSource="{Binding SingleRebuilder.LogEntries}" Style="{StaticResource CompactLogListBox}"
                    FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
         </Border>
-      </StackPanel>
+      </DockPanel>
 
-    </StackPanel>
+    </Grid>
 
   </Grid>
 </UserControl>
