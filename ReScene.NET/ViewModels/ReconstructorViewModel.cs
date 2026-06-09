@@ -822,7 +822,8 @@ public partial class ReconstructorViewModel : ViewModelBase
 
         ImportedStoredFilesText = srr.StoredFiles.Count == 0
             ? "None"
-            : string.Join(", ", srr.StoredFiles.Select(s => Path.GetFileName(s.FileName)));
+            : string.Join(", ", srr.StoredFiles.Select(
+                s => $"{Path.GetFileName(s.FileName)} ({FormatUtilities.FormatSize(s.FileLength)})"));
     }
 
     /// <summary>Friendly label for a RAR compression method (0–5), mirroring the import log's names.</summary>
