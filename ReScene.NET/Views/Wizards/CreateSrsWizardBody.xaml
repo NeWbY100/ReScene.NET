@@ -71,10 +71,7 @@
                    FontSize="{DynamicResource FontSizeCaption}"
                    Margin="0,4,0,0"
                    Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-        <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
-                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
+        <!-- Cancellation is offered by the ISO/profiling progress modal during the work. -->
         <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
       </StackPanel>
       <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
