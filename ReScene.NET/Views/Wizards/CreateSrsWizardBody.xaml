@@ -4,7 +4,7 @@
              xmlns:c="clr-namespace:ReScene.NET.Controls">
   <Grid MinHeight="150">
 
-    <!-- Step 0: sample input -->
+    <!-- Step 0: sample + optional full movie -->
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
                                      Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
@@ -25,17 +25,13 @@
         <ComboBox ItemsSource="{Binding ISOMediaFiles}" SelectedItem="{Binding SelectedISOMediaFile}"
                   FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource FontSizeCaption}" />
       </DockPanel>
-    </StackPanel>
 
-    <!-- Step 1: optional full movie (populates each track's match offset) -->
-    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
-                                     RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
-      <TextBlock Text="Optional: point at the full movie this sample came from. The SRS will record where each track's data sits inside it, so the sample can be restored faster and exactly. Skip this for a signature-only SRS (the restore then searches for each track)."
+      <!-- Optional full movie — populates each track's match offset -->
+      <TextBlock Text="Full movie (optional)" FontWeight="SemiBold" Margin="0,14,0,2" />
+      <TextBlock Text="Point at the full movie this sample came from to record where each track's data sits inside it, so the sample restores faster and exactly. Leave empty for a signature-only SRS."
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,8" />
-      <TextBlock Text="Full movie (optional)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                 TextWrapping="Wrap" Margin="0,0,0,4" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseMainFileCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
@@ -46,10 +42,10 @@
       <c:FieldStatusLine Status="{Binding MainFileStatus}" />
     </StackPanel>
 
-    <!-- Step 2: output -->
+    <!-- Step 1: output -->
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
       <TextBlock Text="Where should the .srs be saved?"
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
@@ -63,10 +59,10 @@
       <c:FieldStatusLine Status="{Binding OutputStatus}" />
     </StackPanel>
 
-    <!-- Step 3: run + result (creation is started by the "Create" button on the save step) -->
+    <!-- Step 2: run + result (creation is started by the "Create" button on the save step) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
-                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
       <StackPanel DockPanel.Dock="Top">
         <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6"
                      Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
