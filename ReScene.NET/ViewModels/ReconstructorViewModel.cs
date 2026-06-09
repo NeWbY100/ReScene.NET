@@ -92,6 +92,26 @@ public partial class ReconstructorViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool HasImportedSrr { get; set; }
 
+    // ── Imported SRR details (shown after import) ──
+
+    [ObservableProperty]
+    public partial string ImportedSrrName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ImportedSrrAppName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ImportedRarVolumeText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ImportedArchivedFilesText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ImportedCompressionText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ImportedStoredFilesText { get; set; } = string.Empty;
+
     // ── Paths ──
 
     [ObservableProperty]
@@ -401,6 +421,14 @@ public partial class ReconstructorViewModel : ViewModelBase
         // Import gating + warning
         HasImportedSrr = false;
         CustomPackerWarning = null;
+
+        // Imported SRR details
+        ImportedSrrName = string.Empty;
+        ImportedSrrAppName = string.Empty;
+        ImportedRarVolumeText = string.Empty;
+        ImportedArchivedFilesText = string.Empty;
+        ImportedCompressionText = string.Empty;
+        ImportedStoredFilesText = string.Empty;
 
         // Imported SRR state — back to empty/null
         _importedArchiveFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -771,6 +799,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
             Log(LogTarget.System, "=== SRR Import Complete ===");
 
+            PopulateImportedSrrDetails(srr, path);
             HasImportedSrr = true;
         }
         catch (Exception ex)
@@ -778,6 +807,36 @@ public partial class ReconstructorViewModel : ViewModelBase
             Log(LogTarget.System, $"Failed to import SRR: {ex.Message}");
         }
     }
+
+    /// <summary>Builds the human-readable summary of the imported SRR shown on the wizard's import step.</summary>
+    private void PopulateImportedSrrDetails(SRRFile srr, string path)
+    {
+        ImportedSrrName = Path.GetFileName(path);
+
+        string? app = srr.HeaderBlock?.HasAppName == true ? srr.HeaderBlock?.AppName : null;
+        ImportedSrrAppName = string.IsNullOrWhiteSpace(app) ? "Unknown" : app;
+
+        ImportedRarVolumeText = srr.RARFiles.Count == 1 ? "1 volume" : $"{srr.RARFiles.Count} volumes";
+        ImportedArchivedFilesText = srr.ArchivedFiles.Count == 1 ? "1 file" : $"{srr.ArchivedFiles.Count} files";
+        ImportedCompressionText = DescribeCompression(srr.CompressionMethod);
+
+        ImportedStoredFilesText = srr.StoredFiles.Count == 0
+            ? "None"
+            : string.Join(", ", srr.StoredFiles.Select(s => Path.GetFileName(s.FileName)));
+    }
+
+    /// <summary>Friendly label for a RAR compression method (0–5), mirroring the import log's names.</summary>
+    private static string DescribeCompression(int? method) => method switch
+    {
+        null => "Unknown",
+        0 => "Store / no compression (-m0)",
+        1 => "Fastest (-m1)",
+        2 => "Fast (-m2)",
+        3 => "Normal (-m3)",
+        4 => "Good (-m4)",
+        5 => "Best (-m5)",
+        _ => $"Method {method}",
+    };
 
     // ── Import / Export Configuration ──
 
