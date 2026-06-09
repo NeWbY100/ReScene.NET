@@ -82,23 +82,15 @@
                                      RelativeSource={RelativeSource AncestorType=Window},
                                      Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
 
-      <!-- Bulk run panel -->
+      <!-- Bulk run panel (restore is started by the "Restore All" button on the previous step) -->
       <StackPanel Visibility="{Binding IsBulk, Converter={StaticResource BoolToVisibility}}">
-        <TextBlock Text="Ready to restore all matched samples."
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,0,0,8" />
-        <StackPanel Orientation="Horizontal">
-          <Button Content="Restore All" Command="{Binding BulkRestorer.RestoreCommand}"
-                  Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
-          <Button Content="Cancel" Command="{Binding BulkRestorer.CancelRestoreCommand}"
-                  Style="{StaticResource CancelButton}" Padding="18,6"
-                  Visibility="{Binding BulkRestorer.IsRestoring, Converter={StaticResource BoolToVisibility}}" />
-        </StackPanel>
         <TextBlock Text="{Binding BulkRestorer.OverallProgressText}"
                    Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,6,0,0" />
+                   FontSize="{DynamicResource FontSizeCaption}" />
+        <Button Content="Cancel" Command="{Binding BulkRestorer.CancelRestoreCommand}"
+                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Visibility="{Binding BulkRestorer.IsRestoring, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
         <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
                 Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="140">
@@ -107,14 +99,8 @@
         </Border>
       </StackPanel>
 
-      <!-- Single run panel -->
+      <!-- Single run panel (rebuild is started by the "Rebuild" button on the previous step) -->
       <StackPanel Visibility="{Binding IsSingle, Converter={StaticResource BoolToVisibility}}">
-        <TextBlock Text="Ready to rebuild the sample."
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,0,0,8" />
-        <Button Content="Rebuild Sample" Command="{Binding SingleRebuilder.RebuildCommand}"
-                Style="{StaticResource PrimaryButton}" Padding="18,6" HorizontalAlignment="Left" />
         <Border Visibility="{Binding SingleRebuilder.ShowResult, Converter={StaticResource BoolToVisibility}}"
                 Padding="8,6" Margin="0,12,0,0" CornerRadius="4">
           <Border.Style>

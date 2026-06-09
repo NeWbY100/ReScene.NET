@@ -79,6 +79,23 @@ public class WizardViewModelTests
     }
 
     [Fact]
+    public void NextButtonText_UsesNextLabelFunc_OverNextLabel_AndReflectsState()
+    {
+        string mode = "single";
+        var steps = new List<WizardStep>
+        {
+            new() { Title = "A", NextLabel = "Static", NextLabelFunc = () => mode == "bulk" ? "Restore All" : "Rebuild" },
+            new() { Title = "B" },
+        };
+        var w = new WizardViewModel("T", new object(), steps);
+
+        Assert.Equal("Rebuild", w.NextButtonText);   // the dynamic func wins over NextLabel
+
+        mode = "bulk";
+        Assert.Equal("Restore All", w.NextButtonText);   // re-evaluated each read, reflects current state
+    }
+
+    [Fact]
     public void Next_DoesNotAdvanceOrRunOnLeave_WhenConfirmLeaveReturnsFalse()
     {
         bool left = false;

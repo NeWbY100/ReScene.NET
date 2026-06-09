@@ -60,7 +60,8 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
     public bool IsFirstStep => CurrentStepIndex == 0;
     public bool IsLastStep => CurrentStepIndex == Steps.Count - 1;
     public string StepHeader => $"{Steps[CurrentStepIndex].Title}  —  Step {CurrentStepNumber} of {StepCount}";
-    public string NextButtonText => Steps[CurrentStepIndex].NextLabel ?? "Next ›";
+    public string NextButtonText => Steps[CurrentStepIndex].NextLabelFunc?.Invoke()
+        ?? Steps[CurrentStepIndex].NextLabel ?? "Next ›";
 
     private bool CanGoNext() => !IsLastStep && Steps[CurrentStepIndex].CanAdvance();
     private bool CanGoBack() => !IsFirstStep;
