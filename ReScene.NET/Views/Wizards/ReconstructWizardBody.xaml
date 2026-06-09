@@ -57,7 +57,7 @@
           <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ImportedCompressionText}" Margin="0,0,0,4" />
 
           <TextBlock Grid.Row="5" Grid.Column="0" Text="Stored files"
-                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,0" />
+                     Foreground="{DynamicResource ForegroundSecondary}" Margin="0,0,16,0" VerticalAlignment="Top" />
           <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ImportedStoredFilesText}" TextWrapping="Wrap" />
         </Grid>
       </Border>
@@ -70,14 +70,15 @@
       </Border>
     </StackPanel>
 
-    <!-- Step 1: WinRAR versions folder -->
+    <!-- Step 1: files & folders (WinRAR versions, release files, output, verification) -->
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
                                      Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
-      <TextBlock Text="Point at the folder that contains your WinRAR version subfolders."
+      <TextBlock Text="Point at your WinRAR versions, the extracted release files, where to save the rebuilt archives, and the verification file."
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,8" />
+                 TextWrapping="Wrap" Margin="0,0,0,12" />
+
       <TextBlock Text="WinRAR versions folder" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseWinRarCommand}"
@@ -85,77 +86,51 @@
         <TextBox Text="{Binding WinRarPath}" />
       </DockPanel>
       <c:FieldStatusLine Status="{Binding WinRarStatus}" />
-    </StackPanel>
 
-    <!-- Step 2: extracted release files -->
-    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
-                                     RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
-      <TextBlock Text="Point at the folder containing the extracted release files."
-                 Foreground="{DynamicResource ForegroundSecondary}"
-                 FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,8" />
-      <TextBlock Text="Extracted release files" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <TextBlock Text="Extracted release files" FontWeight="SemiBold" Margin="0,12,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseReleaseCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
         <TextBox Text="{Binding ReleasePath}" />
       </DockPanel>
       <c:FieldStatusLine Status="{Binding ReleaseStatus}" />
-    </StackPanel>
 
-    <!-- Step 3: output folder -->
-    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
-                                     RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
-      <TextBlock Text="Where should the reconstructed RAR archives be saved?"
-                 Foreground="{DynamicResource ForegroundSecondary}"
-                 FontSize="{DynamicResource FontSizeCaption}"
-                 TextWrapping="Wrap" Margin="0,0,0,8" />
-      <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,0,0,2" />
+      <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,12,0,2" />
       <DockPanel Margin="0,0,0,2">
         <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
         <TextBox Text="{Binding OutputPath}" />
       </DockPanel>
+
+      <TextBlock Text="Verification file (.sfv or .sha1)" FontWeight="SemiBold" Margin="0,12,0,2" />
+      <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,2" />
+      <DockPanel Margin="0,0,0,2">
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseVerificationCommand}"
+                Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
+        <TextBox Text="{Binding VerificationPath}" />
+      </DockPanel>
+      <c:FieldStatusLine Status="{Binding VerifyStatus}" />
     </StackPanel>
 
-    <!-- Step 4: run + progress -->
+    <!-- Step 2: run + progress (started by the "Start" button on the previous step) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
-                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=4}">
+                                    Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
       <StackPanel DockPanel.Dock="Top">
-        <TextBlock Text="Verification file (.sfv or .sha1)" FontWeight="SemiBold" Margin="0,0,0,2" />
-        <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv."
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   TextWrapping="Wrap" Margin="0,0,0,2" />
-        <DockPanel Margin="0,0,0,2">
-          <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseVerificationCommand}"
-                  Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
-          <TextBox Text="{Binding VerificationPath}" />
-        </DockPanel>
-        <c:FieldStatusLine Status="{Binding VerifyStatus}" />
-        <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,8" />
-
-        <TextBlock Text="Ready to reconstruct the RAR archives."
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,0,0,8" />
-        <StackPanel Orientation="Horizontal">
-          <Button Content="Start" Command="{Binding StartCommand}"
-                  Style="{StaticResource PrimaryButton}" Padding="18,6" Margin="0,0,8,0" />
-          <Button Content="Stop" Command="{Binding StopCommand}"
-                  Style="{StaticResource CancelButton}" Padding="18,6"
-                  Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
-        </StackPanel>
-        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6" Margin="0,12,0,0"
+        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6"
                      Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock Text="{Binding ProgressMessage}"
                    Foreground="{DynamicResource ForegroundSecondary}"
                    FontSize="{DynamicResource FontSizeCaption}"
                    Margin="0,4,0,0"
                    Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+        <Button Content="Stop" Command="{Binding StopCommand}"
+                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
       </StackPanel>
       <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"

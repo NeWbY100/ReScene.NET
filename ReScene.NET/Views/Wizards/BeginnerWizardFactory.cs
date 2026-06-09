@@ -131,9 +131,23 @@ public static class BeginnerWizardFactory
         var steps = new List<WizardStep>
         {
             new() { Title = "Import the SRR", CanAdvance = () => vm.HasImportedSrr && !vm.HasCustomPackerWarning },
-            new() { Title = "WinRAR versions", CanAdvance = () => !string.IsNullOrWhiteSpace(vm.WinRarPath) },
-            new() { Title = "Extracted files", CanAdvance = () => !string.IsNullOrWhiteSpace(vm.ReleasePath) },
-            new() { Title = "Output folder", CanAdvance = () => !string.IsNullOrWhiteSpace(vm.OutputPath) },
+            new()
+            {
+                Title = "Files & folders",
+                CanAdvance = () => !vm.IsRunning
+                    && !string.IsNullOrWhiteSpace(vm.WinRarPath)
+                    && !string.IsNullOrWhiteSpace(vm.ReleasePath)
+                    && !string.IsNullOrWhiteSpace(vm.OutputPath)
+                    && !string.IsNullOrWhiteSpace(vm.VerificationPath),
+                NextLabel = "Start",
+                OnLeave = () =>
+                {
+                    if (vm.StartCommand.CanExecute(null))
+                    {
+                        vm.StartCommand.Execute(null);
+                    }
+                },
+            },
             new() { Title = "Reconstruct" },
         };
         return (new WizardViewModel("Reconstruct RAR archives", vm, steps), new ReconstructWizardBody());
