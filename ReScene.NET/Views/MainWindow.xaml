@@ -33,6 +33,9 @@
                   Command="{Binding ExportStoredFileCommand}"
                   InputGestureText="Ctrl+E" />
         <Separator />
+        <MenuItem Header="_Settings..."
+                  Click="OnSettingsClick" />
+        <Separator />
         <MenuItem Header="E_xit"
                   Click="OnExitClick" />
       </MenuItem>
@@ -45,9 +48,6 @@
                   Command="{Binding SetAdvancedModeCommand}" />
       </MenuItem>
       <MenuItem Header="_Help">
-        <MenuItem Header="_Settings..."
-                  Click="OnSettingsClick" />
-        <Separator />
         <MenuItem Header="_About"
                   Click="OnAboutClick" />
       </MenuItem>

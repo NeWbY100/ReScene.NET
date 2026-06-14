@@ -8,8 +8,13 @@ namespace ReScene.NET.Services;
 /// <summary>
 /// Default implementation of <see cref="IFileCompareService"/> for loading and comparing scene files.
 /// </summary>
-public class FileCompareService : IFileCompareService
+/// <param name="settingsService">
+/// Optional settings source for user-tunable limits (the MKV element cap); defaults apply when null.
+/// </param>
+public class FileCompareService(IAppSettingsService? settingsService = null) : IFileCompareService
 {
+    private readonly IAppSettingsService? _settingsService = settingsService;
+
     /// <inheritdoc />
     public object? LoadFileData(string filePath)
     {
@@ -18,6 +23,8 @@ public class FileCompareService : IFileCompareService
         {
             ".srr" => SRRFileData.Load(filePath),
             ".srs" => SRSFile.Load(filePath),
+            ".mkv" or ".webm" => MKVFileData.Load(filePath,
+                _settingsService?.Load().MkvMaxElements ?? MKVFileData.DefaultMaxElements),
             _ => RARFileData.Load(filePath)
         };
     }

@@ -137,7 +137,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService(), new HexDiffComputer())
+        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(new AppSettingsService()), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService(), new HexDiffComputer())
     {
     }
 
@@ -147,10 +147,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _recentFiles = recentFiles;
         _appSettingsService = appSettingsService;
 
-        Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService);
+        Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService, appSettingsService);
         Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService);
         SRSCreator = new SRSCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService);
-        Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog);
+        Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog, appSettingsService);
         SRSReconstructor = new SRSReconstructorViewModel(srsReconService, fileDialog, tempDir);
         SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
         FileCompare = new FileCompareViewModel(fileCompareService, fileDialog, hexDiffComputer);
@@ -162,11 +162,9 @@ public partial class MainWindowViewModel : ViewModelBase
         };
         Beginner = new BeginnerShellViewModel
         {
-            // A dedicated CreatorViewModel (not the Advanced tab's shared one) so the wizard's draft
-            // build never collides with — or leaves a temp path in — the Advanced SRR Creator tab.
-            CreateSrrWizard = new CreateSrrWizardViewModel(
-                new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService),
-                new SrrEditorViewModel(srrEditingService, fileDialog, tempDir), tempDir),
+            // A dedicated CreatorViewModel (not the Advanced tab's shared one) so the wizard's
+            // state and build never collide with the Advanced SRR Creator tab.
+            CreateSrrWizard = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService),
             SRSCreator = SRSCreator,
             Reconstructor = Reconstructor,
             Restore = beginnerRestore,

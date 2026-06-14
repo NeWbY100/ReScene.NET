@@ -14,10 +14,15 @@ public partial class SettingsWindow : Window
 
     private void OnSaveClick(object _, RoutedEventArgs e)
     {
-        if (DataContext is SettingsViewModel vm && vm.DialogResult)
+        // WPF raises Click before executing a bound Command, so the save must be driven from
+        // here — checking a command-set flag on first click would still see the old value.
+        if (DataContext is SettingsViewModel vm)
         {
-            DialogResult = true;
-            Close();
+            vm.SaveCommand.Execute(null);
+            if (vm.DialogResult)
+            {
+                DialogResult = true;
+            }
         }
     }
 }

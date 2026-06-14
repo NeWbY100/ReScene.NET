@@ -70,10 +70,13 @@
       </Border>
     </StackPanel>
 
-    <!-- Step 1: files & folders (WinRAR versions, release files, output, verification) -->
-    <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
-                                     RelativeSource={RelativeSource AncestorType=Window},
-                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+    <!-- Step 1: files & folders (WinRAR versions, release files, output, verification).
+         Scrollable: this step is dense and must not clip on small windows. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  Visibility="{Binding DataContext.CurrentStepIndex,
+                                       RelativeSource={RelativeSource AncestorType=Window},
+                                       Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+      <StackPanel>
       <TextBlock Text="ReScene rebuilds the original RAR archives from these — here's what to pick for each:"
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
@@ -122,7 +125,21 @@
         <TextBox Text="{Binding VerificationPath}" />
       </DockPanel>
       <c:FieldStatusLine Status="{Binding VerifyStatus}" />
-    </StackPanel>
+
+      <CheckBox Content="Recreate the whole release"
+                IsChecked="{Binding CompleteAllVolumes}" Margin="0,14,0,2" />
+      <TextBlock Text="When a match is found, let WinRAR finish writing every .rar volume of the release instead of stopping after the first one. Takes longer but gives you the complete archive set."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="20,0,0,0" />
+
+      <CheckBox Content="Rename to the release's file names"
+                IsChecked="{Binding RenameToSfvNames}"
+                IsEnabled="{Binding IsRenameToSfvEnabled}" Margin="0,10,0,2" />
+      <TextBlock Text="Name the rebuilt archives exactly like the original release (taken from the SRR, or the verification .sfv) instead of technical names like '420-m3-md4096k.rar'."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="20,0,0,0" />
+      </StackPanel>
+    </ScrollViewer>
 
     <!-- Step 2: run + progress (started by the "Start" button on the previous step) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
@@ -140,6 +157,10 @@
                 Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
                 HorizontalAlignment="Left"
                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+        <Button Content="Open output folder" Command="{Binding OpenOutputFolderCommand}"
+                Style="{StaticResource PrimaryButton}" Padding="14,4" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Visibility="{Binding LastRunSucceeded, Converter={StaticResource BoolToVisibility}}" />
         <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
       </StackPanel>
       <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"

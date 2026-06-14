@@ -111,4 +111,44 @@ public class WizardViewModelTests
         Assert.Equal(0, w.CurrentStepIndex);
         Assert.False(left);
     }
+
+    [Fact]
+    public void Back_HiddenAndBlocked_WhenStepCanGoBackReturnsFalse()
+    {
+        bool finished = false;
+        var steps = new List<WizardStep>
+        {
+            new() { Title = "A" },
+            new() { Title = "Run", CanGoBack = () => !finished },
+        };
+        var w = new WizardViewModel("T", new object(), steps);
+
+        w.NextCommand.Execute(null);
+
+        // Run in progress (or not yet succeeded): Back is available.
+        Assert.True(w.IsBackVisible);
+        Assert.True(w.BackCommand.CanExecute(null));
+
+        // Operation finished: Back disappears and cannot execute.
+        finished = true;
+        Assert.False(w.IsBackVisible);
+        Assert.False(w.BackCommand.CanExecute(null));
+        w.BackCommand.Execute(null);
+        Assert.Equal(1, w.CurrentStepIndex);
+    }
+
+    [Fact]
+    public void Back_Hidden_OnFirstStep()
+    {
+        var w = Make(true, true);
+
+        // Nothing to go back to on the first step, so the button is hidden outright.
+        Assert.False(w.IsBackVisible);
+        Assert.False(w.BackCommand.CanExecute(null));
+
+        // It appears once there is a previous step to return to.
+        w.NextCommand.Execute(null);
+        Assert.True(w.IsBackVisible);
+        Assert.True(w.BackCommand.CanExecute(null));
+    }
 }

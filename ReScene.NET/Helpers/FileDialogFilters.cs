@@ -6,14 +6,28 @@ namespace ReScene.NET.Helpers;
 internal static class FileDialogFilters
 {
     /// <summary>
-    /// Scene files including RAR — for Inspector and Compare views.
+    /// Everything the Inspector can open — scene files, RAR, and MKV/WebM.
     /// </summary>
-    public static readonly string[] SceneFilesWithRar =
+    public static readonly string[] InspectFiles =
     [
-        "Scene Files|*.srr;*.srs;*.rar",
+        "Supported Files|*.srr;*.srs;*.rar;*.mkv;*.webm",
         "SRR Files|*.srr",
         "SRS Files|*.srs",
         "RAR Files|*.rar",
+        "MKV / WebM Files|*.mkv;*.webm",
+        "All Files|*.*"
+    ];
+
+    /// <summary>
+    /// Comparable files including RAR and MKV/WebM — for the Compare view's browse dialogs.
+    /// </summary>
+    public static readonly string[] CompareFiles =
+    [
+        "Comparable Files|*.srr;*.srs;*.rar;*.mkv;*.webm",
+        "SRR Files|*.srr",
+        "SRS Files|*.srs",
+        "RAR Files|*.rar",
+        "MKV / WebM Files|*.mkv;*.webm",
         "All Files|*.*"
     ];
 
@@ -39,12 +53,13 @@ internal static class FileDialogFilters
     ];
 
     /// <summary>
-    /// Stored files for SRR creation — NFO, SFV, text files.
+    /// Stored files for SRR creation. Defaults to All Files — stored files are commonly
+    /// .nfo/.sfv but also proof images, .m3u, .cue, .log, etc.
     /// </summary>
     public static readonly string[] StoredFiles =
     [
-        "NFO/SFV Files|*.nfo;*.sfv;*.txt",
-        "All Files|*.*"
+        "All Files|*.*",
+        "NFO/SFV Files|*.nfo;*.sfv;*.txt"
     ];
 
     /// <summary>
@@ -74,6 +89,15 @@ internal static class FileDialogFilters
         "Audio Samples|*.flac;*.mp3",
         "Stream Samples|*.vob;*.m2ts;*.ts;*.mpg;*.mpeg;*.evo",
         "ISO Images|*.iso;*.img",
+        "All Files|*.*"
+    ];
+
+    /// <summary>
+    /// Subtitle SFV — for picking a vobsub archive's .sfv in the SRR Creator wizard.
+    /// </summary>
+    public static readonly string[] SubtitleSfv =
+    [
+        "SFV Files|*.sfv",
         "All Files|*.*"
     ];
 

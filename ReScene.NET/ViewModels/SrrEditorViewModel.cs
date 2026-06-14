@@ -141,29 +141,6 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
     }
 
     /// <summary>
-    /// Adopts an already-built SRR (e.g. a freshly created draft) as the working copy to edit,
-    /// instead of copying from a <see cref="SourcePath"/>. Loads its stored-file list and pre-fills
-    /// <see cref="OutputPath"/> with <paramref name="suggestedOutputPath"/>. Idempotent for the same
-    /// draft so navigating Back → Next does not discard in-place edits.
-    /// </summary>
-    public void AdoptWorkingCopy(string draftPath, string suggestedOutputPath)
-    {
-        if (_workingCopyPath == draftPath)
-        {
-            ReloadList();
-            return;
-        }
-
-        DeleteWorkingCopy();
-        _workingCopyPath = draftPath;
-        _workingCopySource = null;   // adopted, not copied from a source
-        ReloadList();
-
-        OutputPath = suggestedOutputPath;
-        OutputStatus = FieldStatus.Info("Auto-filled next to the release. Change it if you want the SRR elsewhere.");
-    }
-
-    /// <summary>
     /// Creates the temp working copy of <paramref name="sourcePath"/> and returns its full path.
     /// Overridable so tests can substitute a dummy path without touching the file system.
     /// </summary>
@@ -547,15 +524,9 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
             return;
         }
 
-        // Only clean a working copy this VM created itself (copied from a source — its whole GUID
-        // temp folder, not just the file, so temps don't accumulate). An adopted draft
-        // (_workingCopySource is null) lives in a temp directory owned by whoever built it — e.g. the
-        // Create-an-SRR wizard facade — which is solely responsible for cleaning it.
+        // Clean the whole GUID temp folder, not just the file, so temps don't accumulate.
         // Cleanup is best-effort (it suppresses its own exceptions).
-        if (_workingCopySource is not null)
-        {
-            _tempDir.Cleanup(Path.GetDirectoryName(_workingCopyPath));
-        }
+        _tempDir.Cleanup(Path.GetDirectoryName(_workingCopyPath));
     }
 
     private static string SuggestEditedSiblingPath(string sourcePath)

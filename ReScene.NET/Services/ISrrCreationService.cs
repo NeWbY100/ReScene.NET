@@ -22,7 +22,7 @@ public interface ISrrCreationService
     /// Ordered list of RAR volume paths.
     /// </param>
     /// <param name="storedFiles">
-    /// Optional files to embed, keyed by stored name to full path.
+    /// Optional ordered list of files to embed; blocks are written in this order.
     /// </param>
     /// <param name="options">
     /// Creation options.
@@ -36,7 +36,7 @@ public interface ISrrCreationService
     public Task<SRRCreationResult> CreateFromRarAsync(
         string outputPath,
         IReadOnlyList<string> rarVolumePaths,
-        IReadOnlyDictionary<string, string>? storedFiles,
+        IReadOnlyList<StoredFileEntry>? storedFiles,
         SRRCreationOptions options,
         CancellationToken ct);
 
@@ -50,7 +50,7 @@ public interface ISrrCreationService
     /// Path to the SFV file.
     /// </param>
     /// <param name="additionalFiles">
-    /// Optional additional files to embed, keyed by stored name to full path.
+    /// Optional ordered list of additional files to embed; blocks are written in this order.
     /// </param>
     /// <param name="options">
     /// Creation options.
@@ -64,7 +64,7 @@ public interface ISrrCreationService
     public Task<SRRCreationResult> CreateFromSFVAsync(
         string outputPath,
         string sfvFilePath,
-        IReadOnlyDictionary<string, string>? additionalFiles,
+        IReadOnlyList<StoredFileEntry>? additionalFiles,
         SRRCreationOptions options,
         CancellationToken ct);
 }

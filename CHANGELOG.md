@@ -4,6 +4,52 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] — 2026-06-14
+
+### Added
+
+- **Beginner mode** — a guided home hub of task cards (Create an SRR, Create an
+  SRS, Reconstruct RAR archives, Restore a sample, Edit an SRR), each opening a
+  focused, step-by-step pop-up wizard. Switch between Beginner and Advanced from
+  the new **Mode** menu or in Settings; the choice is remembered. The hub groups
+  its cards by file type.
+- **Compare MKV/WebM files** — the Compare tab now parses MKV/WebM and shows
+  their EBML structure side by side, highlighting differing elements in red down
+  to byte-level cluster payloads. The Inspector also opens MKV/WebM files. A
+  configurable element-parse limit keeps very large files responsive.
+- **Create-an-SRR wizard**: a "Samples & subtitles" step lists the sample `.srs`
+  and subtitle nested-`.srr` that will be embedded — detected automatically, or
+  point at files for an unextracted release — as reorderable rows generated when
+  you press Create. Stored files can be added, removed, renamed and reordered,
+  and OSO hashes (for OpenSubtitles matching) are computed by default.
+- **Create-an-SRS wizard**: an optional "full movie" step records each track's
+  match offset (pyrescene parity), with a clear warning before creating a
+  signature-only SRS.
+- **Reconstruct wizard**: shows the imported SRR's details (RAR volumes,
+  archived files, compression, stored files with sizes, one per line); can
+  recreate the whole release (all volumes); renames rebuilt archives to the
+  release's original names (from the SRR, or the verification `.sfv`); and offers
+  **Open folder** and **Copy full command line** once a match is found.
+- **Restore-a-sample wizard**: a single input routes automatically to bulk
+  restore (`.srr`) or single rebuild (`.srs`), each with its own "Save to".
+- **Edit-an-SRR wizard**: curate an existing SRR's stored files —
+  add/remove/rename/extract with multi-select — non-destructively.
+- **Settings**: a redesigned, grouped dialog adds default WinRAR-versions and
+  reconstruction-output folders and an MKV element-parse limit, and hosts the
+  Mode selector; Settings moved from the Help menu to File.
+
+### Changed
+
+- Reconstructed RAR archives are written to an `output/` subfolder of the chosen
+  output directory (alongside the copied `input/`) rather than its root.
+
+### Fixed
+
+- Many wizard and dialog refinements: resizable/larger wizard windows,
+  scrollable detail logs, clearer disabled buttons, a wider rename prompt,
+  full-width menus without an empty icon gutter, and assorted layout/clipping
+  fixes.
+
 ## [1.2.7] — 2026-05-24
 
 ### Added

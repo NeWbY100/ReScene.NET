@@ -359,38 +359,6 @@ public class SrrEditorViewModelTests
         Assert.Equal(2, vm.CreateWorkingCopyCalls);
     }
 
-    // ── AdoptWorkingCopy (Create-an-SRR draft) ──────────────
-
-    [Fact]
-    public void AdoptWorkingCopy_LoadsListFromDraft_AndSuggestsOutput()
-    {
-        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
-        editing.StoredFileNames.AddRange(["a.nfo", "b.sfv"]);
-
-        vm.AdoptWorkingCopy(@"X:\draft\movie.srr", @"D:\rel\movie.srr");
-
-        Assert.Equal(["a.nfo", "b.sfv"], vm.StoredFiles.Select(f => f.Name));
-        Assert.Equal(@"X:\draft\movie.srr", editing.LastPath);   // list loaded from the draft, not a source
-        Assert.Equal(@"D:\rel\movie.srr", vm.OutputPath);
-        Assert.Equal(FieldState.Info, vm.OutputStatus.State);
-        // No copy-from-source seam is used when adopting an existing draft.
-        Assert.Equal(0, vm.CreateWorkingCopyCalls);
-    }
-
-    [Fact]
-    public void AdoptWorkingCopy_SameDraft_ReloadsWithoutClobberingUserOutput()
-    {
-        TestSrrEditorViewModel vm = CreateVm(out FakeSrrEditingService editing, out _);
-        editing.StoredFileNames.Add("a.nfo");
-        vm.AdoptWorkingCopy(@"X:\draft\movie.srr", @"D:\rel\movie.srr");
-        vm.OutputPath = @"D:\custom\out.srr";   // user picked a different save location
-
-        vm.AdoptWorkingCopy(@"X:\draft\movie.srr", @"D:\rel\movie.srr");   // Back → Next, same draft
-
-        Assert.Equal(@"D:\custom\out.srr", vm.OutputPath);   // not overwritten by the suggestion
-        Assert.Equal(2, editing.Calls.Count(c => c == nameof(FakeSrrEditingService.GetStoredFiles)));
-    }
-
     // ── Edit commands call service + reload ─────────────────
 
     [Fact]

@@ -148,14 +148,28 @@ public partial class BruteForceProgressWindow : Window
 
     private void OnCopyArgumentsClick(object sender, RoutedEventArgs _)
     {
-        if (sender is MenuItem menuItem
-            && menuItem.Parent is ContextMenu contextMenu
-            && contextMenu.PlacementTarget is DataGrid dataGrid
-            && dataGrid.SelectedItem is ReconstructorViewModel.VersionEntry entry
-            && !string.IsNullOrEmpty(entry.Arguments))
+        if (GetSelectedVersionEntry(sender) is { Arguments.Length: > 0 } entry)
         {
             Clipboard.SetText(entry.Arguments);
         }
+    }
+
+    private void OnCopyFullCommandLineClick(object sender, RoutedEventArgs _)
+    {
+        if (GetSelectedVersionEntry(sender) is { FullCommandLine.Length: > 0 } entry)
+        {
+            Clipboard.SetText(entry.FullCommandLine);
+        }
+    }
+
+    private static ReconstructorViewModel.VersionEntry? GetSelectedVersionEntry(object sender)
+    {
+        return sender is MenuItem menuItem
+            && menuItem.Parent is ContextMenu contextMenu
+            && contextMenu.PlacementTarget is DataGrid dataGrid
+            && dataGrid.SelectedItem is ReconstructorViewModel.VersionEntry entry
+            ? entry
+            : null;
     }
 
     protected override void OnClosing(CancelEventArgs e)

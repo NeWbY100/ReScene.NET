@@ -36,7 +36,7 @@ public partial class MainWindow : Window
         Opacity = 1;
 
         // Handle command-line arguments
-        var args = Environment.GetCommandLineArgs();
+        string[] args = Environment.GetCommandLineArgs();
         if (args.Length > 1 && IsSceneFile(args[1]) && File.Exists(args[1]))
         {
             if (DataContext is MainWindowViewModel vm)
@@ -50,7 +50,9 @@ public partial class MainWindow : Window
     {
         return path.EndsWith(".srr", StringComparison.OrdinalIgnoreCase)
             || path.EndsWith(".srs", StringComparison.OrdinalIgnoreCase)
-            || path.EndsWith(".rar", StringComparison.OrdinalIgnoreCase);
+            || path.EndsWith(".rar", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith(".webm", StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnDragOver(object _, DragEventArgs e)
@@ -65,7 +67,7 @@ public partial class MainWindow : Window
         if (e.Data.GetDataPresent(DataFormats.FileDrop)
             && e.Data.GetData(DataFormats.FileDrop) is string[] files)
         {
-            foreach (var file in files)
+            foreach (string file in files)
             {
                 if (IsSceneFile(file))
                 {
@@ -95,7 +97,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        foreach (var file in files)
+        foreach (string file in files)
         {
             if (IsSceneFile(file))
             {

@@ -96,6 +96,7 @@ public sealed class ReconstructorConfig
     public bool StopOnFirstMatch { get; set; } = true;
     public bool CompleteAllVolumes { get; set; }
     public bool RenameToOriginal { get; set; }
+    public bool RenameToSfvNames { get; set; } = true;
 
     // Header patching
     public bool EnableHostOSPatching { get; set; } = true;

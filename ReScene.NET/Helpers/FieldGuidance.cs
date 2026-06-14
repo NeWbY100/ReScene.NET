@@ -31,6 +31,32 @@ public static class FieldGuidance
     }
 
     /// <summary>
+    /// Suggests what to pre-fill in a "save output" dialog. Returns <paramref name="outputPath"/>
+    /// itself when it already names a file; when it is empty or only holds a directory (e.g. the
+    /// settings' default output directory), derives the file name from <paramref name="inputPath"/>
+    /// instead. Returns <see langword="null"/> when there is nothing to suggest.
+    /// </summary>
+    public static string? SuggestSaveFileName(string? outputPath, string? inputPath, string newExtension)
+    {
+        bool hasOutput = !string.IsNullOrWhiteSpace(outputPath);
+        bool outputIsDirectory = hasOutput && Directory.Exists(outputPath);
+
+        if (hasOutput && !outputIsDirectory)
+        {
+            return outputPath;
+        }
+
+        if (string.IsNullOrWhiteSpace(inputPath))
+        {
+            return null;
+        }
+
+        return outputIsDirectory
+            ? Path.Combine(outputPath!, Path.GetFileNameWithoutExtension(inputPath) + newExtension)
+            : SuggestSiblingPath(inputPath, newExtension);
+    }
+
+    /// <summary>
     /// Sanity-checks a chosen full media file against the sample it should contain.
     /// The full media must be at least as large as the sample.
     /// </summary>

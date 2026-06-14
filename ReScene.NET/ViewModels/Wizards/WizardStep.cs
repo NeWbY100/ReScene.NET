@@ -19,4 +19,9 @@ public sealed class WizardStep
     /// <summary>Optional gate run before advancing FROM this step; return false to stay on it
     /// (e.g. the user declined an overwrite). Runs before <see cref="OnLeave"/>.</summary>
     public Func<bool>? ConfirmLeave { get; init; }
+
+    /// <summary>Optional predicate controlling whether Back is available on this step; when it
+    /// returns false the Back button is hidden (e.g. after the step's operation completed and
+    /// going back would only invite mistakes). Null means Back is allowed.</summary>
+    public Func<bool>? CanGoBack { get; init; }
 }

@@ -31,7 +31,12 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void OnContentPropertyChanged(object? sender, PropertyChangedEventArgs e) => NextCommand.NotifyCanExecuteChanged();
+    private void OnContentPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        NextCommand.NotifyCanExecuteChanged();
+        BackCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(IsBackVisible));
+    }
 
     /// <summary>Unsubscribes from the content VM so a closed wizard can be garbage-collected.</summary>
     public void Dispose()
@@ -51,6 +56,7 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
     [NotifyPropertyChangedFor(nameof(CurrentStepNumber))]
     [NotifyPropertyChangedFor(nameof(StepHeader))]
     [NotifyPropertyChangedFor(nameof(NextButtonText))]
+    [NotifyPropertyChangedFor(nameof(IsBackVisible))]
     [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     [NotifyCanExecuteChangedFor(nameof(BackCommand))]
     public partial int CurrentStepIndex { get; set; }
@@ -63,8 +69,14 @@ public partial class WizardViewModel : ViewModelBase, IDisposable
     public string NextButtonText => Steps[CurrentStepIndex].NextLabelFunc?.Invoke()
         ?? Steps[CurrentStepIndex].NextLabel ?? "Next ›";
 
+    /// <summary>
+    /// Whether the Back button is shown: hidden on the first step (nothing to go back to) and
+    /// when the current step's <see cref="WizardStep.CanGoBack"/> forbids going back.
+    /// </summary>
+    public bool IsBackVisible => !IsFirstStep && Steps[CurrentStepIndex].CanGoBack?.Invoke() != false;
+
     private bool CanGoNext() => !IsLastStep && Steps[CurrentStepIndex].CanAdvance();
-    private bool CanGoBack() => !IsFirstStep;
+    private bool CanGoBack() => !IsFirstStep && Steps[CurrentStepIndex].CanGoBack?.Invoke() != false;
 
     [RelayCommand(CanExecute = nameof(CanGoNext))]
     private void Next()
