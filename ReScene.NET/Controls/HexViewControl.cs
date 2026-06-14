@@ -380,7 +380,7 @@ public class HexViewControl : UserControl
 
         private Brush GetBrush(string key, Brush fallback)
         {
-            var resource = _owner.TryFindResource(key);
+            object resource = _owner.TryFindResource(key);
             return resource is Brush b ? b : fallback;
         }
     }
@@ -811,7 +811,7 @@ public class HexViewControl : UserControl
 
         private Brush GetBrush(string resourceKey, Brush fallback)
         {
-            var resource = _owner.TryFindResource(resourceKey);
+            object resource = _owner.TryFindResource(resourceKey);
             return resource is Brush brush ? brush : fallback;
         }
     }

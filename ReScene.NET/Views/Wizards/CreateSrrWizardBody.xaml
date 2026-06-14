@@ -1,9 +1,9 @@
 <UserControl x:Class="ReScene.NET.Views.Wizards.CreateSrrWizardBody"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:ReScene.NET.Controls"
-             xmlns:wizards="clr-namespace:ReScene.NET.Views.Wizards">
-  <!-- DataContext is a CreateSrrWizardViewModel: steps 0-1 bind to Creator, 2-4 to Editor. -->
+             xmlns:c="clr-namespace:ReScene.NET.Controls">
+  <!-- DataContext is the wizard's dedicated CreatorViewModel. All choices are collected first;
+       the SRR is created in one go on the final step. -->
   <Grid MinHeight="150">
 
     <!-- Step 0: release input -->
@@ -16,79 +16,149 @@
                  TextWrapping="Wrap" Margin="0,0,0,8" />
       <TextBlock Text="Release .sfv or first .rar" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
-        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding Creator.BrowseInputCommand}"
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseInputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
-        <TextBox Text="{Binding Creator.InputPath}" />
+        <TextBox Text="{Binding InputPath}" />
       </DockPanel>
-      <c:FieldStatusLine Status="{Binding Creator.InputStatus}" />
+      <c:FieldStatusLine Status="{Binding InputStatus}" />
     </StackPanel>
 
-    <!-- Step 1: building the draft (progress + details) -->
+    <!-- Step 1: samples & subtitles — generate SRS / nested SRRs for files the scan can't find -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
-      <StackPanel DockPanel.Dock="Top">
-        <TextBlock Text="Building a draft SRR you can curate before saving."
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   TextWrapping="Wrap" Margin="0,0,0,8" />
-        <ProgressBar Value="{Binding Creator.ProgressPercent}" Maximum="100" Height="6"
-                     Visibility="{Binding Creator.ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-        <TextBlock Text="{Binding Creator.ProgressMessage}"
-                   Foreground="{DynamicResource ForegroundSecondary}"
-                   FontSize="{DynamicResource FontSizeCaption}"
-                   Margin="0,4,0,0"
-                   Visibility="{Binding Creator.ShowProgress, Converter={StaticResource BoolToVisibility}}" />
-        <Button Content="Cancel" Command="{Binding Creator.CancelCreationCommand}"
-                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Visibility="{Binding Creator.IsCreating, Converter={StaticResource BoolToVisibility}}" />
-        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
-      </StackPanel>
-      <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
-              Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
-        <ListBox ItemsSource="{Binding Creator.LogEntries}" Style="{StaticResource CompactLogListBox}"
-                 FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
-      </Border>
+      <TextBlock DockPanel.Dock="Top"
+                 Text="Samples in the release become .srs files and subtitle archives become nested .srr files automatically. If the release isn't extracted (so they aren't found), add them here: point at the sample media, and at each subtitle archive's .sfv (its .rar volumes must sit beside it). They're listed on the next step (where you can reorder them) and created when you press Create."
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" Margin="0,0,0,8" />
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="12" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Samples -->
+        <DockPanel Grid.Row="0">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+            <TextBlock Text="Sample media files" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <Button Content="Add sample…" Command="{Binding AddSampleCommand}"
+                    Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+            <Button Content="Remove" Command="{Binding RemoveSampleCommand}"
+                    Style="{StaticResource GhostButton}" Padding="10,4" />
+          </StackPanel>
+          <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+                  Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+            <ListBox ItemsSource="{Binding ExtraSampleFiles}" SelectedItem="{Binding SelectedExtraSample}"
+                     BorderThickness="0" Background="Transparent"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+          </Border>
+        </DockPanel>
+
+        <!-- Subtitles -->
+        <DockPanel Grid.Row="2">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+            <TextBlock Text="Subtitle archives (.sfv)" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <Button Content="Add subtitle…" Command="{Binding AddSubtitleCommand}"
+                    Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+            <Button Content="Remove" Command="{Binding RemoveSubtitleCommand}"
+                    Style="{StaticResource GhostButton}" Padding="10,4" />
+          </StackPanel>
+          <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
+                  Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+            <ListBox ItemsSource="{Binding ExtraSubtitleSfvFiles}" SelectedItem="{Binding SelectedExtraSubtitle}"
+                     BorderThickness="0" Background="Transparent"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+          </Border>
+        </DockPanel>
+      </Grid>
     </DockPanel>
 
-    <!-- Step 2: manage stored files (shared panel, bound to the editor sub-VM) -->
+    <!-- Step 2: manage stored files (no SRR exists yet — this curates the list to store) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
-      <wizards:StoredFilesManagePanel DataContext="{Binding Editor}" />
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Text="These files will be stored inside the SRR, in this order. Common release files (.nfo, .sfv, proof images, …) were detected automatically — add, remove, rename or reorder anything you like."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" Margin="0,0,0,8" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+          <Button Content="Add files…" Command="{Binding AddStoredFileCommand}"
+                  Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+          <Button Content="Remove" Command="{Binding RemoveStoredFileCommand}"
+                  Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+          <Button Content="Remove all" Command="{Binding RemoveAllStoredFilesCommand}"
+                  Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+          <Button Content="Rename" Command="{Binding RenameStoredFileCommand}"
+                  Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+          <Button Content="Move up" Command="{Binding MoveStoredFileUpCommand}"
+                  Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+          <Button Content="Move down" Command="{Binding MoveStoredFileDownCommand}"
+                  Style="{StaticResource GhostButton}" Padding="10,4" />
+        </StackPanel>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+        <CheckBox Content="Compute OSO hashes for the release's files (helps match them on OpenSubtitles)"
+                  IsChecked="{Binding ComputeOSOHashes}" />
+      </StackPanel>
+      <DataGrid ItemsSource="{Binding StoredFiles}" SelectedItem="{Binding SelectedStoredFile}"
+                AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserSortColumns="False"
+                CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                SelectionMode="Single" SelectionUnit="FullRow" BorderThickness="0" IsReadOnly="True"
+                MinHeight="120">
+        <!-- Auto-sized columns: long paths extend past the viewport so the grid's built-in
+             horizontal scrollbar kicks in (star-sized columns would clip instead). -->
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Stored name" Binding="{Binding StoredName}" Width="Auto" MinWidth="160" />
+          <DataGridTextColumn Header="Source file" Binding="{Binding SourceDisplay}" Width="Auto" MinWidth="160" />
+        </DataGrid.Columns>
+      </DataGrid>
     </DockPanel>
 
     <!-- Step 3: save as -->
     <StackPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                      RelativeSource={RelativeSource AncestorType=Window},
                                      Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
-      <TextBlock Text="Choose where the SRR should be saved."
+      <TextBlock Text="Choose where the SRR should be saved. Creating starts when you press Create."
                  Foreground="{DynamicResource ForegroundSecondary}"
                  FontSize="{DynamicResource FontSizeCaption}"
                  TextWrapping="Wrap" Margin="0,0,0,8" />
       <TextBlock Text="Save SRR to" FontWeight="SemiBold" Margin="0,0,0,2" />
       <DockPanel Margin="0,0,0,2">
-        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding Editor.BrowseOutputCommand}"
+        <Button DockPanel.Dock="Right" Content="Browse" Command="{Binding BrowseOutputCommand}"
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
-        <TextBox Text="{Binding Editor.OutputPath}" />
+        <TextBox Text="{Binding OutputPath}" />
       </DockPanel>
-      <c:FieldStatusLine Status="{Binding Editor.OutputStatus}" />
+      <c:FieldStatusLine Status="{Binding OutputStatus}" />
     </StackPanel>
 
-    <!-- Step 4: done -->
+    <!-- Step 4: create (progress + details) -->
     <DockPanel Visibility="{Binding DataContext.CurrentStepIndex,
                                     RelativeSource={RelativeSource AncestorType=Window},
                                     Converter={StaticResource IndexToVisibility}, ConverterParameter=4}">
       <StackPanel DockPanel.Dock="Top">
-        <TextBlock Text="{Binding Editor.ResultMessage}"
-                   Visibility="{Binding Editor.ShowResult, Converter={StaticResource BoolToVisibility}}"
-                   FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8" />
-        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,4,0,2" />
+        <TextBlock Text="Creating the SRR — sample SRS files and subtitle SRRs are built first when the release has them."
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" Margin="0,0,0,8" />
+        <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Height="6"
+                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock Text="{Binding ProgressMessage}"
+                   Foreground="{DynamicResource ForegroundSecondary}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   Margin="0,4,0,0"
+                   Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+        <Button Content="Cancel" Command="{Binding CancelCreationCommand}"
+                Style="{StaticResource CancelButton}" Padding="14,4" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Visibility="{Binding IsCreating, Converter={StaticResource BoolToVisibility}}" />
+        <TextBlock Text="Details" FontWeight="SemiBold" Margin="0,12,0,2" />
       </StackPanel>
       <Border BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1"
               Background="{DynamicResource SystemControlBackgroundAltHighBrush}" MinHeight="120">
-        <ListBox ItemsSource="{Binding Editor.LogEntries}" Style="{StaticResource CompactLogListBox}"
+        <ListBox ItemsSource="{Binding LogEntries}" Style="{StaticResource CompactLogListBox}"
                  FontFamily="{DynamicResource MonoFontFamily}" FontSize="{DynamicResource MonoFontSize}" />
       </Border>
     </DockPanel>

@@ -19,6 +19,9 @@ public partial class SettingsViewModel : ViewModelBase
         DefaultAppName = settings.DefaultAppName;
         DefaultOutputDirectory = settings.DefaultOutputDirectory;
         RecentFilesLimit = settings.RecentFilesLimit;
+        MkvMaxElements = settings.MkvMaxElements;
+        ReconstructWinRarPath = settings.ReconstructWinRarPath;
+        ReconstructOutputPath = settings.ReconstructOutputPath;
         Mode = settings.Mode ?? UserMode.Advanced;
     }
 
@@ -30,6 +33,15 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial int RecentFilesLimit { get; set; } = 10;
+
+    [ObservableProperty]
+    public partial int MkvMaxElements { get; set; } = Core.Comparison.MKVFileData.DefaultMaxElements;
+
+    [ObservableProperty]
+    public partial string ReconstructWinRarPath { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ReconstructOutputPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBeginnerMode))]
@@ -62,6 +74,28 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task BrowseReconstructWinRarAsync()
+    {
+        string? path = await _fileDialog.OpenFolderAsync("Select WinRAR versions folder");
+
+        if (path is not null)
+        {
+            ReconstructWinRarPath = path;
+        }
+    }
+
+    [RelayCommand]
+    private async Task BrowseReconstructOutputAsync()
+    {
+        string? path = await _fileDialog.OpenFolderAsync("Select reconstruction output folder");
+
+        if (path is not null)
+        {
+            ReconstructOutputPath = path;
+        }
+    }
+
+    [RelayCommand]
     private void Save()
     {
         _settingsService.Save(new AppSettings
@@ -69,6 +103,9 @@ public partial class SettingsViewModel : ViewModelBase
             DefaultAppName = DefaultAppName,
             DefaultOutputDirectory = DefaultOutputDirectory,
             RecentFilesLimit = Math.Clamp(RecentFilesLimit, 1, 100),
+            MkvMaxElements = Math.Clamp(MkvMaxElements, 100, 1_000_000),
+            ReconstructWinRarPath = ReconstructWinRarPath,
+            ReconstructOutputPath = ReconstructOutputPath,
             Mode = Mode,
         });
         DialogResult = true;

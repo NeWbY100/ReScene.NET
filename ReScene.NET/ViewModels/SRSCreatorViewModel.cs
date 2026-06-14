@@ -315,8 +315,9 @@ public partial class SRSCreatorViewModel : ViewModelBase
     [RelayCommand]
     private async Task BrowseOutputAsync()
     {
+        string? suggested = FieldGuidance.SuggestSaveFileName(OutputPath, InputPath, ".srs");
         string? path = await _fileDialog.SaveFileAsync(
-            "Save SRS File", ".srs", FileDialogFilters.SRSSave);
+            "Save SRS File", ".srs", FileDialogFilters.SRSSave, suggested);
         if (path is not null)
         {
             OutputPath = path;

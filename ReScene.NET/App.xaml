@@ -917,10 +917,13 @@
                 <Border x:Name="border"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="4,4,8,4">
+                        Padding="8,4,8,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIconColumnGroup" MinWidth="24" />
+                            <!-- No MinWidth: in menus without icons or checkmarks this column collapses
+                                 to nothing; a check glyph re-widens it for the whole popup via the
+                                 shared size group. -->
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIconColumnGroup" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemShortcutColumnGroup" />
                         </Grid.ColumnDefinitions>
@@ -934,7 +937,8 @@
                                           ContentSource="Header"
                                           RecognizesAccessKey="True"
                                           VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2"
+                        <TextBlock x:Name="GestureText"
+                                   Grid.Column="2"
                                    Text="{TemplateBinding InputGestureText}"
                                    Foreground="{DynamicResource ForegroundSecondary}"
                                    Margin="24,0,0,0"
@@ -943,6 +947,7 @@
                                    Grid.Column="0"
                                    Text="&#x2713;"
                                    Foreground="{DynamicResource AccentPrimary}"
+                                   Margin="0,0,6,0"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Center"
                                    Visibility="Collapsed" />
@@ -951,6 +956,11 @@
                 <ControlTemplate.Triggers>
                     <Trigger Property="Icon" Value="{x:Null}">
                         <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                    </Trigger>
+                    <!-- Collapse the gesture column when there is no shortcut, so menus without any
+                         shortcuts (e.g. context menus) don't reserve 24px of trailing space. -->
+                    <Trigger Property="InputGestureText" Value="">
+                        <Setter TargetName="GestureText" Property="Visibility" Value="Collapsed" />
                     </Trigger>
                     <Trigger Property="IsChecked" Value="True">
                         <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
@@ -969,10 +979,10 @@
                 <Border x:Name="border"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="4,4,8,4">
+                        Padding="8,4,8,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIconColumnGroup" MinWidth="24" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIconColumnGroup" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
@@ -1092,8 +1102,25 @@
             </Style>
 
             <!-- ══════════════════════════════════════════════════════════
-                 Separator (in menus)
+                 Separator
                  ══════════════════════════════════════════════════════════ -->
+
+            <!-- Menus and context menus assign MenuItem.SeparatorStyleKey to their separators,
+                 bypassing the implicit style below. Without this keyed style they fall back to
+                 the theme default, whose left indent aligned with an icon column we don't have. -->
+            <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+                <Setter Property="Height" Value="1" />
+                <Setter Property="Margin" Value="0,3" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Separator">
+                            <Border Background="{DynamicResource BorderSeparator}"
+                                    Height="1"
+                                    SnapsToDevicePixels="True" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
             <Style TargetType="Separator">
                 <Setter Property="Background" Value="{DynamicResource BorderSeparator}" />

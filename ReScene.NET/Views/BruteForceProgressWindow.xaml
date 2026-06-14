@@ -101,6 +101,8 @@
                 <ContextMenu>
                     <MenuItem Header="Copy Arguments"
                               Click="OnCopyArgumentsClick" />
+                    <MenuItem Header="Copy Full Command Line"
+                              Click="OnCopyFullCommandLineClick" />
                 </ContextMenu>
             </DataGrid.ContextMenu>
             <DataGrid.Columns>
@@ -124,6 +126,14 @@
                     Padding="20,6"
                     MinWidth="90"
                     Click="OnStopCloseClick" />
+            <Button DockPanel.Dock="Right"
+                    Content="Open Folder"
+                    Style="{StaticResource GhostButton}"
+                    Padding="20,6"
+                    MinWidth="90"
+                    Margin="0,0,8,0"
+                    Command="{Binding OpenOutputFolderCommand}"
+                    Visibility="{Binding LastRunSucceeded, Converter={StaticResource BoolToVisibility}}" />
         </DockPanel>
 
     </Grid>

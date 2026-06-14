@@ -3,9 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:m="clr-namespace:ReScene.NET.Models"
              x:Name="Root">
-  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-    <StackPanel.Style>
-      <Style TargetType="StackPanel">
+  <!-- A Grid, not a horizontal StackPanel: a StackPanel measures children with infinite width,
+       which silently disables the message's TextWrapping. -->
+  <Grid VerticalAlignment="Center">
+    <Grid.Style>
+      <Style TargetType="Grid">
         <Setter Property="Visibility" Value="Visible" />
         <Style.Triggers>
           <DataTrigger Binding="{Binding Status.State, ElementName=Root}" Value="{x:Static m:FieldState.None}">
@@ -13,13 +15,18 @@
           </DataTrigger>
         </Style.Triggers>
       </Style>
-    </StackPanel.Style>
+    </Grid.Style>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
 
     <!-- Glyph -->
     <TextBlock x:Name="Glyph"
+               Grid.Column="0"
                Margin="0,0,4,0"
                FontSize="{DynamicResource FontSizeCaption}"
-               VerticalAlignment="Center">
+               VerticalAlignment="Top">
       <TextBlock.Style>
         <Style TargetType="TextBlock">
           <Setter Property="Text" Value="" />
@@ -46,7 +53,8 @@
     </TextBlock>
 
     <!-- Message -->
-    <TextBlock Text="{Binding Status.Message, ElementName=Root}"
+    <TextBlock Grid.Column="1"
+               Text="{Binding Status.Message, ElementName=Root}"
                FontSize="{DynamicResource FontSizeCaption}"
                TextWrapping="Wrap"
                VerticalAlignment="Center">
@@ -64,5 +72,5 @@
         </Style>
       </TextBlock.Style>
     </TextBlock>
-  </StackPanel>
+  </Grid>
 </UserControl>

@@ -1,4 +1,5 @@
 using System.Windows;
+using ReScene.NET.Helpers;
 using ReScene.NET.Models;
 using ReScene.NET.ViewModels;
 using ReScene.NET.ViewModels.Wizards;
@@ -10,9 +11,11 @@ public static class BeginnerWizardFactory
 {
     public static (WizardViewModel ViewModel, FrameworkElement Body) Create(BeginnerCard card, BeginnerShellViewModel shell)
     {
-        // Reset the relevant shared (app-lifetime singleton) VM before building so the wizard
-        // opens with clean state. Reset() is a no-op if that VM is busy with an operation
-        // started from the Advanced tab, so an active run is never disrupted.
+        // Reset the relevant task VM before building so the wizard opens with clean state.
+        // Reset() is a no-op while that VM is mid-operation (IsCreating/IsRunning), so an active
+        // run is never disrupted. Most cards reuse the Advanced tab's app-lifetime VM (a shared
+        // singleton); the CreateSrr card uses a DEDICATED CreatorViewModel (see
+        // MainWindowViewModel) so its state never collides with the Advanced SRR Creator tab.
         switch (card)
         {
             case BeginnerCard.CreateSrr:
@@ -35,44 +38,82 @@ public static class BeginnerWizardFactory
         }
     }
 
-    private static (WizardViewModel, FrameworkElement) BuildCreateSrr(CreateSrrWizardViewModel vm)
+    private static (WizardViewModel, FrameworkElement) BuildCreateSrr(CreatorViewModel vm)
     {
+        // The wizard lists sample SRS / subtitle SRRs as placeholders on the Manage step (built on
+        // leaving the samples step) and generates the actual files at create time, so turn off the
+        // Advanced tab's create-time scan generation — otherwise they'd be generated twice.
+        vm.AutoCreateSRS = false;
+        vm.CreateVobsubSRR = false;
+
+        // Beginners benefit from OpenSubtitles matching, so include OSO hashes by default (the
+        // Manage step exposes a checkbox to turn it off).
+        vm.ComputeOSOHashes = true;
+
         var steps = new List<WizardStep>
         {
             new()
             {
                 Title = "Choose the release",
-                CanAdvance = () => vm.Creator.InputStatus.State == FieldState.Ok,
-                OnLeave = vm.PrepareDraft,
+                CanAdvance = () => vm.InputStatus.State == FieldState.Ok,
             },
             new()
             {
-                Title = "Building draft",
-                CanAdvance = () => !vm.Creator.IsCreating && vm.Creator.BuildSucceeded,
-                OnLeave = vm.AdoptDraftIntoEditor,
+                // Collect sample/subtitle inputs the release scan can't find (e.g. an unextracted
+                // release). On leaving, placeholder rows are added to the Manage step; the actual
+                // .srs/.srr are generated at create time.
+                Title = "Samples & subtitles",
+                OnLeave = vm.BuildSampleAndSubtitlePlaceholders,
             },
-            new() { Title = "Manage stored files" },
+            new()
+            {
+                Title = "Manage stored files",
+                // Pre-fill a concrete .srr path before the Save step shows: the settings default
+                // may be a bare directory, and an untouched field should still get a suggestion.
+                OnLeave = () => vm.OutputPath =
+                    FieldGuidance.SuggestSaveFileName(vm.OutputPath, vm.InputPath, ".srr") ?? vm.OutputPath,
+            },
             new()
             {
                 Title = "Save as",
-                CanAdvance = () => !string.IsNullOrWhiteSpace(vm.Editor.OutputPath),
-                NextLabel = "Save",
+                CanAdvance = () => !vm.IsCreating
+                    && !string.IsNullOrWhiteSpace(vm.OutputPath)
+                    && !Directory.Exists(vm.OutputPath),
+                NextLabel = "Create",
                 ConfirmLeave = () =>
                 {
-                    if (!File.Exists(vm.Editor.OutputPath))
+                    if (!File.Exists(vm.OutputPath))
                     {
                         return true;
                     }
 
-                    return MessageBox.Show(
-                        $"A file already exists at:\n\n{vm.Editor.OutputPath}\n\nDo you want to overwrite it?",
-                        "Overwrite existing file?",
-                        MessageBoxButton.OKCancel,
-                        MessageBoxImage.Warning) == MessageBoxResult.OK;
+                    if (MessageBox.Show(
+                            $"A file already exists at:\n\n{vm.OutputPath}\n\nDo you want to overwrite it?",
+                            "Overwrite existing file?",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Warning) != MessageBoxResult.OK)
+                    {
+                        return false;
+                    }
+
+                    vm.SuppressOverwriteConfirm = true;
+                    return true;
                 },
-                OnLeave = vm.Editor.Save,
+                OnLeave = () =>
+                {
+                    if (vm.CreateSRRCommand.CanExecute(null))
+                    {
+                        vm.CreateSRRCommand.Execute(null);
+                    }
+                },
             },
-            new() { Title = "Done" },
+            new()
+            {
+                Title = "Create",
+                // No going back mid-run, and after success Back would only invite mistakes;
+                // it stays for failed/cancelled runs so the user can adjust and retry.
+                CanGoBack = () => !vm.IsCreating && !vm.BuildSucceeded,
+            },
         };
         return (new WizardViewModel("Create an SRR", vm, steps), new CreateSrrWizardBody());
     }
@@ -128,6 +169,10 @@ public static class BeginnerWizardFactory
 
     private static (WizardViewModel, FrameworkElement) BuildReconstruct(ReconstructorViewModel vm)
     {
+        // Beginners almost always want the complete archive set, not just the first volume —
+        // pre-check it on every wizard open (the Advanced tab keeps its own unchecked default).
+        vm.CompleteAllVolumes = true;
+
         var steps = new List<WizardStep>
         {
             new() { Title = "Import the SRR", CanAdvance = () => vm.HasImportedSrr && !vm.HasCustomPackerWarning },
@@ -140,6 +185,54 @@ public static class BeginnerWizardFactory
                     && !string.IsNullOrWhiteSpace(vm.OutputPath)
                     && !string.IsNullOrWhiteSpace(vm.VerificationPath),
                 NextLabel = "Start",
+                // Ask Start's confirmation questions here, while this step is still visible,
+                // instead of letting them pop over the progress step. Confirmed answers set
+                // one-shot suppress flags so Start doesn't repeat them.
+                ConfirmLeave = () =>
+                {
+                    if (vm.NeedsSubdirTimestampWarning())
+                    {
+                        if (MessageBox.Show(
+                                ReconstructorViewModel.SubdirTimestampWarningText,
+                                "Warning: modified date",
+                                MessageBoxButton.OKCancel,
+                                MessageBoxImage.Warning) != MessageBoxResult.OK)
+                        {
+                            return false;
+                        }
+
+                        vm.SuppressSubdirTimestampConfirm = true;
+                    }
+
+                    bool outputNotEmpty;
+                    try
+                    {
+                        outputNotEmpty = Directory.Exists(vm.OutputPath)
+                            && Directory.EnumerateFileSystemEntries(vm.OutputPath).Any();
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        // Unreadable directory — let Start surface the real error.
+                        return true;
+                    }
+
+                    if (!outputNotEmpty)
+                    {
+                        return true;
+                    }
+
+                    if (MessageBox.Show(
+                            $"The output directory is not empty:\n\n{vm.OutputPath}\n\nIts contents will be deleted before starting. Continue?",
+                            "Output directory not empty",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Warning) != MessageBoxResult.OK)
+                    {
+                        return false;
+                    }
+
+                    vm.SuppressOutputNotEmptyConfirm = true;
+                    return true;
+                },
                 OnLeave = () =>
                 {
                     if (vm.StartCommand.CanExecute(null))
@@ -148,7 +241,14 @@ public static class BeginnerWizardFactory
                     }
                 },
             },
-            new() { Title = "Reconstruct" },
+            new()
+            {
+                Title = "Reconstruct",
+                // Once the reconstruction completed successfully there is nothing to go back for —
+                // hide Back so it can't be clicked by accident. It stays for failed/cancelled runs
+                // so the user can adjust paths and retry.
+                CanGoBack = () => !vm.LastRunSucceeded,
+            },
         };
         return (new WizardViewModel("Reconstruct RAR archives", vm, steps), new ReconstructWizardBody());
     }

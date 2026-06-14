@@ -2,89 +2,146 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Settings"
-        Width="500" Height="290"
+        Width="560"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource ForegroundPrimary}"
         FontFamily="{DynamicResource UIFontFamily}"
         ResizeMode="NoResize">
-  <DockPanel Margin="{DynamicResource PageMargin}">
+  <DockPanel>
 
-    <StackPanel DockPanel.Dock="Bottom"
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                Margin="0,12,0,0">
-      <Button Content="Cancel"
-              IsCancel="True"
-              Style="{StaticResource GhostButton}"
-              MinWidth="75"
-              Margin="4,0,0,0" />
-      <Button Content="Save"
-              IsDefault="True"
-              Command="{Binding SaveCommand}"
-              Click="OnSaveClick"
-              Style="{StaticResource PrimaryButton}"
-              MinWidth="75"
-              Margin="4,0,0,0" />
-    </StackPanel>
-
-    <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-      </Grid.RowDefinitions>
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="160" />
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
-
-      <TextBlock Grid.Row="0" Grid.Column="0"
-                 Text="Default app name:"
-                 VerticalAlignment="Center"
-                 Margin="0,0,8,4" />
-      <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-               Text="{Binding DefaultAppName, UpdateSourceTrigger=PropertyChanged}"
-               Margin="0,0,0,4" />
-
-      <TextBlock Grid.Row="1" Grid.Column="0"
-                 Text="Default output directory:"
-                 VerticalAlignment="Center"
-                 Margin="0,0,8,4" />
-      <TextBox Grid.Row="1" Grid.Column="1"
-               Text="{Binding DefaultOutputDirectory, UpdateSourceTrigger=PropertyChanged}"
-               Margin="0,0,4,4" />
-      <Button Grid.Row="1" Grid.Column="2"
-              Content="Browse..."
-              Command="{Binding BrowseOutputDirCommand}"
-              Style="{StaticResource GhostButton}"
-              MinWidth="75"
-              Margin="0,0,0,4" />
-
-      <TextBlock Grid.Row="2" Grid.Column="0"
-                 Text="Recent files limit:"
-                 VerticalAlignment="Center"
-                 Margin="0,0,8,4" />
-      <TextBox Grid.Row="2" Grid.Column="1"
-               Text="{Binding RecentFilesLimit, UpdateSourceTrigger=PropertyChanged}"
-               Width="80"
-               HorizontalAlignment="Left"
-               Margin="0,0,0,4" />
-
-      <TextBlock Grid.Row="3" Grid.Column="0"
-                 Text="Mode:"
-                 VerticalAlignment="Center"
-                 Margin="0,8,8,4" />
-      <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
-                  Orientation="Horizontal" Margin="0,8,0,4">
-        <RadioButton Content="Beginner" GroupName="UiMode"
-                     IsChecked="{Binding IsBeginnerMode}" Margin="0,0,16,0" VerticalAlignment="Center" />
-        <RadioButton Content="Advanced" GroupName="UiMode"
-                     IsChecked="{Binding IsAdvancedMode}" VerticalAlignment="Center" />
+    <!-- ── Footer ────────────────────────────────────────────────── -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource SurfaceBackground}"
+            BorderBrush="{DynamicResource StatusSeparatorBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="16,10">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Cancel"
+                IsCancel="True"
+                Style="{StaticResource GhostButton}"
+                MinWidth="75" />
+        <Button Content="Save"
+                IsDefault="True"
+                Click="OnSaveClick"
+                Style="{StaticResource PrimaryButton}"
+                MinWidth="75"
+                Margin="8,0,0,0" />
       </StackPanel>
-    </Grid>
+    </Border>
+
+    <StackPanel Margin="{DynamicResource PageMargin}">
+
+      <!-- ── Interface ─────────────────────────────────────────── -->
+      <TextBlock Text="Interface" FontWeight="SemiBold" Margin="0,0,0,4" />
+      <Border Style="{StaticResource PanelSection}" Padding="12">
+        <StackPanel>
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+            <Run Text="Mode " FontWeight="SemiBold" />
+            <Run Text="— Beginner shows guided wizards on the Home page; Advanced shows every tool as its own tab."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Content="Beginner" GroupName="UiMode"
+                         IsChecked="{Binding IsBeginnerMode}" Margin="0,0,16,0" VerticalAlignment="Center" />
+            <RadioButton Content="Advanced" GroupName="UiMode"
+                         IsChecked="{Binding IsAdvancedMode}" VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- ── General ───────────────────────────────────────────── -->
+      <TextBlock Text="General" FontWeight="SemiBold" Margin="0,14,0,4" />
+      <Border Style="{StaticResource PanelSection}" Padding="12">
+        <StackPanel>
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+            <Run Text="Default app name " FontWeight="SemiBold" />
+            <Run Text="— Written into SRR and SRS files you create as the creating application."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <TextBox Text="{Binding DefaultAppName, UpdateSourceTrigger=PropertyChanged}"
+                   Margin="0,0,0,10" />
+
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+            <Run Text="Default output directory " FontWeight="SemiBold" />
+            <Run Text="— Pre-filled as the save location when creating SRR and SRS files."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <DockPanel Margin="0,0,0,10">
+            <Button DockPanel.Dock="Right"
+                    Content="Browse..."
+                    Command="{Binding BrowseOutputDirCommand}"
+                    Style="{StaticResource GhostButton}"
+                    MinWidth="75"
+                    Margin="4,0,0,0" />
+            <TextBox Text="{Binding DefaultOutputDirectory, UpdateSourceTrigger=PropertyChanged}" />
+          </DockPanel>
+
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+            <Run Text="Recent files limit " FontWeight="SemiBold" />
+            <Run Text="— How many recently opened files the Home page remembers (1–100)."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <TextBox Text="{Binding RecentFilesLimit, UpdateSourceTrigger=PropertyChanged}"
+                   Width="80"
+                   HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <!-- ── Inspector & Compare ───────────────────────────────── -->
+      <TextBlock Text="Inspector &amp; Compare" FontWeight="SemiBold" Margin="0,14,0,4" />
+      <Border Style="{StaticResource PanelSection}" Padding="12">
+        <StackPanel>
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+            <Run Text="MKV element limit " FontWeight="SemiBold" />
+            <Run Text="— Elements parsed when opening an MKV file. Higher shows more of huge files but loads slower."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <TextBox Text="{Binding MkvMaxElements, UpdateSourceTrigger=PropertyChanged}"
+                   Width="80"
+                   HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+
+      <!-- ── RAR Reconstruction ────────────────────────────────── -->
+      <TextBlock Text="RAR Reconstruction" FontWeight="SemiBold" Margin="0,14,0,4" />
+      <Border Style="{StaticResource PanelSection}" Padding="12">
+        <StackPanel>
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+            <Run Text="WinRAR versions folder " FontWeight="SemiBold" />
+            <Run Text="— Folder holding your WinRAR versions, each in its own subfolder. Pre-filled into the Reconstructor."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <DockPanel Margin="0,0,0,10">
+            <Button DockPanel.Dock="Right"
+                    Content="Browse..."
+                    Command="{Binding BrowseReconstructWinRarCommand}"
+                    Style="{StaticResource GhostButton}"
+                    MinWidth="75"
+                    Margin="4,0,0,0" />
+            <TextBox Text="{Binding ReconstructWinRarPath, UpdateSourceTrigger=PropertyChanged}" />
+          </DockPanel>
+
+          <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+            <Run Text="Reconstruction output folder " FontWeight="SemiBold" />
+            <Run Text="— Pre-filled into the Reconstructor. Anything inside is deleted when a reconstruction starts."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+          </TextBlock>
+          <DockPanel>
+            <Button DockPanel.Dock="Right"
+                    Content="Browse..."
+                    Command="{Binding BrowseReconstructOutputCommand}"
+                    Style="{StaticResource GhostButton}"
+                    MinWidth="75"
+                    Margin="4,0,0,0" />
+            <TextBox Text="{Binding ReconstructOutputPath, UpdateSourceTrigger=PropertyChanged}" />
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
 
   </DockPanel>
 </Window>

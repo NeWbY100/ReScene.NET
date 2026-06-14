@@ -88,7 +88,12 @@ public enum CompareNodeType
     /// <summary>
     /// Container node for SRS container chunk entries.
     /// </summary>
-    SRSContainerChunks
+    SRSContainerChunks,
+
+    /// <summary>
+    /// Individual EBML element node in an MKV comparison tree.
+    /// </summary>
+    MKVElement
 }
 
 /// <summary>
@@ -253,7 +258,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private async Task BrowseLeftAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Open Left File",
-            FileDialogFilters.SceneFilesWithRar);
+            FileDialogFilters.CompareFiles);
 
         if (path is not null)
         {
@@ -265,7 +270,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private async Task BrowseRightAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Open Right File",
-            FileDialogFilters.SceneFilesWithRar);
+            FileDialogFilters.CompareFiles);
 
         if (path is not null)
         {
@@ -581,6 +586,13 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             offset = oso.BlockPosition;
             length = oso.HeaderSize;
         }
+        else if (nodeData.Data is EBMLElement el)
+        {
+            offset = el.Position;
+            long fileSize = isLeft ? _leftFileSize : _rightFileSize;
+            // Clamp to the file: a malformed element may claim to extend past EOF.
+            length = Math.Max(0, Math.Min(el.Position + el.TotalSize, fileSize) - offset);
+        }
         else
         {
             // Show the entire file for non-block nodes (Archive Info, Root, etc.)
@@ -797,6 +809,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             PopulateSRSTree(roots, srsData, isLeft);
         }
+        else if (data is MKVFileData mkv)
+        {
+            PopulateMKVTree(roots, mkv, isLeft);
+        }
         else if (data is RARFileData rar)
         {
             PopulateRARTree(roots, rar, isLeft);
@@ -937,10 +953,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 Tag = new CompareNodeData { NodeType = CompareNodeType.ArchivedFiles, Data = srr, IsLeft = isLeft }
             };
 
-            foreach (var file in srr.ArchivedFiles.OrderBy(f => f))
+            foreach (string? file in srr.ArchivedFiles.OrderBy(f => f))
             {
                 string displayName = file;
-                if (srr.ArchivedFileCrcs.TryGetValue(file, out var crc))
+                if (srr.ArchivedFileCrcs.TryGetValue(file, out string? crc))
                 {
                     displayName = $"{file} [CRC: {crc}]";
                 }
@@ -1040,6 +1056,64 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         roots.Add(rootNode);
+    }
+
+    private static void PopulateMKVTree(ObservableCollection<TreeNodeViewModel> roots, MKVFileData mkv, bool isLeft)
+    {
+        var rootNode = new TreeNodeViewModel
+        {
+            Text = $"MKV File ({mkv.TrackCount} track{(mkv.TrackCount == 1 ? "" : "s")})",
+            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, Data = mkv, IsLeft = isLeft },
+            IsExpanded = true
+        };
+
+        AddMKVElements(rootNode, "", mkv.Elements, isLeft, depth: 0);
+
+        roots.Add(rootNode);
+    }
+
+    /// <summary>
+    /// Recursively adds EBML elements as tree nodes. The path key is built with the identical scheme
+    /// as <see cref="FileComparer.ElementPath"/> so tree nodes line up with comparison diff keys:
+    /// <c>parentPath + "/" + Name</c>, with a <c>[index]</c> suffix for non-first same-named siblings;
+    /// root elements use <c>parentPath</c> = "".
+    /// </summary>
+    private static void AddMKVElements(TreeNodeViewModel parentNode, string parentPath,
+        List<EBMLElement> elements, bool isLeft, int depth)
+    {
+        var occurrence = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (EBMLElement element in elements)
+        {
+            occurrence.TryGetValue(element.Name, out int index);
+            occurrence[element.Name] = index + 1;
+
+            string path = FileComparer.ElementPath(parentPath, element, index);
+
+            string text = element.Value is { Length: > 0 } && element.Children.Count == 0
+                ? $"{element.Name}: {element.Value}"
+                : element.Name;
+
+            var node = new TreeNodeViewModel
+            {
+                Text = text,
+                Tag = new CompareNodeData
+                {
+                    NodeType = CompareNodeType.MKVElement,
+                    Data = element,
+                    FileName = path,
+                    IsLeft = isLeft
+                },
+                IsExpanded = depth < 2
+            };
+
+            if (element.Children.Count > 0)
+            {
+                AddMKVElements(node, path, element.Children, isLeft, depth + 1);
+            }
+
+            parentNode.Children.Add(node);
+        }
     }
 
     private static void PopulateRARTree(ObservableCollection<TreeNodeViewModel> roots, RARFileData rar, bool isLeft)
@@ -1222,7 +1296,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                     }
                 }
             }
-            else if (data.NodeType == CompareNodeType.SRSTrack && data.FileName is not null)
+            else if (data.NodeType is CompareNodeType.SRSTrack or CompareNodeType.MKVElement && data.FileName is not null)
             {
                 if (removed.Contains(data.FileName))
                 {
@@ -1237,7 +1311,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             }
             else if (data.NodeType is CompareNodeType.ArchivedFile or CompareNodeType.StoredFile)
             {
-                var fileName = data.FileName ?? "";
+                string fileName = data.FileName ?? "";
 
                 if (data.NodeType == CompareNodeType.StoredFile)
                 {
@@ -1482,7 +1556,45 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 }
 
                 break;
+
+            case CompareNodeType.MKVElement:
+                if (nodeData.Data is EBMLElement el)
+                {
+                    ShowMKVElementProperties(properties, el, nodeData.FileName);
+                }
+
+                break;
         }
+    }
+
+    private void ShowMKVElementProperties(ObservableCollection<PropertyItem> properties, EBMLElement element, string? path)
+    {
+        List<PropertyDifference>? diffs = path is not null ? GetTrackDiffs(path) : null;
+
+        properties.Add(new PropertyItem { Name = "Element", Value = element.Name });
+        properties.Add(new PropertyItem { Name = "Element ID", Value = $"0x{element.ElementId:X}" });
+        properties.Add(new PropertyItem { Name = "Type", Value = element.ValueType.ToString() });
+
+        properties.Add(new PropertyItem
+        {
+            Name = "Value",
+            Value = element.Value ?? "",
+            // "Data" marks same-size payloads whose raw bytes differ (e.g., cluster A/V content);
+            // the value row is the closest visible stand-in for that payload.
+            IsDifferent = diffs?.Any(d => d.PropertyName is "Value" or "Data") == true,
+            // The value occupies the element's data region (after its id + size header).
+            ByteRange = new ByteRange { PropertyName = "Value", Offset = element.Position + element.HeaderSize, Length = element.DataSize }
+        });
+
+        properties.Add(new PropertyItem { Name = "Position", Value = $"0x{element.Position:X}" });
+        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{element.HeaderSize} bytes" });
+        properties.Add(new PropertyItem
+        {
+            Name = "Data Size",
+            Value = $"{element.DataSize:N0} bytes",
+            IsDifferent = diffs?.Any(d => d.PropertyName == "Data Size") == true
+        });
+        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{element.TotalSize:N0} bytes" });
     }
 
     private void ShowDetailedBlockProperties(ObservableCollection<PropertyItem> properties, RARDetailedBlock block, bool isLeft)
@@ -1568,8 +1680,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
             if (_compareResult is not null && otherBlock is { HasData: true })
             {
-                var thisFilePath = isLeft ? _leftFilePathInternal : _rightFilePathInternal;
-                var otherFilePath = isLeft ? _rightFilePathInternal : _leftFilePathInternal;
+                string? thisFilePath = isLeft ? _leftFilePathInternal : _rightFilePathInternal;
+                string? otherFilePath = isLeft ? _rightFilePathInternal : _leftFilePathInternal;
                 if (thisFilePath is not null && otherFilePath is not null)
                 {
                     long otherDataOffset = otherBlock.StartOffset + otherBlock.HeaderSize;
@@ -1579,8 +1691,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                     }
                     else if (block.DataSize <= MaxBlockCompareSize) // Compare up to 10 MB
                     {
-                        var thisData = ReadFileSlice(thisFilePath, dataOffset, (int)block.DataSize);
-                        var otherData = ReadFileSlice(otherFilePath, otherDataOffset, (int)otherBlock.DataSize);
+                        byte[]? thisData = ReadFileSlice(thisFilePath, dataOffset, (int)block.DataSize);
+                        byte[]? otherData = ReadFileSlice(otherFilePath, otherDataOffset, (int)otherBlock.DataSize);
                         dataDiff = thisData is null || otherData is null ||
                             !thisData.AsSpan().SequenceEqual(otherData.AsSpan());
                     }
@@ -1615,7 +1727,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             }
         }
 
-        var otherData = isLeft ? _rightData : _leftData;
+        object? otherData = isLeft ? _rightData : _leftData;
         if (otherData is ReScene.Core.Comparison.SRRFileData otherSRRData)
         {
             foreach (List<RARDetailedBlock> volumeBlocks in otherSRRData.VolumeDetailedBlocks.Values)
@@ -1736,7 +1848,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         properties.Add(new PropertyItem { Name = "File Name", Value = fileName });
 
-        if (srr.ArchivedFileCrcs.TryGetValue(fileName, out var crc))
+        if (srr.ArchivedFileCrcs.TryGetValue(fileName, out string? crc))
         {
             AddComparedProperty(properties, "CRC32", crc, "CRC");
         }

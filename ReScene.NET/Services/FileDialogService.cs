@@ -37,13 +37,22 @@ public class FileDialogService : IFileDialogService
 
     public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null)
     {
+        // Callers may suggest a full path; open the dialog in that folder but
+        // show only the file name in the name box.
+        string? directory = string.IsNullOrEmpty(defaultFileName) ? null : Path.GetDirectoryName(defaultFileName);
+
         var dialog = new SaveFileDialog
         {
             Title = title,
             DefaultExt = defaultExtension,
             Filter = BuildFilter(filters),
-            FileName = defaultFileName ?? string.Empty
+            FileName = string.IsNullOrEmpty(defaultFileName) ? string.Empty : Path.GetFileName(defaultFileName)
         };
+
+        if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+        {
+            dialog.InitialDirectory = directory;
+        }
 
         return Task.FromResult(dialog.ShowDialog() == true ? dialog.FileName : null);
     }

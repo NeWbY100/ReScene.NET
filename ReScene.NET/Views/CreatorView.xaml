@@ -48,7 +48,9 @@
         <StackPanel Orientation="Horizontal">
           <Button Content="Add..." Command="{Binding AddStoredFileCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
           <Button Content="Remove" Command="{Binding RemoveStoredFileCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
-          <Button Content="Remove All" Command="{Binding RemoveAllStoredFilesCommand}" Style="{StaticResource GhostButton}" />
+          <Button Content="Remove All" Command="{Binding RemoveAllStoredFilesCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
+          <Button Content="Move Up" Command="{Binding MoveStoredFileUpCommand}" Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
+          <Button Content="Move Down" Command="{Binding MoveStoredFileDownCommand}" Style="{StaticResource GhostButton}" />
         </StackPanel>
         <TextBlock Text="Double-click the Stored As column to edit the name used in the SRR."
                    VerticalAlignment="Center" Margin="8,0,0,0"
@@ -71,7 +73,9 @@
               BorderThickness="0"
               AllowDrop="True"
               PreviewDragOver="OnStoredFilesDragOver"
-              PreviewDrop="OnStoredFilesDrop">
+              PreviewDrop="OnStoredFilesDrop"
+              BeginningEdit="OnStoredNameBeginningEdit"
+              CellEditEnding="OnStoredNameCellEditEnding">
       <DataGrid.Columns>
         <DataGridTextColumn Header="File Path" Binding="{Binding FullPath}" IsReadOnly="True" Width="*" />
         <DataGridTextColumn Header="Stored As" Binding="{Binding StoredName, UpdateSourceTrigger=PropertyChanged}" Width="450" />

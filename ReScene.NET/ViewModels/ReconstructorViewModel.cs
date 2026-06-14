@@ -23,6 +23,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private readonly IBruteForceService _bruteForceService;
     private readonly IFileDialogService _fileDialog;
+    private readonly IAppSettingsService? _settingsService;
     private CancellationTokenSource? _cts;
 
     // Elapsed timer — ticks every second so the clock doesn't freeze between progress events
@@ -64,10 +65,11 @@ public partial class ReconstructorViewModel : ViewModelBase
     // the original for those files.
     private readonly List<TimestampPreservationFailedEventArgs> _timestampFailures = [];
 
-    public ReconstructorViewModel(IBruteForceService bruteForceService, IFileDialogService fileDialog)
+    public ReconstructorViewModel(IBruteForceService bruteForceService, IFileDialogService fileDialog, IAppSettingsService? settingsService = null)
     {
         _bruteForceService = bruteForceService;
         _fileDialog = fileDialog;
+        _settingsService = settingsService;
 
         _bruteForceService.Progress += OnProgress;
         _bruteForceService.StatusChanged += OnStatusChanged;
@@ -78,6 +80,31 @@ public partial class ReconstructorViewModel : ViewModelBase
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += (_, _) => OnElapsedTimerTick();
+
+        ApplyPathDefaultsFromSettings();
+    }
+
+    /// <summary>
+    /// Pre-fills the WinRAR versions folder and output folder from settings, never overwriting
+    /// values the user already typed.
+    /// </summary>
+    private void ApplyPathDefaultsFromSettings()
+    {
+        if (_settingsService is null)
+        {
+            return;
+        }
+
+        AppSettings settings = _settingsService.Load();
+        if (string.IsNullOrWhiteSpace(WinRarPath) && !string.IsNullOrWhiteSpace(settings.ReconstructWinRarPath))
+        {
+            WinRarPath = settings.ReconstructWinRarPath;
+        }
+
+        if (string.IsNullOrWhiteSpace(OutputPath) && !string.IsNullOrWhiteSpace(settings.ReconstructOutputPath))
+        {
+            OutputPath = settings.ReconstructOutputPath;
+        }
     }
 
     // ── Warning ──
@@ -204,6 +231,55 @@ public partial class ReconstructorViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
     public partial bool IsRunning { get; set; }
 
+    /// <summary>
+    /// True after a run completed successfully; reset when a new run starts. The wizard uses this
+    /// to hide Back once the reconstruction is done.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool LastRunSucceeded { get; set; }
+
+    /// <summary>
+    /// One-shot: set by the wizard after it already asked the "output directory is not empty"
+    /// question on the Files &amp; folders step, so Start doesn't ask a second time.
+    /// </summary>
+    public bool SuppressOutputNotEmptyConfirm { get; set; }
+
+    /// <summary>
+    /// One-shot: set by the wizard after it already asked the subdirectory modified-date
+    /// warning on the Files &amp; folders step, so Start doesn't ask a second time.
+    /// </summary>
+    public bool SuppressSubdirTimestampConfirm { get; set; }
+
+    /// <summary>
+    /// The subdirectory modified-date warning, shared between Start and the wizard's step.
+    /// </summary>
+    public const string SubdirTimestampWarningText =
+        "Release directory contains one or more subdirectories.\n" +
+        "RAR file(s) preserve the modified date of files and subdirectories.\n" +
+        "This means that if one or more subdirectories have been created manually, " +
+        "the modified date will be different than the modified date of the directory in the original archive.\n" +
+        "In this case, there is no chance of properly recreating the RAR file(s).\n\n" +
+        "Are you sure the modified date of the file(s) and subdirectories are correct?";
+
+    /// <summary>
+    /// Whether Start would show the subdirectory modified-date warning: the release directory
+    /// has subdirectories but the imported SRR carried no directory timestamps to restore.
+    /// </summary>
+    public bool NeedsSubdirTimestampWarning()
+    {
+        try
+        {
+            return Directory.Exists(ReleasePath)
+                && Directory.EnumerateDirectories(ReleasePath).Any()
+                && _importedDirTimestamps.Count == 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Unreadable directory — let Start surface the real error.
+            return false;
+        }
+    }
+
     [ObservableProperty]
     public partial bool ShowProgress { get; set; }
 
@@ -266,6 +342,18 @@ public partial class ReconstructorViewModel : ViewModelBase
         [ObservableProperty] public partial string Status { get; set; } = "Testing";
         [ObservableProperty] public partial string Arguments { get; set; } = "";
         [ObservableProperty] public partial string Result { get; set; } = "";
+
+        /// <summary>
+        /// Directory of the WinRAR version this entry tested; the run executes rar.exe inside it.
+        /// </summary>
+        public string VersionDirectory { get; set; } = "";
+
+        /// <summary>
+        /// The complete command line as executed: the quoted rar.exe path followed by the arguments.
+        /// </summary>
+        public string FullCommandLine => string.IsNullOrEmpty(VersionDirectory)
+            ? Arguments
+            : $"\"{Path.Combine(VersionDirectory, "rar.exe")}\" {Arguments}";
     }
 
     // ── Logs ──
@@ -381,10 +469,12 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRenameToOriginalEnabled))]
+    [NotifyPropertyChangedFor(nameof(IsRenameToSfvEnabled))]
     public partial bool StopOnFirstMatch { get; set; } = true;
 
     [ObservableProperty] public partial bool CompleteAllVolumes { get; set; }
     [ObservableProperty] public partial bool RenameToOriginal { get; set; }
+    [ObservableProperty] public partial bool RenameToSfvNames { get; set; } = true;
 
     // ── Computed enable/disable ──
 
@@ -394,6 +484,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     public bool IsFileAttributesEnabled => !SwitchAI;
     public bool IsDeleteDuplicateCRCEnabled => !DeleteRARFiles;
     public bool IsRenameToOriginalEnabled => StopOnFirstMatch;
+    public bool IsRenameToSfvEnabled => StopOnFirstMatch;
 
     // Host OS patching
     [ObservableProperty] public partial bool EnableHostOSPatching { get; set; } = true;
@@ -421,6 +512,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         // Import gating + warning
         HasImportedSrr = false;
         CustomPackerWarning = null;
+        LastRunSucceeded = false;
 
         // Imported SRR details
         ImportedSrrName = string.Empty;
@@ -485,6 +577,9 @@ public partial class ReconstructorViewModel : ViewModelBase
         // The brute-force option toggles (versions, compression, dictionary, timestamps,
         // volume, etc.) are intentionally left untouched: they are re-applied wholesale by
         // the mandatory Import-from-SRR step that opens the reconstruct wizard.
+
+        // The paths were just cleared; pre-fill the configured defaults again.
+        ApplyPathDefaultsFromSettings();
     }
 
     // ── Browse Commands ──
@@ -972,6 +1067,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         StopOnFirstMatch = StopOnFirstMatch,
         CompleteAllVolumes = CompleteAllVolumes,
         RenameToOriginal = RenameToOriginal,
+        RenameToSfvNames = RenameToSfvNames,
 
         EnableHostOSPatching = EnableHostOSPatching,
 
@@ -1099,6 +1195,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         StopOnFirstMatch = c.StopOnFirstMatch;
         CompleteAllVolumes = c.CompleteAllVolumes;
         RenameToOriginal = c.RenameToOriginal;
+        RenameToSfvNames = c.RenameToSfvNames;
 
         EnableHostOSPatching = c.EnableHostOSPatching;
 
@@ -1166,6 +1263,13 @@ public partial class ReconstructorViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanStart))]
     private async Task StartAsync()
     {
+        // One-shot confirmations the wizard may already have asked on its "Files & folders"
+        // step — consume them up front so a stale flag can never suppress a future prompt.
+        bool subdirTimestampsConfirmed = SuppressSubdirTimestampConfirm;
+        bool outputNotEmptyConfirmed = SuppressOutputNotEmptyConfirm;
+        SuppressSubdirTimestampConfirm = false;
+        SuppressOutputNotEmptyConfirm = false;
+
         // ── Path validation ──
 
         if (string.IsNullOrWhiteSpace(WinRarPath))
@@ -1200,13 +1304,8 @@ public partial class ReconstructorViewModel : ViewModelBase
 
         if (Directory.EnumerateDirectories(ReleasePath).Any() && _importedDirTimestamps.Count == 0)
         {
-            bool proceed = await _fileDialog.ShowConfirmAsync("Warning: modified date",
-                "Release directory contains one or more subdirectories.\n" +
-                "RAR file(s) preserve the modified date of files and subdirectories.\n" +
-                "This means that if one or more subdirectories have been created manually, " +
-                "the modified date will be different than the modified date of the directory in the original archive.\n" +
-                "In this case, there is no chance of properly recreating the RAR file(s).\n\n" +
-                "Are you sure the modified date of the file(s) and subdirectories are correct?");
+            bool proceed = subdirTimestampsConfirmed || await _fileDialog.ShowConfirmAsync("Warning: modified date",
+                SubdirTimestampWarningText);
             if (!proceed)
             {
                 Log(LogTarget.System, "Cancelled: subdirectory timestamp warning.");
@@ -1322,7 +1421,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         }
         else if (Directory.EnumerateFileSystemEntries(OutputPath).Any())
         {
-            bool proceed = await _fileDialog.ShowConfirmAsync("Output Directory Not Empty",
+            bool proceed = outputNotEmptyConfirmed || await _fileDialog.ShowConfirmAsync("Output Directory Not Empty",
                 $"The output directory is not empty:\n\n{OutputPath}\n\nIts contents will be deleted before starting. Continue?");
             if (!proceed)
             {
@@ -1355,6 +1454,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         // ── Start brute-force ──
 
         IsRunning = true;
+        LastRunSucceeded = false;
         ShowProgress = true;
         ProgressPercent = 0;
         ProgressMessage = "Starting...";
@@ -1443,6 +1543,15 @@ public partial class ReconstructorViewModel : ViewModelBase
             _stopwatch.Stop();
             ElapsedText = FormatTimeSpan(_stopwatch.Elapsed);
             IsRunning = false;
+
+            // A cancelled/failed run stops mid-copy without a final copy-progress event;
+            // clear the flag here so the copy progress window can close.
+            if (IsCopying)
+            {
+                _copyStopwatch.Stop();
+                IsCopying = false;
+            }
+
             _cts?.Dispose();
             _cts = null;
         }
@@ -1454,6 +1563,30 @@ public partial class ReconstructorViewModel : ViewModelBase
         _cts?.Cancel();
         _bruteForceService.Stop();
         Log(LogTarget.System, "Cancellation requested...");
+    }
+
+    [RelayCommand]
+    private void OpenOutputFolder()
+    {
+        try
+        {
+            // Brute-force runs put the final archives in the "output" subdirectory; direct
+            // (custom packer) reconstruction writes to the output folder root.
+            string folder = Path.Combine(OutputPath, "output");
+            if (!Directory.Exists(folder))
+            {
+                folder = OutputPath;
+            }
+
+            if (Directory.Exists(folder))
+            {
+                Process.Start(new ProcessStartInfo { FileName = folder, UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            Log(LogTarget.System, $"Could not open output folder: {ex.Message}");
+        }
     }
 
     [RelayCommand]
@@ -1586,6 +1719,8 @@ public partial class ReconstructorViewModel : ViewModelBase
             rarVersions.Add(new(700, 800));
         }
 
+        (bool renameOutput, List<string> renameNames) = ResolveOutputRenameNames();
+
         return new()
         {
             SetFileArchiveAttribute = ToTriState(FileA),
@@ -1596,8 +1731,8 @@ public partial class ReconstructorViewModel : ViewModelBase
             DeleteDuplicateCRCFiles = DeleteDuplicateCRCFiles,
             StopOnFirstMatch = StopOnFirstMatch,
             CompleteAllVolumes = CompleteAllVolumes,
-            RenameToOriginalNames = RenameToOriginal,
-            OriginalRarFileNames = _importedOriginalRarFileNames,
+            RenameToOriginalNames = renameOutput,
+            OriginalRarFileNames = renameNames,
             ArchiveFileCrcs = new Dictionary<string, string>(_importedArchiveFileCrcs, StringComparer.OrdinalIgnoreCase),
             ArchiveFilePaths = new HashSet<string>(_importedArchiveFiles, StringComparer.OrdinalIgnoreCase),
             ArchiveDirectoryPaths = new HashSet<string>(_importedArchiveDirectories, StringComparer.OrdinalIgnoreCase),
@@ -1624,6 +1759,45 @@ public partial class ReconstructorViewModel : ViewModelBase
             CustomPackerDetected = _importedCustomPackerType,
             SRRFilePath = _importedSRRFilePath
         };
+    }
+
+    /// <summary>
+    /// Picks the names the matched output volumes are renamed to. Either rename option uses the
+    /// SRR's original RAR names when an SRR is imported (they are exact, in volume order); with
+    /// "Rename to SFV file names" checked and no SRR, the RAR volume entries of the verification
+    /// .sfv are used (in SFV order).
+    /// </summary>
+    private (bool Rename, List<string> Names) ResolveOutputRenameNames()
+    {
+        if ((RenameToOriginal || RenameToSfvNames) && _importedOriginalRarFileNames.Count > 0)
+        {
+            return (true, _importedOriginalRarFileNames);
+        }
+
+        if (RenameToSfvNames
+            && !string.IsNullOrWhiteSpace(VerificationPath)
+            && Path.GetExtension(VerificationPath).Equals(".sfv", StringComparison.OrdinalIgnoreCase)
+            && File.Exists(VerificationPath))
+        {
+            try
+            {
+                List<string> sfvNames = SFVFile.ReadFile(VerificationPath).Entries
+                    .Select(e => e.FileName)
+                    .Where(RARVolumeIdentifier.IsRarVolume)
+                    .ToList();
+
+                if (sfvNames.Count > 0)
+                {
+                    return (true, sfvNames);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log(LogTarget.System, $"Could not read SFV for output renaming: {ex.Message}");
+            }
+        }
+
+        return (RenameToOriginal, _importedOriginalRarFileNames);
     }
 
     private List<RARCommandLineArgument[]> BuildCommandLineArguments()
@@ -1955,6 +2129,13 @@ public partial class ReconstructorViewModel : ViewModelBase
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
+            // A queued progress event can arrive after a cancelled run already cleaned up;
+            // re-raising IsCopying then would re-open (and strand) the copy progress window.
+            if (!IsRunning)
+            {
+                return;
+            }
+
             if (!IsCopying)
             {
                 IsCopying = true;
@@ -2096,13 +2277,21 @@ public partial class ReconstructorViewModel : ViewModelBase
                     VersionEntries[_activeVersionIndex].Result = "No Match";
                 }
 
-                VersionEntries.Add(new VersionEntry
+                var entry = new VersionEntry
                 {
                     VersionName = versionLabel,
                     Arguments = e.RARCommandLineArguments,
-                });
+                    VersionDirectory = e.RARVersionDirectoryPath,
+                };
+                VersionEntries.Add(entry);
                 _activeVersionIndex = VersionEntries.Count - 1;
                 _activeVersionKey = key;
+
+                // Surface the exact invocation in the details log as well.
+                LogTarget logTarget = phaseDesc.StartsWith("Phase 1", StringComparison.OrdinalIgnoreCase)
+                    ? LogTarget.Phase1
+                    : LogTarget.Phase2;
+                AppendLog(logTarget, $"Testing {versionLabel}: {entry.FullCommandLine}");
             }
         });
     }
@@ -2132,6 +2321,8 @@ public partial class ReconstructorViewModel : ViewModelBase
                     OperationCompletionStatus.Cancelled => "Cancelled.",
                     _ => "Completed."
                 };
+
+                LastRunSucceeded = e.CompletionStatus == OperationCompletionStatus.Success;
 
                 ShowTimestampFailureWarningIfAny();
             }

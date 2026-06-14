@@ -20,7 +20,7 @@ public class SRRCreationService : ISrrCreationService
     public Task<SRRCreationResult> CreateFromRarAsync(
         string outputPath,
         IReadOnlyList<string> rarVolumePaths,
-        IReadOnlyDictionary<string, string>? storedFiles,
+        IReadOnlyList<StoredFileEntry>? storedFiles,
         SRRCreationOptions options,
         CancellationToken ct) => _writer.CreateAsync(outputPath, rarVolumePaths, storedFiles, options, ct);
 
@@ -28,7 +28,7 @@ public class SRRCreationService : ISrrCreationService
     public Task<SRRCreationResult> CreateFromSFVAsync(
         string outputPath,
         string sfvFilePath,
-        IReadOnlyDictionary<string, string>? additionalFiles,
+        IReadOnlyList<StoredFileEntry>? additionalFiles,
         SRRCreationOptions options,
         CancellationToken ct) => _writer.CreateFromSFVAsync(outputPath, sfvFilePath, additionalFiles, options, ct);
 }

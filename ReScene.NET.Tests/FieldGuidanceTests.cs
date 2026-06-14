@@ -70,4 +70,44 @@ public class FieldGuidanceTests
         FieldStatus status = FieldGuidance.EvaluateMediaAgainstSample(mediaSize: 700_000_000, sampleSize: 0);
         Assert.Equal(FieldState.None, status.State);
     }
+
+    [Fact]
+    public void SuggestSaveFileName_OutputIsFilePath_ReturnsIt()
+    {
+        string? result = FieldGuidance.SuggestSaveFileName(
+            @"C:\out\custom.srs", @"C:\rel\movie.sample.mkv", ".srs");
+        Assert.Equal(@"C:\out\custom.srs", result);
+    }
+
+    [Fact]
+    public void SuggestSaveFileName_EmptyOutput_DerivesSiblingFromInput()
+    {
+        string? result = FieldGuidance.SuggestSaveFileName(
+            "", @"C:\rel\movie.sample.mkv", ".srs");
+        Assert.Equal(@"C:\rel\movie.sample.srs", result);
+    }
+
+    [Fact]
+    public void SuggestSaveFileName_OutputIsDirectory_CombinesWithInputName()
+    {
+        // A configured default output directory leaves OutputPath holding a folder;
+        // the dialog must still get a real file name.
+        string dir = Path.Combine(Path.GetTempPath(), "fg_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string? result = FieldGuidance.SuggestSaveFileName(dir, @"C:\rel\movie.sample.mkv", ".srs");
+            Assert.Equal(Path.Combine(dir, "movie.sample.srs"), result);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SuggestSaveFileName_NothingToSuggest_ReturnsNull()
+    {
+        Assert.Null(FieldGuidance.SuggestSaveFileName("", "", ".srs"));
+    }
 }

@@ -7,7 +7,7 @@ namespace ReScene.NET.ViewModels;
 public partial class BeginnerShellViewModel : ViewModelBase
 {
     // Shared task ViewModels, assigned by MainWindowViewModel via object initializer.
-    public CreateSrrWizardViewModel CreateSrrWizard { get; set; } = null!;
+    public CreatorViewModel CreateSrrWizard { get; set; } = null!;
     public SRSCreatorViewModel SRSCreator { get; set; } = null!;
     public ReconstructorViewModel Reconstructor { get; set; } = null!;
     public BeginnerRestoreViewModel Restore { get; set; } = null!;

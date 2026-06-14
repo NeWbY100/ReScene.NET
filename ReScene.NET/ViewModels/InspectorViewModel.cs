@@ -3,6 +3,8 @@ using System.Text;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EBMLElement = ReScene.Core.Comparison.EBMLElement;
+using MKVFileData = ReScene.Core.Comparison.MKVFileData;
 using ReScene.Hex;
 using ReScene.NET.Helpers;
 using ReScene.NET.Models;
@@ -13,7 +15,7 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService, IPropertyExportService propertyExportService) : ViewModelBase, IDisposable
+public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService, IPropertyExportService propertyExportService, IAppSettingsService? settingsService = null) : ViewModelBase, IDisposable
 {
     private const int ExportBufferSize = 80 * 1024;
 
@@ -21,9 +23,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private readonly ISrrEditingService _sRREditingService = srrEditingService;
     private readonly ISrrVerifyService _verifyService = verifyService;
     private readonly IPropertyExportService _propertyExportService = propertyExportService;
+    private readonly IAppSettingsService? _settingsService = settingsService;
     private SRRFileData? _sRRData;
     private SRSInspectorData? _sRSData;
     private List<RARDetailedBlock>? _rarDetailedBlocks;
+    private MKVFileData? _mkvData;
     private string? _loadedFilePathInternal;
     private long _fileSize;
     private MemoryMappedDataSource? _fileDataSource;
@@ -35,7 +39,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private async Task BrowseFileAsync()
     {
         string? path = await _fileDialog.OpenFileAsync("Open File to Inspect",
-            FileDialogFilters.SceneFilesWithRar);
+            FileDialogFilters.InspectFiles);
 
         if (path is not null)
         {
@@ -54,6 +58,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         _sRRData = null;
         _sRSData = null;
         _rarDetailedBlocks = null;
+        _mkvData = null;
         _loadedFilePathInternal = null;
         _fileSize = 0;
         WarningMessage = null;
@@ -178,10 +183,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             string ext = Path.GetExtension(filePath);
             bool isSRS = ext.Equals(".srs", StringComparison.OrdinalIgnoreCase);
             bool isRar = ext.Equals(".rar", StringComparison.OrdinalIgnoreCase);
+            bool isMkv = ext.Equals(".mkv", StringComparison.OrdinalIgnoreCase)
+                || ext.Equals(".webm", StringComparison.OrdinalIgnoreCase);
 
             _sRSData = null;
             _sRRData = null;
             _rarDetailedBlocks = null;
+            _mkvData = null;
             WarningMessage = null;
 
             // Dispose previous memory-mapped source
@@ -195,6 +203,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             else if (isRar)
             {
                 _rarDetailedBlocks = RARDetailedParser.Parse(filePath);
+            }
+            else if (isMkv)
+            {
+                _mkvData = MKVFileData.Load(filePath,
+                    _settingsService?.Load().MkvMaxElements ?? MKVFileData.DefaultMaxElements);
             }
             else
             {
@@ -232,6 +245,11 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
                 {
                     WarningMessage = "Custom RAR packer detected — file size fields may be unreliable. Known groups: RELOADED, HI2U, QCF.";
                 }
+            }
+            else if (isMkv)
+            {
+                int elementCount = CountElements(_mkvData!.Elements);
+                StatusMessage = $"{Path.GetFileName(filePath)} | MKV | {_mkvData.TrackCount} track(s) | {elementCount:N0} elements | {_fileSize:N0} bytes";
             }
             else
             {
@@ -342,6 +360,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             SetHexBlock(srsChunk.BlockPosition, srsChunk.BlockSize);
             HasProperties = true;
         }
+        else if (value?.Tag is EBMLElement ebmlElement)
+        {
+            ShowEBMLElementProperties(ebmlElement);
+            SetHexBlock(ebmlElement.Position, ebmlElement.TotalSize);
+            HasProperties = true;
+        }
         else
         {
             ShowFullHex();
@@ -387,6 +411,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         {
             SRRStoredFileBlock stored => Path.GetFileName(stored.FileName),
             RARDetailedBlock { ItemName: { } name } => name,
+            EBMLElement el => $"{SafeFileName(el.Name)}.bin",
             _ => "block.bin"
         };
 
@@ -711,12 +736,67 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
+        if (_mkvData is not null)
+        {
+            BuildMKVTree();
+            return;
+        }
+
         if (_sRRData is null)
         {
             return;
         }
 
         BuildSRRTree();
+    }
+
+    private void BuildMKVTree()
+    {
+        MKVFileData mkv = _mkvData!;
+        var root = new TreeNodeViewModel
+        {
+            Text = $"MKV File ({mkv.TrackCount} track{(mkv.TrackCount == 1 ? "" : "s")})",
+            Tag = "root",
+            IsExpanded = true
+        };
+
+        AddMKVElements(root, mkv.Elements, depth: 0);
+        TreeRoots.Add(root);
+    }
+
+    private static void AddMKVElements(TreeNodeViewModel parentNode, List<EBMLElement> elements, int depth)
+    {
+        foreach (EBMLElement element in elements)
+        {
+            string text = element.Value is { Length: > 0 } && element.Children.Count == 0
+                ? $"{element.Name}: {element.Value}"
+                : element.Name;
+
+            var node = new TreeNodeViewModel
+            {
+                Text = text,
+                Tag = element,
+                IsExpanded = depth < 2
+            };
+
+            if (element.Children.Count > 0)
+            {
+                AddMKVElements(node, element.Children, depth + 1);
+            }
+
+            parentNode.Children.Add(node);
+        }
+    }
+
+    private static int CountElements(List<EBMLElement> elements)
+    {
+        int count = 0;
+        foreach (EBMLElement element in elements)
+        {
+            count += 1 + CountElements(element.Children);
+        }
+
+        return count;
     }
 
     private static bool DetectCustomPackerInRarBlocks(List<RARDetailedBlock> blocks)
@@ -869,10 +949,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
                 Text = $"Archived Files ({srr.ArchivedFiles.Count})",
                 Tag = "container"
             };
-            foreach (var file in srr.ArchivedFiles.OrderBy(f => f))
+            foreach (string? file in srr.ArchivedFiles.OrderBy(f => f))
             {
                 string label = file;
-                if (srr.ArchivedFileCrcs.TryGetValue(file, out var crc))
+                if (srr.ArchivedFileCrcs.TryGetValue(file, out string? crc))
                 {
                     label = $"{file} [CRC: {crc}]";
                 }
@@ -1019,6 +1099,31 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             }
             AddProperty("Signature", sigHex,
                 new ByteRange { Offset = block.SignatureOffset, Length = block.SignatureSize });
+        }
+    }
+
+    private void ShowEBMLElementProperties(EBMLElement element)
+    {
+        AddProperty("Element", element.Name);
+        AddProperty("Element ID", $"0x{element.ElementId:X}",
+            new ByteRange { Offset = element.Position, Length = element.HeaderSize });
+        AddProperty("Type", element.ValueType.ToString());
+
+        if (element.Value is { Length: > 0 })
+        {
+            AddProperty("Value", element.Value,
+                new ByteRange { Offset = element.Position + element.HeaderSize, Length = element.DataSize });
+        }
+
+        AddProperty("Position", $"0x{element.Position:X}");
+        AddProperty("Header Size", $"{element.HeaderSize} bytes");
+        AddProperty("Data Size", $"{element.DataSize:N0} bytes ({FormatUtilities.FormatSize(element.DataSize)})",
+            new ByteRange { Offset = element.Position + element.HeaderSize, Length = element.DataSize });
+        AddProperty("Total Size", $"{element.TotalSize:N0} bytes");
+
+        if (element.Children.Count > 0)
+        {
+            AddProperty("Children", element.Children.Count.ToString());
         }
     }
 

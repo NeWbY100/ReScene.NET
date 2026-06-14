@@ -321,7 +321,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
             return;
         }
 
-        var mediaFiles = Directory.GetFiles(MediaDirectoryPath, "*.*", SearchOption.AllDirectories);
+        string[] mediaFiles = Directory.GetFiles(MediaDirectoryPath, "*.*", SearchOption.AllDirectories);
 
         // Build lookup: filename → full path
         var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
