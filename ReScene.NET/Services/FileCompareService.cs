@@ -30,7 +30,7 @@ public class FileCompareService(IAppSettingsService? settingsService = null) : I
     }
 
     /// <inheritdoc />
-    public List<RARDetailedBlock>? ParseDetailedBlocks(string filePath)
+    public IReadOnlyList<RARDetailedBlock>? ParseDetailedBlocks(string filePath)
     {
         string ext = Path.GetExtension(filePath).ToLowerInvariant();
         if (ext != ".rar")
@@ -50,6 +50,6 @@ public class FileCompareService(IAppSettingsService? settingsService = null) : I
 
     /// <inheritdoc />
     public CompareResult Compare(object? leftData, object? rightData,
-        List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null,
+        IReadOnlyList<RARDetailedBlock>? leftBlocks = null, IReadOnlyList<RARDetailedBlock>? rightBlocks = null,
         IHexDataSource? leftSource = null, IHexDataSource? rightSource = null) => FileComparer.Compare(leftData, rightData, leftBlocks, rightBlocks, leftSource, rightSource);
 }

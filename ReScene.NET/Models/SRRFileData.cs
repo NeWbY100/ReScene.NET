@@ -44,7 +44,7 @@ public class SRRFileData
                         long embeddedStart = rarFile.BlockPosition + rarFile.HeaderSize;
                         fs.Position = embeddedStart;
 
-                        List<RARDetailedBlock> detailedBlocks = RARDetailedParser.ParseFromPosition(fs);
+                        List<RARDetailedBlock> detailedBlocks = [.. RARDetailedParser.ParseFromPosition(fs)];
                         volumeBlocks[rarFile.FileName] = detailedBlocks;
                     }
                     catch

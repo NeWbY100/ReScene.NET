@@ -29,7 +29,7 @@ public interface IFileCompareService
     /// <returns>
     /// The list of detailed blocks, or <c>null</c> if the file is not a RAR.
     /// </returns>
-    public List<RARDetailedBlock>? ParseDetailedBlocks(string filePath);
+    public IReadOnlyList<RARDetailedBlock>? ParseDetailedBlocks(string filePath);
 
     /// <summary>
     /// Compares two parsed file data objects and returns the structural differences.
@@ -56,6 +56,6 @@ public interface IFileCompareService
     /// A <see cref="CompareResult"/> describing all differences found.
     /// </returns>
     public CompareResult Compare(object? leftData, object? rightData,
-        List<RARDetailedBlock>? leftBlocks = null, List<RARDetailedBlock>? rightBlocks = null,
+        IReadOnlyList<RARDetailedBlock>? leftBlocks = null, IReadOnlyList<RARDetailedBlock>? rightBlocks = null,
         IHexDataSource? leftSource = null, IHexDataSource? rightSource = null);
 }

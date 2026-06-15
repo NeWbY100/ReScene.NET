@@ -152,8 +152,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private string? _rightFilePathInternal;
     private long _leftFileSize;
     private long _rightFileSize;
-    private List<RARDetailedBlock>? _leftDetailedBlocks;
-    private List<RARDetailedBlock>? _rightDetailedBlocks;
+    private IReadOnlyList<RARDetailedBlock>? _leftDetailedBlocks;
+    private IReadOnlyList<RARDetailedBlock>? _rightDetailedBlocks;
     private CompareResult? _compareResult;
     private MemoryMappedDataSource? _leftFileSource;
     private MemoryMappedDataSource? _rightFileSource;
@@ -793,7 +793,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private void PopulateTree(ObservableCollection<TreeNodeViewModel> roots, object data, bool isLeft)
     {
-        List<RARDetailedBlock>? detailedBlocks = isLeft ? _leftDetailedBlocks : _rightDetailedBlocks;
+        IReadOnlyList<RARDetailedBlock>? detailedBlocks = isLeft ? _leftDetailedBlocks : _rightDetailedBlocks;
         bool hasFileHeaders = detailedBlocks is not null &&
                               detailedBlocks.Any(b => b.BlockType is "File Header" or "Service Block");
 
@@ -819,7 +819,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
     }
 
-    private static void PopulateDetailedTree(ObservableCollection<TreeNodeViewModel> roots, List<RARDetailedBlock> blocks, bool isLeft)
+    private static void PopulateDetailedTree(ObservableCollection<TreeNodeViewModel> roots, IReadOnlyList<RARDetailedBlock> blocks, bool isLeft)
     {
         bool isRAR5 = blocks.Count > 0 && blocks[0].BlockType == "Signature" &&
                       blocks[0].Fields.Count > 0 && blocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01", StringComparison.Ordinal);
@@ -1079,7 +1079,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     /// root elements use <c>parentPath</c> = "".
     /// </summary>
     private static void AddMKVElements(TreeNodeViewModel parentNode, string parentPath,
-        List<EBMLElement> elements, bool isLeft, int depth)
+        IReadOnlyList<EBMLElement> elements, bool isLeft, int depth)
     {
         var occurrence = new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -1283,7 +1283,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
             }
             else if (data.NodeType == CompareNodeType.DetailedBlock && data.Data is RARDetailedBlock block)
             {
-                List<RARDetailedBlock>? otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
+                IReadOnlyList<RARDetailedBlock>? otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
                 if (otherBlocks is not null)
                 {
                     RARDetailedBlock? otherBlock = otherBlocks.FirstOrDefault(b =>
@@ -1433,7 +1433,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
                 // and chunk-to-chunk by Label so a clicked Cluster lights up the
                 // corresponding Cluster on the other side rather than the first
                 // SRSContainerChunks node encountered.
-                if (nodeData.Data is List<SRSContainerChunk> && sourceData.Data is List<SRSContainerChunk>)
+                if (nodeData.Data is IReadOnlyList<SRSContainerChunk> && sourceData.Data is IReadOnlyList<SRSContainerChunk>)
                 {
                     return node;
                 }
@@ -1569,7 +1569,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private void ShowMKVElementProperties(ObservableCollection<PropertyItem> properties, EBMLElement element, string? path)
     {
-        List<PropertyDifference>? diffs = path is not null ? GetTrackDiffs(path) : null;
+        IReadOnlyList<PropertyDifference>? diffs = path is not null ? GetTrackDiffs(path) : null;
 
         properties.Add(new PropertyItem { Name = "Element", Value = element.Name });
         properties.Add(new PropertyItem { Name = "Element ID", Value = $"0x{element.ElementId:X}" });
@@ -1716,7 +1716,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private RARDetailedBlock? FindMatchingDetailedBlock(RARDetailedBlock block, bool isLeft)
     {
-        List<RARDetailedBlock>? otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
+        IReadOnlyList<RARDetailedBlock>? otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
         if (otherBlocks is not null)
         {
             RARDetailedBlock? match = otherBlocks.FirstOrDefault(b =>
@@ -1947,7 +1947,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private void ShowSRSTrackProperties(ObservableCollection<PropertyItem> properties, SRSTrackDataBlock track, string? trackName)
     {
-        List<PropertyDifference>? trackDiffs = trackName is not null ? GetTrackDiffs(trackName) : null;
+        IReadOnlyList<PropertyDifference>? trackDiffs = trackName is not null ? GetTrackDiffs(trackName) : null;
 
         properties.Add(new PropertyItem
         {
@@ -1991,7 +1991,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         if (track.Signature.Length > 0)
         {
             const int maxSignatureDisplayBytes = 32;
-            string sigHex = Convert.ToHexString(track.Signature.AsSpan(0, Math.Min(maxSignatureDisplayBytes, track.Signature.Length)));
+            string sigHex = Convert.ToHexString(track.Signature.Span[..Math.Min(maxSignatureDisplayBytes, track.Signature.Length)]);
             if (track.Signature.Length > maxSignatureDisplayBytes)
             {
                 sigHex += "...";
@@ -2049,7 +2049,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         properties.Add(new PropertyItem
         {
             Name = "OSO Hash",
-            Value = Convert.ToHexString(oso.OSOHash),
+            Value = Convert.ToHexString(oso.OSOHash.Span),
             ByteRange = new ByteRange { Offset = p + 8, Length = 8 }
         });
     }
@@ -2105,7 +2105,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         });
     }
 
-    private List<PropertyDifference>? GetTrackDiffs(string trackName)
+    private IReadOnlyList<PropertyDifference>? GetTrackDiffs(string trackName)
     {
         FileDifference? fileDiff = _compareResult?.FileDifferences
             .FirstOrDefault(d => d.FileName == trackName && d.Type == DifferenceType.Modified);
@@ -2114,7 +2114,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     #endregion
 
-    private static void BuildChunkHierarchy(TreeNodeViewModel root, List<SRSContainerChunk> chunks, bool isLeft)
+    private static void BuildChunkHierarchy(TreeNodeViewModel root, IReadOnlyList<SRSContainerChunk> chunks, bool isLeft)
     {
         var nodeStack = new Stack<TreeNodeViewModel>();
         var endStack = new Stack<long>();

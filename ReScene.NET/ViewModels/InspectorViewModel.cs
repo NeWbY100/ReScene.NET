@@ -26,7 +26,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private readonly IAppSettingsService? _settingsService = settingsService;
     private SRRFileData? _sRRData;
     private SRSInspectorData? _sRSData;
-    private List<RARDetailedBlock>? _rarDetailedBlocks;
+    private IReadOnlyList<RARDetailedBlock>? _rarDetailedBlocks;
     private MKVFileData? _mkvData;
     private string? _loadedFilePathInternal;
     private long _fileSize;
@@ -764,7 +764,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         TreeRoots.Add(root);
     }
 
-    private static void AddMKVElements(TreeNodeViewModel parentNode, List<EBMLElement> elements, int depth)
+    private static void AddMKVElements(TreeNodeViewModel parentNode, IReadOnlyList<EBMLElement> elements, int depth)
     {
         foreach (EBMLElement element in elements)
         {
@@ -788,7 +788,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
     }
 
-    private static int CountElements(List<EBMLElement> elements)
+    private static int CountElements(IReadOnlyList<EBMLElement> elements)
     {
         int count = 0;
         foreach (EBMLElement element in elements)
@@ -799,7 +799,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         return count;
     }
 
-    private static bool DetectCustomPackerInRarBlocks(List<RARDetailedBlock> blocks)
+    private static bool DetectCustomPackerInRarBlocks(IReadOnlyList<RARDetailedBlock> blocks)
     {
         foreach (RARDetailedBlock block in blocks)
         {
@@ -823,7 +823,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
     private void BuildRarTree()
     {
-        List<RARDetailedBlock> blocks = _rarDetailedBlocks!;
+        IReadOnlyList<RARDetailedBlock> blocks = _rarDetailedBlocks!;
         bool isRAR5 = blocks.Count > 0 && blocks[0].BlockType == "Signature" &&
                       blocks[0].Fields.Count > 0 && blocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01", StringComparison.Ordinal);
 
@@ -1091,7 +1091,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
         if (block.SignatureSize > 0)
         {
-            string sigHex = BitConverter.ToString(block.Signature).Replace("-", " ", StringComparison.Ordinal);
+            string sigHex = BitConverter.ToString(block.Signature.ToArray()).Replace("-", " ", StringComparison.Ordinal);
             const int maxSignatureDisplayLength = 80;
             if (sigHex.Length > maxSignatureDisplayLength)
             {
@@ -1449,7 +1449,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         AddProperty("File Size", $"{oso.FileSize:N0} bytes ({FormatUtilities.FormatSize((long)oso.FileSize)})",
             new ByteRange { Offset = p, Length = 8 });
         p += 8;
-        AddProperty("OSO Hash", Convert.ToHexString(oso.OSOHash),
+        AddProperty("OSO Hash", Convert.ToHexString(oso.OSOHash.Span),
             new ByteRange { Offset = p, Length = 8 });
         p += 8;
 
@@ -1615,7 +1615,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private static string FormatBool(bool? value) =>
         value.HasValue ? (value.Value ? "Yes" : "No") : "Unknown";
 
-    private static void BuildChunkHierarchy(TreeNodeViewModel root, List<SRSContainerChunk> chunks)
+    private static void BuildChunkHierarchy(TreeNodeViewModel root, IReadOnlyList<SRSContainerChunk> chunks)
     {
         var nodeStack = new Stack<TreeNodeViewModel>();
         var endStack = new Stack<long>();

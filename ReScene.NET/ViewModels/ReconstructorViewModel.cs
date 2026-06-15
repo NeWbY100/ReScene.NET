@@ -705,8 +705,8 @@ public partial class ReconstructorViewModel : ViewModelBase
             _importedArchiveFileCrcs = new Dictionary<string, string>(srr.ArchivedFileCrcs, StringComparer.OrdinalIgnoreCase);
             _importedOriginalRarFileNames = srr.RARFiles.Select(r => r.FileName).ToList();
             _importedArchiveComment = srr.ArchiveComment;
-            _importedArchiveCommentBytes = srr.ArchiveCommentBytes;
-            _importedCmtCompressedData = srr.CmtCompressedData;
+            _importedArchiveCommentBytes = srr.ArchiveCommentBytes?.ToArray();
+            _importedCmtCompressedData = srr.CmtCompressedData?.ToArray();
             _importedCmtCompressionMethod = srr.CmtCompressionMethod;
 
             if (_importedArchiveFiles.Count > 0 || _importedArchiveDirectories.Count > 0)

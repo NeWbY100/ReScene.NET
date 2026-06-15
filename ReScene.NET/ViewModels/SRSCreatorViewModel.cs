@@ -276,7 +276,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
             ISOMediaFiles.Clear();
             SelectedISOMediaFile = null;
 
-            List<string> files = ISOMediaExtractor.ListMediaFiles(path);
+            IReadOnlyList<string> files = ISOMediaExtractor.ListMediaFiles(path);
             foreach (string file in files)
             {
                 ISOMediaFiles.Add(file);
