@@ -1502,10 +1502,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             // A Stop during RAR execution cancels the run but returns normally (the library
             // swallows the process's OperationCanceledException), so detect the cancelled token
             // here and report "Cancelled" rather than the misleading "No match found".
-            if (token.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(token);
-            }
+            token.ThrowIfCancellationRequested();
 
             // Mark final version entry
             if (_activeVersionIndex >= 0 && _activeVersionIndex < VersionEntries.Count)
