@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
@@ -15,14 +14,16 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     private readonly ISrsReconstructionService _service;
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
+    private readonly IUiDispatcher _uiDispatcher;
     private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
-    public SRSReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog, ITempDirectoryService tempDir)
+    public SRSReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog, ITempDirectoryService tempDir, IUiDispatcher? uiDispatcher = null)
     {
         _service = service;
         _fileDialog = fileDialog;
         _tempDir = tempDir;
+        _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
         _service.Progress += OnProgress;
         _service.ScanProgress += OnScanProgress;
@@ -270,7 +271,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
                 Log("Scanning ISO for matching VOB title set using SRS track signatures...");
                 bool found = await ISOMediaExtractor.ExtractMatchingVobSetAsync(
                     ISOFilePath, SRSFilePath, tempFile,
-                    p => Application.Current.Dispatcher.BeginInvoke(() =>
+                    p => _uiDispatcher.Post(() =>
                     {
                         ISOProgressHeading = p.Phase == "Extracting" ? "Extracting from ISO" : "Scanning ISO";
                         ISOOverallPercent = p.OverallPercent;
@@ -465,7 +466,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
 
     private void OnScanProgress(object? _, SRSScanProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             if (!_scanModalActive)
             {
@@ -481,7 +482,7 @@ public partial class SRSReconstructorViewModel : ViewModelBase
 
     private void OnProgress(object? _, SRSReconstructionProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             // Keep the scan modal open through Rebuilding (frame-data collection
             // can take many seconds on large media files) and Verifying CRC.

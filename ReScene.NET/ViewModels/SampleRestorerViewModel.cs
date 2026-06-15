@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
@@ -15,12 +14,14 @@ public partial class SampleRestorerViewModel : ViewModelBase
 {
     private readonly ISampleRestorerService _service;
     private readonly IFileDialogService _fileDialog;
+    private readonly IUiDispatcher _uiDispatcher;
     private CancellationTokenSource? _cts;
 
-    public SampleRestorerViewModel(ISampleRestorerService service, IFileDialogService fileDialog)
+    public SampleRestorerViewModel(ISampleRestorerService service, IFileDialogService fileDialog, IUiDispatcher? uiDispatcher = null)
     {
         _service = service;
         _fileDialog = fileDialog;
+        _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
         _service.Progress += OnProgress;
     }
@@ -390,7 +391,7 @@ public partial class SampleRestorerViewModel : ViewModelBase
 
     private void OnProgress(object? _, SRSReconstructionProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             ProgressPercent = (int)e.ProgressPercent;
             string msg = e.TotalTracks > 0

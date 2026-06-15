@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -24,6 +23,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private readonly IBruteForceService _bruteForceService;
     private readonly IFileDialogService _fileDialog;
     private readonly IAppSettingsService? _settingsService;
+    private readonly IUiDispatcher _uiDispatcher;
     private CancellationTokenSource? _cts;
 
     // Elapsed timer — ticks every second so the clock doesn't freeze between progress events
@@ -65,11 +65,12 @@ public partial class ReconstructorViewModel : ViewModelBase
     // the original for those files.
     private readonly List<TimestampPreservationFailedEventArgs> _timestampFailures = [];
 
-    public ReconstructorViewModel(IBruteForceService bruteForceService, IFileDialogService fileDialog, IAppSettingsService? settingsService = null)
+    public ReconstructorViewModel(IBruteForceService bruteForceService, IFileDialogService fileDialog, IAppSettingsService? settingsService = null, IUiDispatcher? uiDispatcher = null)
     {
         _bruteForceService = bruteForceService;
         _fileDialog = fileDialog;
         _settingsService = settingsService;
+        _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
         _bruteForceService.Progress += OnProgress;
         _bruteForceService.StatusChanged += OnStatusChanged;
@@ -658,13 +659,11 @@ public partial class ReconstructorViewModel : ViewModelBase
             {
                 Log(LogTarget.System,
                     "WARNING: SRR contains no RAR reconstruction information.");
-                MessageBox.Show(
+                _fileDialog.ShowInfo(
+                    "No RAR Reconstruction Info",
                     "This SRR file does not contain RAR reconstruction information " +
                     "(no RAR volume entries, archived files, or compression metadata).\n\n" +
-                    "You will need to configure the RAR options manually before reconstructing.",
-                    "No RAR Reconstruction Info",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    "You will need to configure the RAR options manually before reconstructing.");
             }
 
             // Custom packer detection
@@ -683,8 +682,7 @@ public partial class ReconstructorViewModel : ViewModelBase
                 CustomPackerWarning = $"Custom RAR packer detected ({srr.CustomPackerDetected}) — brute-forcing is not possible. " +
                     $"Direct SRR reconstruction will be used instead. Known groups: {groups}.";
 
-                MessageBox.Show(CustomPackerWarning, "Custom RAR Packer Detected",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                _fileDialog.ShowWarning("Custom RAR Packer Detected", CustomPackerWarning);
             }
             else
             {
@@ -1275,28 +1273,28 @@ public partial class ReconstructorViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(WinRarPath))
         {
             Log(LogTarget.System, "Invalid WinRAR directory.");
-            MessageBox.Show("Invalid WinRAR directory.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Invalid WinRAR directory.");
             return;
         }
 
         if (!Directory.Exists(WinRarPath))
         {
             Log(LogTarget.System, "WinRAR directory does not exist.");
-            MessageBox.Show("WinRAR directory does not exist.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "WinRAR directory does not exist.");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(ReleasePath))
         {
             Log(LogTarget.System, "Invalid release directory.");
-            MessageBox.Show("Invalid release directory.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Invalid release directory.");
             return;
         }
 
         if (!Directory.Exists(ReleasePath))
         {
             Log(LogTarget.System, "Release directory does not exist.");
-            MessageBox.Show("Release directory does not exist.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Release directory does not exist.");
             return;
         }
 
@@ -1318,14 +1316,14 @@ public partial class ReconstructorViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(VerificationPath))
         {
             Log(LogTarget.System, "Invalid verification file path.");
-            MessageBox.Show("Invalid verification file path.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Invalid verification file path.");
             return;
         }
 
         if (!File.Exists(VerificationPath))
         {
             Log(LogTarget.System, "Verification file does not exist.");
-            MessageBox.Show("Verification file does not exist.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Verification file does not exist.");
             return;
         }
 
@@ -1333,7 +1331,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         if (verificationExt is not ".sfv" and not ".sha1")
         {
             Log(LogTarget.System, "Invalid verification file type.");
-            MessageBox.Show("Invalid verification file type. Use .sfv or .sha1 files.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Invalid verification file type. Use .sfv or .sha1 files.");
             return;
         }
 
@@ -1347,14 +1345,14 @@ public partial class ReconstructorViewModel : ViewModelBase
         catch (Exception ex)
         {
             Log(LogTarget.System, $"Failed to parse verification file: {ex.Message}");
-            MessageBox.Show($"Failed to parse verification file:\n{ex.Message}", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", $"Failed to parse verification file:\n{ex.Message}");
             return;
         }
 
         if (hashCount == 0)
         {
             Log(LogTarget.System, "No hashes found in verification file.");
-            MessageBox.Show("No hashes found in verification file.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "No hashes found in verification file.");
             return;
         }
 
@@ -1382,11 +1380,9 @@ public partial class ReconstructorViewModel : ViewModelBase
                 {
                     string fileList = string.Join("\n", missingFiles);
                     Log(LogTarget.System, $"Missing {missingFiles.Count} input file(s) in release directory.");
-                    MessageBox.Show(
-                        $"The following {missingFiles.Count} file(s) listed in the imported SRR are missing from the release directory:\n\n{fileList}\n\nThe release directory should contain the unpacked archive contents (the files that originally went into the RARs).",
+                    _fileDialog.ShowWarning(
                         "Missing Input Files",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                        $"The following {missingFiles.Count} file(s) listed in the imported SRR are missing from the release directory:\n\n{fileList}\n\nThe release directory should contain the unpacked archive contents (the files that originally went into the RARs).");
                     return;
                 }
             }
@@ -1401,7 +1397,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
             Log(LogTarget.System, "Invalid output directory.");
-            MessageBox.Show("Invalid output directory.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _fileDialog.ShowError("Validation Error", "Invalid output directory.");
             return;
         }
 
@@ -1415,7 +1411,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             catch (Exception ex)
             {
                 Log(LogTarget.System, $"Failed to create output directory: {ex.Message}");
-                MessageBox.Show($"Failed to create output directory:\n{ex.Message}", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileDialog.ShowError("Validation Error", $"Failed to create output directory:\n{ex.Message}");
                 return;
             }
         }
@@ -1446,7 +1442,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             catch (Exception ex)
             {
                 Log(LogTarget.System, $"Failed to clean output directory: {ex.Message}");
-                MessageBox.Show($"Failed to clean output directory:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileDialog.ShowError("Error", $"Failed to clean output directory:\n{ex.Message}");
                 return;
             }
         }
@@ -2134,7 +2130,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private void OnFileCopyProgress(object? _, FileCopyProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             // A queued progress event can arrive after a cancelled run already cleaned up;
             // re-raising IsCopying then would re-open (and strand) the copy progress window.
@@ -2196,7 +2192,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private void OnCRCValidationProgress(object? _, CRCValidationProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             if (!IsVerifying)
             {
@@ -2238,7 +2234,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private void OnProgress(object? _, BruteForceProgressEventArgs e)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        _uiDispatcher.Invoke(() =>
         {
             ProgressPercent = e.Progress;
             PhaseDescription = e.PhaseDescription;
@@ -2317,7 +2313,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     private void OnStatusChanged(object? _, BruteForceStatusChangedEventArgs e)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        _uiDispatcher.Invoke(() =>
         {
             if (e.NewStatus == OperationStatus.Completed)
             {
@@ -2375,13 +2371,10 @@ public partial class ReconstructorViewModel : ViewModelBase
                       "modification time, so the resulting RAR's File Time (DOS) may differ " +
                       "from the original release.");
 
-        MessageBox.Show(sb.ToString(),
-            "Timestamp Preservation Failed",
-            MessageBoxButton.OK,
-            MessageBoxImage.Warning);
+        _fileDialog.ShowWarning("Timestamp Preservation Failed", sb.ToString());
     }
 
-    private void OnLogMessage(object? _, LogEventArgs e) => Application.Current.Dispatcher.Invoke(() => AppendLog(e.Target, e.Message));
+    private void OnLogMessage(object? _, LogEventArgs e) => _uiDispatcher.Invoke(() => AppendLog(e.Target, e.Message));
 
     private void Log(LogTarget target, string message) => AppendLog(target, message);
 

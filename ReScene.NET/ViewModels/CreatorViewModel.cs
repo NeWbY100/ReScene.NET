@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
@@ -20,15 +19,17 @@ public partial class CreatorViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
+    private readonly IUiDispatcher _uiDispatcher;
     private CancellationTokenSource? _cts;
 
-    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService)
+    public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService, IUiDispatcher? uiDispatcher = null)
     {
         _sRRService = srrService;
         _sRSService = srsService;
         _fileDialog = fileDialog;
         _tempDir = tempDir;
         _settingsService = settingsService;
+        _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
         _sRRService.Progress += OnProgress;
 
@@ -990,7 +991,7 @@ public partial class CreatorViewModel : ViewModelBase
 
     private void OnProgress(object? _, SRRCreationProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             ProgressPercent = e.ProgressPercent;
             ProgressMessage = e.Message;

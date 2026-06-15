@@ -43,6 +43,10 @@ public class InspectorViewModelMkvTests : IDisposable
         public Task<string?> OpenFolderAsync(string title) => Task.FromResult<string?>(null);
         public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(false);
         public Task<string?> PromptForTextAsync(string title, string message, string initialValue) => Task.FromResult<string?>(null);
+        public void ShowError(string title, string message) { }
+        public void ShowWarning(string title, string message) { }
+        public void ShowInfo(string title, string message) { }
+        public bool Confirm(string title, string message) => false;
     }
 
     private sealed class StubSrrEditingService : ISrrEditingService

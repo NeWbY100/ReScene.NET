@@ -85,6 +85,19 @@ public class FileDialogService : IFileDialogService
         return Task.FromResult(result == true ? window.ResultText : null);
     }
 
+    public void ShowError(string title, string message) =>
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+
+    public void ShowWarning(string title, string message) =>
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+
+    public void ShowInfo(string title, string message) =>
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+
+    public bool Confirm(string title, string message) =>
+        MessageBox.Show(message, title, MessageBoxButton.OKCancel, MessageBoxImage.Warning)
+            == MessageBoxResult.OK;
+
     private static string BuildFilter(IReadOnlyList<string> filters) =>
         // Avalonia filters: "Description|*.ext1;*.ext2"
         // WPF filters: "Description|*.ext1;*.ext2" (same format)

@@ -101,6 +101,10 @@ public sealed class CreatorViewModelTests : IDisposable
         public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
         public Task<string?> PromptForTextAsync(string title, string message, string initialValue)
             => Task.FromResult(PromptResults.Count > 0 ? PromptResults.Dequeue() : PromptResult);
+        public void ShowError(string title, string message) { }
+        public void ShowWarning(string title, string message) { }
+        public void ShowInfo(string title, string message) { }
+        public bool Confirm(string title, string message) => true;
     }
 
     // ── Helpers ─────────────────────────────────────────────

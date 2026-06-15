@@ -137,23 +137,25 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public MainWindowViewModel()
-        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(new AppSettingsService()), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService(), new HexDiffComputer())
+        : this(new SRRCreationService(), new SRSCreationService(), new SRSReconstructionService(), new SampleRestorerService(new TempDirectoryService()), new BruteForceService(), new FileCompareService(new AppSettingsService()), new FileDialogService(), new RecentFilesService(new AppSettingsService()), new TempDirectoryService(), new SRREditingService(), new SRRVerifyService(), new PropertyExportService(), new AppSettingsService(), new HexDiffComputer(), new WpfDispatcher())
     {
     }
 
-    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService, IPropertyExportService propertyExportService, IAppSettingsService appSettingsService, IHexDiffComputer hexDiffComputer)
+    public MainWindowViewModel(ISrrCreationService srrService, ISrsCreationService srsService, ISrsReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISrrEditingService srrEditingService, ISrrVerifyService srrVerifyService, IPropertyExportService propertyExportService, IAppSettingsService appSettingsService, IHexDiffComputer hexDiffComputer, IUiDispatcher? uiDispatcher = null)
     {
         _fileDialog = fileDialog;
         _recentFiles = recentFiles;
         _appSettingsService = appSettingsService;
 
+        IUiDispatcher dispatcher = uiDispatcher ?? new WpfDispatcher();
+
         Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService, appSettingsService);
-        Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService);
-        SRSCreator = new SRSCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService);
-        Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog, appSettingsService);
-        SRSReconstructor = new SRSReconstructorViewModel(srsReconService, fileDialog, tempDir);
-        SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog);
-        FileCompare = new FileCompareViewModel(fileCompareService, fileDialog, hexDiffComputer);
+        Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService, dispatcher);
+        SRSCreator = new SRSCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService, dispatcher);
+        Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog, appSettingsService, dispatcher);
+        SRSReconstructor = new SRSReconstructorViewModel(srsReconService, fileDialog, tempDir, dispatcher);
+        SampleRestorer = new SampleRestorerViewModel(sampleRestorerService, fileDialog, dispatcher);
+        FileCompare = new FileCompareViewModel(fileCompareService, fileDialog, hexDiffComputer, dispatcher);
 
         var beginnerRestore = new BeginnerRestoreViewModel(fileDialog)
         {
@@ -164,7 +166,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             // A dedicated CreatorViewModel (not the Advanced tab's shared one) so the wizard's
             // state and build never collide with the Advanced SRR Creator tab.
-            CreateSrrWizard = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService),
+            CreateSrrWizard = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService, dispatcher),
             SRSCreator = SRSCreator,
             Reconstructor = Reconstructor,
             Restore = beginnerRestore,
@@ -175,7 +177,8 @@ public partial class MainWindowViewModel : ViewModelBase
             recentFiles,
             openFile: OpenSceneFile,
             switchToCreator: () => SelectedTabIndex = 2,
-            openDialog: OpenFileAsync);
+            openDialog: OpenFileAsync,
+            fileDialog: fileDialog);
 
         Inspector.PropertyChanged += (_, e) =>
         {

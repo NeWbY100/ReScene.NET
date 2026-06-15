@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Models;
@@ -14,6 +13,7 @@ public partial class HomeViewModel : ViewModelBase
     private readonly Action<string> _openFile;
     private readonly Action _switchToCreator;
     private readonly Func<Task> _openDialog;
+    private readonly IFileDialogService _fileDialog;
 
     public ObservableCollection<RecentFileEntry> RecentFiles { get; } = [];
 
@@ -24,12 +24,14 @@ public partial class HomeViewModel : ViewModelBase
         IRecentFilesService recentFiles,
         Action<string> openFile,
         Action switchToCreator,
-        Func<Task> openDialog)
+        Func<Task> openDialog,
+        IFileDialogService fileDialog)
     {
         _recentFiles = recentFiles;
         _openFile = openFile;
         _switchToCreator = switchToCreator;
         _openDialog = openDialog;
+        _fileDialog = fileDialog;
 
         LoadRecentFiles();
     }
@@ -60,11 +62,7 @@ public partial class HomeViewModel : ViewModelBase
         }
         else
         {
-            MessageBox.Show(
-                $"File not found:\n{entry.FilePath}",
-                "File Not Found",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            _fileDialog.ShowWarning("File Not Found", $"File not found:\n{entry.FilePath}");
         }
     }
 

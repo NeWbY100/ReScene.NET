@@ -48,6 +48,11 @@ public sealed class SRSCreatorViewModelTests : IDisposable
         }
 
         public Task<string?> PromptForTextAsync(string title, string message, string initialValue) => Task.FromResult<string?>(null);
+
+        public void ShowError(string title, string message) { }
+        public void ShowWarning(string title, string message) { }
+        public void ShowInfo(string title, string message) { }
+        public bool Confirm(string title, string message) => true;
     }
 
     private sealed class FakeTempDirectoryService : ITempDirectoryService

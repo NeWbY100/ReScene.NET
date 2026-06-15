@@ -135,6 +135,11 @@ public class SrrEditorViewModelTests
             LastPromptInitialValue = initialValue;
             return Task.FromResult(PromptResult);
         }
+
+        public void ShowError(string title, string message) { }
+        public void ShowWarning(string title, string message) { }
+        public void ShowInfo(string title, string message) { }
+        public bool Confirm(string title, string message) => true;
     }
 
     /// <summary>Fake temp service — never used because the seam is overridden.</summary>

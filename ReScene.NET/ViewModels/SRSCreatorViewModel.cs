@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.NET.Helpers;
@@ -16,15 +15,17 @@ public partial class SRSCreatorViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
+    private readonly IUiDispatcher _uiDispatcher;
     private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
-    public SRSCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService)
+    public SRSCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService, IUiDispatcher? uiDispatcher = null)
     {
         _sRSService = srsService;
         _fileDialog = fileDialog;
         _tempDir = tempDir;
         _settingsService = settingsService;
+        _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
         _sRSService.Progress += OnProgress;
         _sRSService.ScanProgress += OnScanProgress;
@@ -404,7 +405,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
                 await ISOMediaExtractor.ExtractFileAsync(
                     ISOFilePath, SelectedISOMediaFile!,
                     tempFile,
-                    percent => Application.Current.Dispatcher.BeginInvoke(() =>
+                    percent => _uiDispatcher.Post(() =>
                     {
                         ISOOverallPercent = percent;
                         ISOCurrentPercent = percent;
@@ -528,7 +529,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
     private void OnProgress(object? _, SRSCreationProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             ProgressMessage = e.Message;
             Log(e.Message);
@@ -559,7 +560,7 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
     private void OnScanProgress(object? _, SRSScanProgressEventArgs e)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
+        _uiDispatcher.Post(() =>
         {
             if (!_scanModalActive)
             {

@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Text;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EBMLElement = ReScene.Core.Comparison.EBMLElement;
@@ -454,11 +453,9 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             });
 
             StatusMessage = $"Exported: {Path.GetFileName(outputPath)} ({length:N0} bytes)";
-            MessageBox.Show(
-                $"Exported {Path.GetFileName(outputPath)}\n{length:N0} bytes written.",
+            _fileDialog.ShowInfo(
                 "Export Complete",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                $"Exported {Path.GetFileName(outputPath)}\n{length:N0} bytes written.");
         }
         catch (Exception ex)
         {

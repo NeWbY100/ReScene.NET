@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Text;
-using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -137,13 +136,14 @@ public class CompareNodeData
 /// <summary>
 /// ViewModel for the file comparison tab, supporting side-by-side diff of SRR, SRS, and RAR files.
 /// </summary>
-public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog, IHexDiffComputer diffComputer) : ViewModelBase, IDisposable
+public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog, IHexDiffComputer diffComputer, IUiDispatcher? uiDispatcher = null) : ViewModelBase, IDisposable
 {
     private const int MaxBlockCompareSize = 10 * 1024 * 1024;
 
     private readonly IFileCompareService _compareService = compareService;
     private readonly IFileDialogService _fileDialog = fileDialog;
     private readonly IHexDiffComputer _diffComputer = diffComputer;
+    private readonly IUiDispatcher _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
     // Internal state
     private object? _leftData;
@@ -630,11 +630,11 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         }
 
         _diffScheduled = true;
-        Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        _uiDispatcher.Post(() =>
         {
             _diffScheduled = false;
             StartDiffNow();
-        });
+        }, DispatcherPriority.Background);
     }
 
     private void StartDiffNow()
