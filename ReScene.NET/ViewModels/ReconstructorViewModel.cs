@@ -1481,6 +1481,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         _activeVersionKey = "";
 
         _cts = new CancellationTokenSource();
+        CancellationToken token = _cts.Token;
 
         // Yield so the dispatcher can open the progress window before heavy work starts
         await Task.Yield();
@@ -1496,7 +1497,15 @@ public partial class ReconstructorViewModel : ViewModelBase
 
             // Run entirely on a background thread so the UI stays responsive
             // during setup (directory enumeration, input validation, etc.)
-            bool success = await Task.Run(() => _bruteForceService.RunAsync(options));
+            bool success = await Task.Run(() => _bruteForceService.RunAsync(options, token), token);
+
+            // A Stop during RAR execution cancels the run but returns normally (the library
+            // swallows the process's OperationCanceledException), so detect the cancelled token
+            // here and report "Cancelled" rather than the misleading "No match found".
+            if (token.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(token);
+            }
 
             // Mark final version entry
             if (_activeVersionIndex >= 0 && _activeVersionIndex < VersionEntries.Count)
@@ -1560,8 +1569,9 @@ public partial class ReconstructorViewModel : ViewModelBase
     [RelayCommand]
     private void Stop()
     {
+        // Cancelling the token reaches the running RAR processes through the service and
+        // Manager (the token is threaded into BruteForceRARVersionAsync).
         _cts?.Cancel();
-        _bruteForceService.Stop();
         Log(LogTarget.System, "Cancellation requested...");
     }
 

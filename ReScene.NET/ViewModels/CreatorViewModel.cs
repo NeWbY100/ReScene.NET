@@ -1073,27 +1073,15 @@ public partial class CreatorViewModel : ViewModelBase
         else
         {
             volumes.Add(firstRarPath);
-            const int maxOldStyleVolumes = 999;
-            const int volumesPerLetter = 100;
-            const int maxLetterIndex = 25; // 'r' through 'z'
-            for (int i = 0; i < maxOldStyleVolumes; i++)
-            {
-                int letterIndex = i / volumesPerLetter;
-                if (letterIndex > maxLetterIndex)
-                {
-                    break;
-                }
-                char letter = (char)('r' + letterIndex);
-                string ext = $".{letter}{i % volumesPerLetter:D2}";
 
-                string nextVolume = Path.Combine(dir, baseName + ext);
-                if (File.Exists(nextVolume))
+            // Old-style continuation volumes: .r00, .r01, … .r99, .s00, … .z99. Enumerate the
+            // directory rather than walking the sequence, so a gap in the numbering doesn't
+            // silently truncate the set (the loop here previously stopped at the first missing one).
+            foreach (string file in Directory.GetFiles(dir, baseName + ".*"))
+            {
+                if (IsOldStyleVolumeExtension(Path.GetExtension(file)))
                 {
-                    volumes.Add(nextVolume);
-                }
-                else
-                {
-                    break;
+                    volumes.Add(file);
                 }
             }
         }
@@ -1101,6 +1089,17 @@ public partial class CreatorViewModel : ViewModelBase
         volumes.Sort(RARVolumeNameComparer.Instance);
         return volumes;
     }
+
+    /// <summary>
+    /// True for an old-style RAR continuation-volume extension: a dot, a letter r–z, then two
+    /// digits (".r00" … ".z99"). The first volume keeps its ".rar" extension and is excluded.
+    /// </summary>
+    private static bool IsOldStyleVolumeExtension(string extension)
+        => extension.Length == 4
+            && extension[0] == '.'
+            && char.ToLowerInvariant(extension[1]) is >= 'r' and <= 'z'
+            && char.IsAsciiDigit(extension[2])
+            && char.IsAsciiDigit(extension[3]);
 
     /// <summary>
     /// Represents a file to be stored inside the SRR, with its full path and relative stored name.

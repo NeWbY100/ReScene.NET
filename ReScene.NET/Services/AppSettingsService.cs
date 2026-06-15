@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using ReScene.NET.Models;
 
@@ -30,8 +31,13 @@ public class AppSettingsService : IAppSettingsService
                 ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_filePath)) ?? new AppSettings()
                 : new AppSettings();
         }
-        catch
+        catch (Exception ex)
         {
+            // Load runs on the startup path, so nothing here may crash the app: any corrupt or
+            // unreadable settings fall back to defaults. The catch is broad on purpose (a custom
+            // converter or unsupported member added to AppSettings later could throw other types),
+            // but it records why so the failure isn't completely invisible.
+            Trace.TraceError($"Failed to load settings from '{_filePath}': {ex.Message}");
             settings = new AppSettings();
         }
 
@@ -48,8 +54,11 @@ public class AppSettingsService : IAppSettingsService
             File.WriteAllText(_filePath, json);
             Changed?.Invoke(this, EventArgs.Empty);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            // A failed settings write (disk full, permissions) must not crash whatever UI
+            // action triggered it, but it shouldn't vanish silently either.
+            Trace.TraceError($"Failed to save settings to '{_filePath}': {ex.Message}");
         }
     }
 }

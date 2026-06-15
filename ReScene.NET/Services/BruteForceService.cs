@@ -14,22 +14,20 @@ public class BruteForceService : IBruteForceService
     public event EventHandler<CRCValidationProgressEventArgs>? CRCValidationProgress;
     public event EventHandler<TimestampPreservationFailedEventArgs>? TimestampPreservationFailed;
 
-    private Manager? _manager;
-
-    public async Task<bool> RunAsync(BruteForceOptions options)
+    public async Task<bool> RunAsync(BruteForceOptions options, CancellationToken cancellationToken = default)
     {
         var logger = new ReSceneLogger();
         logger.Logged += (s, e) => LogMessage?.Invoke(s, e);
 
-        _manager = new Manager(logger);
-        _manager.BruteForceProgress += (s, e) => Progress?.Invoke(s, e);
-        _manager.BruteForceStatusChanged += (s, e) => StatusChanged?.Invoke(s, e);
-        _manager.FileCopyProgress += (s, e) => FileCopyProgress?.Invoke(s, e);
-        _manager.CRCValidationProgress += (s, e) => CRCValidationProgress?.Invoke(s, e);
-        _manager.TimestampPreservationFailed += (s, e) => TimestampPreservationFailed?.Invoke(s, e);
+        // A fresh Manager per run, kept local: cancellation flows through the token below
+        // rather than a shared field, so a Cancel during setup can never target a stale run.
+        var manager = new Manager(logger);
+        manager.BruteForceProgress += (s, e) => Progress?.Invoke(s, e);
+        manager.BruteForceStatusChanged += (s, e) => StatusChanged?.Invoke(s, e);
+        manager.FileCopyProgress += (s, e) => FileCopyProgress?.Invoke(s, e);
+        manager.CRCValidationProgress += (s, e) => CRCValidationProgress?.Invoke(s, e);
+        manager.TimestampPreservationFailed += (s, e) => TimestampPreservationFailed?.Invoke(s, e);
 
-        return await _manager.BruteForceRARVersionAsync(options);
+        return await manager.BruteForceRARVersionAsync(options, cancellationToken);
     }
-
-    public void Stop() => _manager?.Stop();
 }
