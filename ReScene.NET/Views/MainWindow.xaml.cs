@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Navigation;
 using ReScene.NET.Helpers;
 using ReScene.NET.Models;
@@ -208,51 +206,13 @@ public partial class MainWindow : Window
 
     private void OnAboutClick(object _, RoutedEventArgs e)
     {
-        string version = DataContext is ViewModels.MainWindowViewModel vm ? vm.AppVersion : "?";
+        string version = DataContext is MainWindowViewModel vm ? vm.AppVersion : "?";
 
-        var panel = new StackPanel { Margin = new Thickness(20) };
-
-        panel.Children.Add(new TextBlock { Text = "ReScene.NET", FontSize = 18, FontWeight = FontWeights.Bold });
-        panel.Children.Add(new TextBlock { Text = $"Version {version}", Foreground = (Brush)FindResource("ForegroundSecondary"), Margin = new Thickness(0, 4, 0, 0) });
-        panel.Children.Add(new TextBlock { Text = "Inspect, create, and reconstruct ReScene (SRR/SRS) files", Margin = new Thickness(0, 8, 0, 0) });
-
-        // Links
-        var linksPanel = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
-        linksPanel.Children.Add(MakeHyperlink("ReScene.NET on GitHub", "https://github.com/NeWbY100/ReScene.NET"));
-        linksPanel.Children.Add(MakeHyperlink("ReScene.Lib on GitHub", "https://github.com/NeWbY100/ReScene.Lib"));
-        linksPanel.Children.Add(MakeHyperlink("ReScene Wiki", "https://rescene.wikidot.com"));
-        panel.Children.Add(linksPanel);
-
-        var dialog = new Window
+        var window = new Views.AboutWindow(version)
         {
-            Title = "About ReScene.NET",
-            Width = 400,
-            Height = 250,
-            ResizeMode = ResizeMode.NoResize,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Owner = this,
-            Content = panel,
-            Background = (Brush)FindResource("WindowBackground"),
-            Foreground = (Brush)FindResource("ForegroundPrimary"),
-            FontFamily = (FontFamily)FindResource("UIFontFamily")
+            Owner = this
         };
-
-        dialog.SourceInitialized += (_, _) => DarkTitleBar.Enable(dialog);
-        dialog.ShowDialog();
-    }
-
-    private static TextBlock MakeHyperlink(string text, string url)
-    {
-        var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(text))
-        {
-            NavigateUri = new Uri(url)
-        };
-        link.RequestNavigate += (_, e) =>
-        {
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
-            e.Handled = true;
-        };
-        return new TextBlock(link) { Margin = new Thickness(0, 2, 0, 0) };
+        window.ShowDialog();
     }
 
     private void OnPreviewKeyDown(object _, KeyEventArgs e)

@@ -700,25 +700,13 @@ public class HexViewControl : UserControl
                 // Diff highlight (drawn first so search-match and selection layers stack on top).
                 if (diffRanges is not null && diffRanges.Count > 0)
                 {
-                    long lineEnd = lineFileOffset + bytesPerLine;
                     foreach (HexMatchRange range in diffRanges)
                     {
-                        long rangeEnd = range.Offset + range.Length;
-                        if (range.Offset >= lineEnd || rangeEnd <= lineFileOffset)
+                        if (TryClampRangeToLine(range.Offset, range.Offset + range.Length,
+                                lineFileOffset, bytesPerLine, out int dStart, out int dEnd))
                         {
-                            continue;
+                            PaintRangeOnLine(context, diffBrush, y, dStart, dEnd);
                         }
-
-                        int dStart = (int)Math.Max(0, range.Offset - lineFileOffset);
-                        int dEnd = (int)Math.Min(bytesPerLine, rangeEnd - lineFileOffset);
-
-                        double dhx1 = _owner.HexStartX + dStart * 3 * _charWidth;
-                        double dhx2 = _owner.HexStartX + (dEnd * 3 - 1) * _charWidth;
-                        context.DrawRectangle(diffBrush, null, new Rect(dhx1, y, dhx2 - dhx1, LineHeight));
-
-                        double dax1 = _owner.AsciiStartX + dStart * _charWidth;
-                        double dax2 = _owner.AsciiStartX + dEnd * _charWidth;
-                        context.DrawRectangle(diffBrush, null, new Rect(dax1, y, dax2 - dax1, LineHeight));
                     }
                 }
 
@@ -726,47 +714,22 @@ public class HexViewControl : UserControl
                 // current match's brighter color renders on top).
                 if (highlightRanges is not null && highlightRanges.Count > 0)
                 {
-                    long lineEnd = lineFileOffset + bytesPerLine;
                     foreach (HexMatchRange range in highlightRanges)
                     {
-                        long rangeEnd = range.Offset + range.Length;
-                        if (range.Offset >= lineEnd || rangeEnd <= lineFileOffset)
+                        if (TryClampRangeToLine(range.Offset, range.Offset + range.Length,
+                                lineFileOffset, bytesPerLine, out int hStart, out int hEnd))
                         {
-                            continue;
+                            PaintRangeOnLine(context, matchBrush, y, hStart, hEnd);
                         }
-
-                        int hStart = (int)Math.Max(0, range.Offset - lineFileOffset);
-                        int hEnd = (int)Math.Min(bytesPerLine, rangeEnd - lineFileOffset);
-
-                        double mhx1 = _owner.HexStartX + hStart * 3 * _charWidth;
-                        double mhx2 = _owner.HexStartX + (hEnd * 3 - 1) * _charWidth;
-                        context.DrawRectangle(matchBrush, null, new Rect(mhx1, y, mhx2 - mhx1, LineHeight));
-
-                        double max1 = _owner.AsciiStartX + hStart * _charWidth;
-                        double max2 = _owner.AsciiStartX + hEnd * _charWidth;
-                        context.DrawRectangle(matchBrush, null, new Rect(max1, y, max2 - max1, LineHeight));
                     }
                 }
 
                 // Selection highlight
-                if (selStart >= 0 && selLen > 0)
+                if (selStart >= 0 && selLen > 0
+                    && TryClampRangeToLine(selStart, selStart + selLen,
+                        lineFileOffset, bytesPerLine, out int highlightStart, out int highlightEnd))
                 {
-                    long selEnd = selStart + selLen;
-                    long lineEnd = lineFileOffset + bytesPerLine;
-
-                    if (selStart < lineEnd && selEnd > lineFileOffset)
-                    {
-                        int highlightStart = (int)Math.Max(0, selStart - lineFileOffset);
-                        int highlightEnd = (int)Math.Min(bytesPerLine, selEnd - lineFileOffset);
-
-                        double hx1 = _owner.HexStartX + highlightStart * 3 * _charWidth;
-                        double hx2 = _owner.HexStartX + (highlightEnd * 3 - 1) * _charWidth;
-                        context.DrawRectangle(selectionBrush, null, new Rect(hx1, y, hx2 - hx1, LineHeight));
-
-                        double ax1 = _owner.AsciiStartX + highlightStart * _charWidth;
-                        double ax2 = _owner.AsciiStartX + highlightEnd * _charWidth;
-                        context.DrawRectangle(selectionBrush, null, new Rect(ax1, y, ax2 - ax1, LineHeight));
-                    }
+                    PaintRangeOnLine(context, selectionBrush, y, highlightStart, highlightEnd);
                 }
 
                 // Address
@@ -807,6 +770,42 @@ public class HexViewControl : UserControl
                     FlowDirection.LeftToRight, _monoTypeface, DefaultFontSize, asciiBrush, _dpi);
                 context.DrawText(asciiText, new Point(_owner.AsciiStartX, y + 2));
             }
+        }
+
+        /// <summary>
+        /// Clamps a byte range <c>[rangeStart, rangeEnd)</c> to the visible portion of the line
+        /// starting at <paramref name="lineFileOffset"/>. Returns <see langword="false"/> when the
+        /// range does not overlap the line.
+        /// </summary>
+        private static bool TryClampRangeToLine(long rangeStart, long rangeEnd, long lineFileOffset,
+            int bytesPerLine, out int startByte, out int endByte)
+        {
+            long lineEnd = lineFileOffset + bytesPerLine;
+            if (rangeStart >= lineEnd || rangeEnd <= lineFileOffset)
+            {
+                startByte = 0;
+                endByte = 0;
+                return false;
+            }
+
+            startByte = (int)Math.Max(0, rangeStart - lineFileOffset);
+            endByte = (int)Math.Min(bytesPerLine, rangeEnd - lineFileOffset);
+            return true;
+        }
+
+        /// <summary>
+        /// Paints a single highlight rectangle (hex and ASCII columns) for the byte range
+        /// <c>[startByte, endByte)</c> on the line at vertical position <paramref name="y"/>.
+        /// </summary>
+        private void PaintRangeOnLine(DrawingContext context, Brush brush, double y, int startByte, int endByte)
+        {
+            double hx1 = _owner.HexStartX + startByte * 3 * _charWidth;
+            double hx2 = _owner.HexStartX + (endByte * 3 - 1) * _charWidth;
+            context.DrawRectangle(brush, null, new Rect(hx1, y, hx2 - hx1, LineHeight));
+
+            double ax1 = _owner.AsciiStartX + startByte * _charWidth;
+            double ax2 = _owner.AsciiStartX + endByte * _charWidth;
+            context.DrawRectangle(brush, null, new Rect(ax1, y, ax2 - ax1, LineHeight));
         }
 
         private Brush GetBrush(string resourceKey, Brush fallback)

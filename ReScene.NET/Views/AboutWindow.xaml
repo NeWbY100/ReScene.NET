@@ -1,0 +1,37 @@
+<Window x:Class="ReScene.NET.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About ReScene.NET"
+        Width="400" Height="250"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource ForegroundPrimary}"
+        FontFamily="{DynamicResource UIFontFamily}">
+
+  <StackPanel Margin="20">
+    <TextBlock Text="ReScene.NET" FontSize="18" FontWeight="Bold" />
+    <TextBlock Text="{Binding AppVersion, StringFormat='Version {0}'}"
+               Foreground="{DynamicResource ForegroundSecondary}"
+               Margin="0,4,0,0" />
+    <TextBlock Text="Inspect, create, and reconstruct ReScene (SRR/SRS) files"
+               Margin="0,8,0,0" />
+
+    <!-- Links -->
+    <StackPanel Margin="0,12,0,0">
+      <TextBlock Margin="0,2,0,0">
+        <Hyperlink NavigateUri="https://github.com/NeWbY100/ReScene.NET"
+                   RequestNavigate="OnHyperlinkRequestNavigate">ReScene.NET on GitHub</Hyperlink>
+      </TextBlock>
+      <TextBlock Margin="0,2,0,0">
+        <Hyperlink NavigateUri="https://github.com/NeWbY100/ReScene.Lib"
+                   RequestNavigate="OnHyperlinkRequestNavigate">ReScene.Lib on GitHub</Hyperlink>
+      </TextBlock>
+      <TextBlock Margin="0,2,0,0">
+        <Hyperlink NavigateUri="https://rescene.wikidot.com"
+                   RequestNavigate="OnHyperlinkRequestNavigate">ReScene Wiki</Hyperlink>
+      </TextBlock>
+    </StackPanel>
+  </StackPanel>
+</Window>

@@ -85,8 +85,7 @@
                     Content="Cancel"
                     Style="{StaticResource CancelButton}"
                     Padding="20,6"
-                    MinWidth="90"
-                    Click="OnCancelClick" />
+                    MinWidth="90" />
         </DockPanel>
 
     </Grid>

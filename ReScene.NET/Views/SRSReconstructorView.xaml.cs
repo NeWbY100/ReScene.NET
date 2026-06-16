@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading;
 using ReScene.NET.Helpers;
 using ReScene.NET.ViewModels;
 
@@ -9,7 +8,7 @@ namespace ReScene.NET.Views;
 
 public partial class SRSReconstructorView : UserControl
 {
-    private ISOProgressWindow? _iSOWindow;
+    private IsoProgressWindowController? _isoController;
 
     public SRSReconstructorView()
     {
@@ -37,8 +36,13 @@ public partial class SRSReconstructorView : UserControl
             oldVm.PropertyChanged -= OnVmPropertyChanged;
         }
 
+        _isoController = null;
+
         if (e.NewValue is SRSReconstructorViewModel newVm)
         {
+            // Forward cancellation to the existing generated CancelRebuildCommand.
+            _isoController = new IsoProgressWindowController(
+                this, () => newVm.ISOProcessing, () => newVm.CancelRebuildCommand.Execute(null));
             newVm.PropertyChanged += OnVmPropertyChanged;
         }
     }
@@ -50,42 +54,9 @@ public partial class SRSReconstructorView : UserControl
             return;
         }
 
-        if (sender is not SRSReconstructorViewModel vm)
+        if (sender is SRSReconstructorViewModel vm)
         {
-            return;
-        }
-
-        if (vm.ISOProcessing)
-        {
-            Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
-            {
-                _iSOWindow = new ISOProgressWindow
-                {
-                    Owner = Window.GetWindow(this),
-                    DataContext = DataContext
-                };
-
-                _iSOWindow.Closed += (_, _) =>
-                {
-                    // If the window was cancelled (not closed by code), cancel the operation
-                    if (vm.ISOProcessing)
-                    {
-                        vm.CancelRebuildCommand.Execute(null);
-                    }
-
-                    _iSOWindow = null;
-                };
-
-                _iSOWindow.ShowDialog();
-            });
-        }
-        else
-        {
-            Dispatcher.BeginInvoke(() =>
-            {
-                _iSOWindow?.Close();
-                _iSOWindow = null;
-            });
+            _isoController?.OnProcessingChanged(vm.ISOProcessing);
         }
     }
 }
