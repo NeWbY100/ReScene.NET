@@ -4,6 +4,33 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] — 2026-06-16
+
+### Added
+
+- Global exception handling: unhandled UI-thread exceptions, faulted unobserved
+  tasks, and fatal background-thread exceptions are now surfaced (an error dialog
+  plus a trace entry) instead of crashing silently or vanishing.
+
+### Fixed
+
+- **Stopping a reconstruction now actually cancels it.** The Stop signal is
+  threaded into the library so the running WinRAR processes are terminated, and a
+  mid-run stop is reported as "Cancelled" instead of the misleading
+  "No match found."
+- SRR creation no longer silently drops old-style RAR volumes (`.r00`, `.r01`, …)
+  when there is a gap in the numbering.
+- Settings load/save failures are now recorded (trace) instead of being silently
+  swallowed.
+
+### Changed
+
+- Updated to ReScene.Lib 2.0.0 (narrowed library API).
+- Internal refactoring with no behavioural change: view-model dialog and
+  UI-dispatch calls now go through injectable abstractions (making the validation
+  logic unit-testable), and the large Reconstructor view-model was decomposed
+  into focused collaborators.
+
 ## [1.3.0] — 2026-06-14
 
 ### Added
