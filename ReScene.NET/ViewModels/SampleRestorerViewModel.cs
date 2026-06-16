@@ -10,12 +10,11 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class SampleRestorerViewModel : ViewModelBase
+public partial class SampleRestorerViewModel : OperationViewModelBase
 {
     private readonly ISampleRestorerService _service;
     private readonly IFileDialogService _fileDialog;
     private readonly IUiDispatcher _uiDispatcher;
-    private CancellationTokenSource? _cts;
 
     public SampleRestorerViewModel(ISampleRestorerService service, IFileDialogService fileDialog, IUiDispatcher? uiDispatcher = null)
     {
@@ -54,22 +53,10 @@ public partial class SampleRestorerViewModel : ViewModelBase
     public partial bool IsRestoring { get; set; }
 
     [ObservableProperty]
-    public partial bool ShowProgress { get; set; }
-
-    [ObservableProperty]
-    public partial int ProgressPercent { get; set; }
-
-    [ObservableProperty]
-    public partial string ProgressMessage { get; set; } = string.Empty;
-
-    [ObservableProperty]
     public partial string OverallProgressText { get; set; } = string.Empty;
 
     // Entries
     public ObservableCollection<SRSFileEntry> SRSEntries { get; } = [];
-
-    // Log
-    public ObservableCollection<string> LogEntries { get; } = [];
 
     /// <summary>
     /// Clears all user-entered state back to a freshly-constructed default so a Beginner
@@ -247,36 +234,12 @@ public partial class SampleRestorerViewModel : ViewModelBase
     [RelayCommand]
     private void CancelRestore()
     {
-        _cts?.Cancel();
+        Cancel();
         Log("Cancellation requested...");
     }
 
     [RelayCommand]
-    private async Task SaveLogAsync()
-    {
-        if (LogEntries.Count == 0)
-        {
-            return;
-        }
-
-        string? path = await _fileDialog.SaveFileAsync(
-            "Save log", ".txt", ["Text Files|*.txt"], "log.txt");
-
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await LogExporter.SaveAsync(LogEntries, path);
-            Log($"Log saved to {Path.GetFileName(path)}");
-        }
-        catch (Exception ex)
-        {
-            Log($"ERROR saving log: {ex.Message}");
-        }
-    }
+    private Task SaveLogAsync() => SaveLogToFileAsync(_fileDialog);
 
     private void LoadSRSEntries()
     {
@@ -400,8 +363,6 @@ public partial class SampleRestorerViewModel : ViewModelBase
             ProgressMessage = msg;
         });
     }
-
-    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     public partial class SRSFileEntry : ObservableObject
     {

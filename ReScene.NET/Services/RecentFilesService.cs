@@ -1,15 +1,10 @@
-using System.Text.Json;
 using ReScene.NET.Models;
 
 namespace ReScene.NET.Services;
 
 public class RecentFilesService(IAppSettingsService appSettingsService) : IRecentFilesService
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new() { WriteIndented = true };
-    private static readonly string _appDataDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ReScene.NET");
-    private static readonly string _filePath = Path.Combine(_appDataDir, "recent.json");
+    private static readonly string _filePath = JsonFileStore.GetPath("recent.json");
 
     public List<RecentFileEntry> LoadEntries()
     {
@@ -20,8 +15,7 @@ public class RecentFilesService(IAppSettingsService appSettingsService) : IRecen
                 return [];
             }
 
-            string json = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<List<RecentFileEntry>>(json) ?? [];
+            return JsonFileStore.Read<List<RecentFileEntry>>(_filePath) ?? [];
         }
         catch
         {
@@ -65,9 +59,7 @@ public class RecentFilesService(IAppSettingsService appSettingsService) : IRecen
     {
         try
         {
-            Directory.CreateDirectory(_appDataDir);
-            string json = JsonSerializer.Serialize(entries, _serializerOptions);
-            File.WriteAllText(_filePath, json);
+            JsonFileStore.Write(_filePath, entries);
         }
         catch
         {

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using ReScene.NET.Models;
 
 namespace ReScene.NET.Services;
@@ -8,11 +7,7 @@ namespace ReScene.NET.Services;
 /// </summary>
 public class WindowStateService : IWindowStateService
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new() { WriteIndented = true };
-    private static readonly string _appDataDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ReScene.NET");
-    private static readonly string _filePath = Path.Combine(_appDataDir, "window-state.json");
+    private static readonly string _filePath = JsonFileStore.GetPath("window-state.json");
 
     public WindowStateModel? Load()
     {
@@ -23,8 +18,7 @@ public class WindowStateService : IWindowStateService
                 return null;
             }
 
-            string json = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<WindowStateModel>(json);
+            return JsonFileStore.Read<WindowStateModel>(_filePath);
         }
         catch
         {
@@ -36,9 +30,7 @@ public class WindowStateService : IWindowStateService
     {
         try
         {
-            Directory.CreateDirectory(_appDataDir);
-            string json = JsonSerializer.Serialize(state, _serializerOptions);
-            File.WriteAllText(_filePath, json);
+            JsonFileStore.Write(_filePath, state);
         }
         catch
         {

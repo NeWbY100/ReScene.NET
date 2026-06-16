@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 using System.Windows.Shell;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +17,20 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialog;
     private readonly IRecentFilesService _recentFiles;
     private readonly IAppSettingsService _appSettingsService;
+
+    /// <summary>
+    /// A long-running task VM: its property source (for change notifications), the busy and
+    /// progress property names to watch, and accessors for the current busy flag and
+    /// 0..1 progress value.
+    /// </summary>
+    private sealed record TaskRegistration(
+        INotifyPropertyChanged Source,
+        string BusyProperty,
+        string ProgressProperty,
+        Func<bool> IsBusy,
+        Func<double> Progress);
+
+    private readonly TaskRegistration[] _taskRegistrations;
 
     public HomeViewModel Home
     {
@@ -192,50 +207,33 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         };
 
-        Creator.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is nameof(CreatorViewModel.IsCreating) or nameof(CreatorViewModel.ProgressPercent))
-            {
-                UpdateIsBusy();
-                UpdateTaskbarProgress();
-            }
-        };
+        // Each long-running task VM contributes a busy flag and a 0..1 progress value.
+        // The taskbar reflects the first busy task in declared order.
+        _taskRegistrations =
+        [
+            new(Creator, nameof(CreatorViewModel.IsCreating), nameof(CreatorViewModel.ProgressPercent),
+                () => Creator.IsCreating, () => Creator.ProgressPercent / 100.0),
+            new(SRSCreator, nameof(SRSCreatorViewModel.IsCreating), nameof(SRSCreatorViewModel.ProgressPercent),
+                () => SRSCreator.IsCreating, () => SRSCreator.ProgressPercent / 100.0),
+            new(Reconstructor, nameof(ReconstructorViewModel.IsRunning), nameof(ReconstructorViewModel.ProgressPercent),
+                () => Reconstructor.IsRunning, () => Reconstructor.ProgressPercent / 100.0),
+            new(SRSReconstructor, nameof(SRSReconstructorViewModel.IsRebuilding), nameof(SRSReconstructorViewModel.ProgressPercent),
+                () => SRSReconstructor.IsRebuilding, () => SRSReconstructor.ProgressPercent / 100.0),
+            new(SampleRestorer, nameof(SampleRestorerViewModel.IsRestoring), nameof(SampleRestorerViewModel.ProgressPercent),
+                () => SampleRestorer.IsRestoring, () => SampleRestorer.ProgressPercent / 100.0),
+        ];
 
-        SRSCreator.PropertyChanged += (_, e) =>
+        foreach (TaskRegistration reg in _taskRegistrations)
         {
-            if (e.PropertyName is nameof(SRSCreatorViewModel.IsCreating) or nameof(SRSCreatorViewModel.ProgressPercent))
+            reg.Source.PropertyChanged += (_, e) =>
             {
-                UpdateIsBusy();
-                UpdateTaskbarProgress();
-            }
-        };
-
-        Reconstructor.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is nameof(ReconstructorViewModel.IsRunning) or nameof(ReconstructorViewModel.ProgressPercent))
-            {
-                UpdateIsBusy();
-                UpdateTaskbarProgress();
-            }
-        };
-
-        SRSReconstructor.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is nameof(SRSReconstructorViewModel.IsRebuilding) or nameof(SRSReconstructorViewModel.ProgressPercent))
-            {
-                UpdateIsBusy();
-                UpdateTaskbarProgress();
-            }
-        };
-
-        SampleRestorer.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is nameof(SampleRestorerViewModel.IsRestoring) or nameof(SampleRestorerViewModel.ProgressPercent))
-            {
-                UpdateIsBusy();
-                UpdateTaskbarProgress();
-            }
-        };
+                if (e.PropertyName == reg.BusyProperty || e.PropertyName == reg.ProgressProperty)
+                {
+                    UpdateIsBusy();
+                    UpdateTaskbarProgress();
+                }
+            };
+        }
 
         // Apply the persisted/resolved mode without writing it back: the value was just
         // loaded, so suppress OnModeChanged's save. Subscribe to Changed afterwards.
@@ -279,41 +277,17 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private void UpdateIsBusy()
-    {
-        IsBusy = Inspector.IsExporting
-            || Creator.IsCreating
-            || SRSCreator.IsCreating
-            || Reconstructor.IsRunning
-            || SRSReconstructor.IsRebuilding
-            || SampleRestorer.IsRestoring;
-    }
+        => IsBusy = _taskRegistrations.Any(r => r.IsBusy()) || Inspector.IsExporting;
 
     private void UpdateTaskbarProgress()
     {
-        if (Creator.IsCreating)
+        // Reflect the first busy task in declared order (Inspector has no progress bar).
+        TaskRegistration? busy = _taskRegistrations.FirstOrDefault(r => r.IsBusy());
+
+        if (busy is not null)
         {
             TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = Creator.ProgressPercent / 100.0;
-        }
-        else if (SRSCreator.IsCreating)
-        {
-            TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = SRSCreator.ProgressPercent / 100.0;
-        }
-        else if (Reconstructor.IsRunning)
-        {
-            TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = Reconstructor.ProgressPercent / 100.0;
-        }
-        else if (SRSReconstructor.IsRebuilding)
-        {
-            TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = SRSReconstructor.ProgressPercent / 100.0;
-        }
-        else if (SampleRestorer.IsRestoring)
-        {
-            TaskbarProgressState = TaskbarItemProgressState.Normal;
-            TaskbarProgressValue = SampleRestorer.ProgressPercent / 100.0;
+            TaskbarProgressValue = busy.Progress();
         }
         else
         {

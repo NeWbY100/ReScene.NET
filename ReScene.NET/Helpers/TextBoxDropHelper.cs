@@ -19,21 +19,7 @@ internal static class TextBoxDropHelper
     /// </param>
     public static void SetupFileDrop(TextBox textBox, Action<string> setter)
     {
-        textBox.AllowDrop = true;
-
-        textBox.PreviewDragOver += (_, e) =>
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                e.Effects = DragDropEffects.Copy;
-            }
-            else
-            {
-                e.Effects = DragDropEffects.None;
-            }
-
-            e.Handled = true;
-        };
+        AttachDragOver(textBox);
 
         textBox.PreviewDrop += (_, e) =>
         {
@@ -46,15 +32,10 @@ internal static class TextBoxDropHelper
     }
 
     /// <summary>
-    /// Configures a TextBox to accept dropped folders and set the path via the provided setter.
+    /// Enables drop on the TextBox and wires the shared PreviewDragOver handler that
+    /// shows the Copy cursor for file drops and None otherwise.
     /// </summary>
-    /// <param name="textBox">
-    /// The TextBox to configure.
-    /// </param>
-    /// <param name="setter">
-    /// Action to call with the dropped folder path.
-    /// </param>
-    public static void SetupFolderDrop(TextBox textBox, Action<string> setter)
+    private static void AttachDragOver(TextBox textBox)
     {
         textBox.AllowDrop = true;
 
@@ -71,6 +52,20 @@ internal static class TextBoxDropHelper
 
             e.Handled = true;
         };
+    }
+
+    /// <summary>
+    /// Configures a TextBox to accept dropped folders and set the path via the provided setter.
+    /// </summary>
+    /// <param name="textBox">
+    /// The TextBox to configure.
+    /// </param>
+    /// <param name="setter">
+    /// Action to call with the dropped folder path.
+    /// </param>
+    public static void SetupFolderDrop(TextBox textBox, Action<string> setter)
+    {
+        AttachDragOver(textBox);
 
         textBox.PreviewDrop += (_, e) =>
         {

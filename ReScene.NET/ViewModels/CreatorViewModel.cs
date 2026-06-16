@@ -12,7 +12,7 @@ namespace ReScene.NET.ViewModels;
 /// <summary>
 /// ViewModel for the SRR Creator tab, handling SRR file creation from SFV or RAR inputs.
 /// </summary>
-public partial class CreatorViewModel : ViewModelBase
+public partial class CreatorViewModel : OperationViewModelBase
 {
     private readonly ISrrCreationService _sRRService;
     private readonly ISrsCreationService _sRSService;
@@ -20,7 +20,6 @@ public partial class CreatorViewModel : ViewModelBase
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
     private readonly IUiDispatcher _uiDispatcher;
-    private CancellationTokenSource? _cts;
 
     public CreatorViewModel(ISrrCreationService srrService, ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService, IUiDispatcher? uiDispatcher = null)
     {
@@ -125,17 +124,8 @@ public partial class CreatorViewModel : ViewModelBase
 
     // Progress
     [ObservableProperty]
-    public partial int ProgressPercent { get; set; }
-
-    [ObservableProperty]
-    public partial string ProgressMessage { get; set; } = string.Empty;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRRCommand))]
     public partial bool IsCreating { get; set; }
-
-    [ObservableProperty]
-    public partial bool ShowProgress { get; set; }
 
     /// <summary>
     /// True only after the most recent creation finished successfully. Lets a hosting wizard gate
@@ -143,9 +133,6 @@ public partial class CreatorViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial bool BuildSucceeded { get; set; }
-
-    // Log
-    public ObservableCollection<string> LogEntries { get; } = [];
 
     /// <summary>
     /// Clears all user-entered state back to a freshly-constructed default so a Beginner
@@ -754,36 +741,12 @@ public partial class CreatorViewModel : ViewModelBase
     [RelayCommand]
     private void CancelCreation()
     {
-        _cts?.Cancel();
+        Cancel();
         Log("Cancellation requested...");
     }
 
     [RelayCommand]
-    private async Task SaveLogAsync()
-    {
-        if (LogEntries.Count == 0)
-        {
-            return;
-        }
-
-        string? path = await _fileDialog.SaveFileAsync(
-            "Save log", ".txt", ["Text Files|*.txt"], "log.txt");
-
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await LogExporter.SaveAsync(LogEntries, path);
-            Log($"Log saved to {Path.GetFileName(path)}");
-        }
-        catch (Exception ex)
-        {
-            Log($"ERROR saving log: {ex.Message}");
-        }
-    }
+    private Task SaveLogAsync() => SaveLogToFileAsync(_fileDialog);
 
     // ── Auto-scan ───────────────────────────────────────────
 
@@ -998,8 +961,6 @@ public partial class CreatorViewModel : ViewModelBase
             Log(e.Message);
         });
     }
-
-    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     // ── Helpers ─────────────────────────────────────────────
 

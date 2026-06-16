@@ -9,14 +9,13 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class SRSCreatorViewModel : ViewModelBase
+public partial class SRSCreatorViewModel : OperationViewModelBase
 {
     private readonly ISrsCreationService _sRSService;
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
     private readonly IUiDispatcher _uiDispatcher;
-    private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
     public SRSCreatorViewModel(ISrsCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService, IUiDispatcher? uiDispatcher = null)
@@ -207,20 +206,8 @@ public partial class SRSCreatorViewModel : ViewModelBase
 
     // Progress
     [ObservableProperty]
-    public partial int ProgressPercent { get; set; }
-
-    [ObservableProperty]
-    public partial string ProgressMessage { get; set; } = string.Empty;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
     public partial bool IsCreating { get; set; }
-
-    [ObservableProperty]
-    public partial bool ShowProgress { get; set; }
-
-    // Log
-    public ObservableCollection<string> LogEntries { get; } = [];
 
     /// <summary>
     /// Clears all user-entered state back to a freshly-constructed default so a Beginner
@@ -496,36 +483,12 @@ public partial class SRSCreatorViewModel : ViewModelBase
     [RelayCommand]
     private void CancelCreation()
     {
-        _cts?.Cancel();
+        Cancel();
         Log("Cancellation requested...");
     }
 
     [RelayCommand]
-    private async Task SaveLogAsync()
-    {
-        if (LogEntries.Count == 0)
-        {
-            return;
-        }
-
-        string? path = await _fileDialog.SaveFileAsync(
-            "Save log", ".txt", ["Text Files|*.txt"], "log.txt");
-
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await LogExporter.SaveAsync(LogEntries, path);
-            Log($"Log saved to {Path.GetFileName(path)}");
-        }
-        catch (Exception ex)
-        {
-            Log($"ERROR saving log: {ex.Message}");
-        }
-    }
+    private Task SaveLogAsync() => SaveLogToFileAsync(_fileDialog);
 
     private void OnProgress(object? _, SRSCreationProgressEventArgs e)
     {
@@ -582,24 +545,13 @@ public partial class SRSCreatorViewModel : ViewModelBase
         }
 
         double elapsed = _scanStopwatch.Elapsed.TotalSeconds;
-        ISOProcessedText = $"{FormatUtilities.FormatSize(processed)} / {FormatUtilities.FormatSize(total)}";
+        (ISOProcessedText, ISORemainingText) = FormatUtilities.FormatScanStats(processed, total);
 
-        long remaining = total - processed;
-        ISORemainingText = FormatUtilities.FormatSize(remaining);
-
-        if (elapsed > 0.5 && processed > 0)
+        if (FormatUtilities.FormatSpeedEta(processed, total, elapsed) is { } speedEta)
         {
-            double bytesPerSec = processed / elapsed;
-            ISOSpeedText = $"{FormatUtilities.FormatSize((long)bytesPerSec)}/s";
-
-            double secondsRemaining = remaining / bytesPerSec;
-            ISOEtaText = secondsRemaining < 60
-                ? $"{secondsRemaining:F0}s"
-                : $"{(int)(secondsRemaining / 60)}m {(int)(secondsRemaining % 60)}s";
+            (ISOSpeedText, ISOEtaText) = speedEta;
         }
     }
-
-    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     #region ISO Support
 

@@ -1,16 +1,11 @@
 using System.Diagnostics;
-using System.Text.Json;
 using ReScene.NET.Models;
 
 namespace ReScene.NET.Services;
 
 public class AppSettingsService : IAppSettingsService
 {
-    private static readonly JsonSerializerOptions _serializerOptions = new() { WriteIndented = true };
-    private static readonly string _appDataDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ReScene.NET");
-    private static readonly string _filePath = Path.Combine(_appDataDir, "settings.json");
+    private static readonly string _filePath = JsonFileStore.GetPath("settings.json");
 
     public event EventHandler? Changed;
 
@@ -28,7 +23,7 @@ public class AppSettingsService : IAppSettingsService
         try
         {
             settings = fileExisted
-                ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_filePath)) ?? new AppSettings()
+                ? JsonFileStore.Read<AppSettings>(_filePath) ?? new AppSettings()
                 : new AppSettings();
         }
         catch (Exception ex)
@@ -49,9 +44,7 @@ public class AppSettingsService : IAppSettingsService
     {
         try
         {
-            Directory.CreateDirectory(_appDataDir);
-            string json = JsonSerializer.Serialize(settings, _serializerOptions);
-            File.WriteAllText(_filePath, json);
+            JsonFileStore.Write(_filePath, settings);
             Changed?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

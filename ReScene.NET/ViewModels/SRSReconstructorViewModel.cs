@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,13 +8,12 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class SRSReconstructorViewModel : ViewModelBase
+public partial class SRSReconstructorViewModel : OperationViewModelBase
 {
     private readonly ISrsReconstructionService _service;
     private readonly IFileDialogService _fileDialog;
     private readonly ITempDirectoryService _tempDir;
     private readonly IUiDispatcher _uiDispatcher;
-    private CancellationTokenSource? _cts;
     private string? _extractedTempFile;
 
     public SRSReconstructorViewModel(ISrsReconstructionService service, IFileDialogService fileDialog, ITempDirectoryService tempDir, IUiDispatcher? uiDispatcher = null)
@@ -65,17 +63,8 @@ public partial class SRSReconstructorViewModel : ViewModelBase
 
     // Progress
     [ObservableProperty]
-    public partial int ProgressPercent { get; set; }
-
-    [ObservableProperty]
-    public partial string ProgressMessage { get; set; } = string.Empty;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
     public partial bool IsRebuilding { get; set; }
-
-    [ObservableProperty]
-    public partial bool ShowProgress { get; set; }
 
     // ISO progress (for modal window)
     [ObservableProperty]
@@ -123,9 +112,6 @@ public partial class SRSReconstructorViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool ResultSuccess { get; set; }
-
-    // Log
-    public ObservableCollection<string> LogEntries { get; } = [];
 
     /// <summary>
     /// Clears all user-entered state back to a freshly-constructed default so a Beginner
@@ -387,36 +373,12 @@ public partial class SRSReconstructorViewModel : ViewModelBase
     [RelayCommand]
     private void CancelRebuild()
     {
-        _cts?.Cancel();
+        Cancel();
         Log("Cancellation requested...");
     }
 
     [RelayCommand]
-    private async Task SaveLogAsync()
-    {
-        if (LogEntries.Count == 0)
-        {
-            return;
-        }
-
-        string? path = await _fileDialog.SaveFileAsync(
-            "Save log", ".txt", ["Text Files|*.txt"], "log.txt");
-
-        if (path is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await LogExporter.SaveAsync(LogEntries, path);
-            Log($"Log saved to {Path.GetFileName(path)}");
-        }
-        catch (Exception ex)
-        {
-            Log($"ERROR saving log: {ex.Message}");
-        }
-    }
+    private Task SaveLogAsync() => SaveLogToFileAsync(_fileDialog);
 
     private void UpdateISOStats(long processed, long total)
     {
@@ -426,25 +388,11 @@ public partial class SRSReconstructorViewModel : ViewModelBase
         }
 
         double elapsed = _iSOStopwatch.Elapsed.TotalSeconds;
-        ISOProcessedText = $"{FormatUtilities.FormatSize(processed)} / {FormatUtilities.FormatSize(total)}";
+        (ISOProcessedText, ISORemainingText) = FormatUtilities.FormatScanStats(processed, total);
 
-        long remaining = total - processed;
-        ISORemainingText = FormatUtilities.FormatSize(remaining);
-
-        if (elapsed > 0.5 && processed > 0)
+        if (FormatUtilities.FormatSpeedEta(processed, total, elapsed) is { } speedEta)
         {
-            double bytesPerSec = processed / elapsed;
-            ISOSpeedText = $"{FormatUtilities.FormatSize((long)bytesPerSec)}/s";
-
-            double secondsRemaining = remaining / bytesPerSec;
-            if (secondsRemaining < 60)
-            {
-                ISOEtaText = $"{secondsRemaining:F0}s";
-            }
-            else
-            {
-                ISOEtaText = $"{(int)(secondsRemaining / 60)}m {(int)(secondsRemaining % 60)}s";
-            }
+            (ISOSpeedText, ISOEtaText) = speedEta;
         }
     }
 
@@ -517,8 +465,6 @@ public partial class SRSReconstructorViewModel : ViewModelBase
             Log(msg);
         });
     }
-
-    private void Log(string message) => AppendLogEntry(LogEntries, message);
 
     partial void OnSRSFilePathChanged(string value)
     {

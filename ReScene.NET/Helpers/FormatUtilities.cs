@@ -27,6 +27,42 @@ internal static class FormatUtilities
     }
 
     /// <summary>
+    /// Formats the processed/total and remaining-bytes texts for an ISO/scan progress display.
+    /// </summary>
+    /// <returns>
+    /// The "processed / total" text and the remaining-bytes text.
+    /// </returns>
+    public static (string Processed, string Remaining) FormatScanStats(long processed, long total)
+    {
+        string processedText = $"{FormatSize(processed)} / {FormatSize(total)}";
+        string remainingText = FormatSize(total - processed);
+        return (processedText, remainingText);
+    }
+
+    /// <summary>
+    /// Formats the speed and ETA texts for an ISO/scan progress display, or returns
+    /// <see langword="null"/> when there is not yet enough data to estimate
+    /// (less than half a second elapsed, or nothing processed).
+    /// </summary>
+    public static (string Speed, string Eta)? FormatSpeedEta(long processed, long total, double elapsedSeconds)
+    {
+        if (elapsedSeconds <= 0.5 || processed <= 0)
+        {
+            return null;
+        }
+
+        double bytesPerSec = processed / elapsedSeconds;
+        string speedText = $"{FormatSize((long)bytesPerSec)}/s";
+
+        double secondsRemaining = (total - processed) / bytesPerSec;
+        string etaText = secondsRemaining < 60
+            ? $"{secondsRemaining:F0}s"
+            : $"{(int)(secondsRemaining / 60)}m {(int)(secondsRemaining % 60)}s";
+
+        return (speedText, etaText);
+    }
+
+    /// <summary>
     /// Gets the default application name string including version info from the entry assembly.
     /// </summary>
     public static string GetDefaultAppName()
