@@ -510,22 +510,18 @@ public partial class CreatorViewModel : OperationViewModelBase
         };
 
         var materialized = new Dictionary<StoredFileItem, string>();
-        int index = 0;
-        foreach (StoredFileItem item in StoredFiles.Where(f => f.Kind != StoredFileKind.Regular).ToList())
-        {
-            ct.ThrowIfCancellationRequested();
-            string? generated = item.Kind switch
-            {
-                StoredFileKind.GeneratedSrs => await GenerateSrsFileAsync(item.GenerateFromPath!, tempDir, index++, srsOptions, ct),
-                StoredFileKind.GeneratedNestedSrr => await GenerateNestedSrrFileAsync(item.GenerateFromPath!, tempDir, index++, options, ct),
-                _ => null,
-            };
+        List<StoredFileItem> placeholders = StoredFiles.Where(f => f.Kind != StoredFileKind.Regular).ToList();
 
-            if (generated is not null)
+        await GenerateAndRecordAsync(
+            placeholders,
+            (item, index, token) => item.Kind switch
             {
-                materialized[item] = generated;
-            }
-        }
+                StoredFileKind.GeneratedSrs => GenerateSrsFileAsync(item.GenerateFromPath!, tempDir, index, srsOptions, token),
+                StoredFileKind.GeneratedNestedSrr => GenerateNestedSrrFileAsync(item.GenerateFromPath!, tempDir, index, options, token),
+                _ => Task.FromResult<string?>(null),
+            },
+            (item, generated) => materialized[item] = generated,
+            ct);
 
         return materialized;
     }
@@ -798,19 +794,15 @@ public partial class CreatorViewModel : OperationViewModelBase
             AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene.NET" : AppName
         };
 
-        for (int i = 0; i < samples.Count; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            string? srsPath = await GenerateSrsFileAsync(samples[i], tempDir, i, srsOptions, ct);
-            if (srsPath is not null)
+        await GenerateAndRecordAsync(
+            samples,
+            (sample, i, token) => GenerateSrsFileAsync(sample, tempDir, i, srsOptions, token),
+            (sample, srsPath) => StoredFiles.Add(new StoredFileItem
             {
-                StoredFiles.Add(new StoredFileItem
-                {
-                    FullPath = srsPath,
-                    StoredName = GeneratedStoredName(releaseDir, samples[i], ".srs", "Sample"),
-                });
-            }
-        }
+                FullPath = srsPath,
+                StoredName = GeneratedStoredName(releaseDir, sample, ".srs", "Sample"),
+            }),
+            ct);
     }
 
     // ── Vobsub nested SRR (Advanced tab: scan + generate at create time) ──
@@ -822,19 +814,15 @@ public partial class CreatorViewModel : OperationViewModelBase
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        for (int i = 0; i < subtitleSfvs.Count; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            string? srrPath = await GenerateNestedSrrFileAsync(subtitleSfvs[i], tempDir, i, options, ct);
-            if (srrPath is not null)
+        await GenerateAndRecordAsync(
+            subtitleSfvs,
+            (sfv, i, token) => GenerateNestedSrrFileAsync(sfv, tempDir, i, options, token),
+            (sfv, srrPath) => StoredFiles.Add(new StoredFileItem
             {
-                StoredFiles.Add(new StoredFileItem
-                {
-                    FullPath = srrPath,
-                    StoredName = GeneratedStoredName(releaseDir, subtitleSfvs[i], ".srr", "Subs"),
-                });
-            }
-        }
+                FullPath = srrPath,
+                StoredName = GeneratedStoredName(releaseDir, sfv, ".srr", "Subs"),
+            }),
+            ct);
     }
 
     // ── Per-file generators (shared by Advanced create-time and wizard placeholder paths) ──
@@ -906,6 +894,31 @@ public partial class CreatorViewModel : OperationViewModelBase
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Shared "enumerate sources → generate file → name it → record it" loop behind the Advanced
+    /// create-time scans and the wizard's placeholder materialization. <paramref name="generate"/>
+    /// produces the file for each source (returning null on failure/skip); <paramref name="record"/>
+    /// is the sink — the Advanced paths add a <see cref="StoredFileItem"/> to the bound
+    /// <see cref="StoredFiles"/> collection, while the wizard path writes into its placeholder→path
+    /// map. The per-source index keeps temp filenames unique.
+    /// </summary>
+    private static async Task GenerateAndRecordAsync<TSource>(
+        IReadOnlyList<TSource> sources,
+        Func<TSource, int, CancellationToken, Task<string?>> generate,
+        Action<TSource, string> record,
+        CancellationToken ct)
+    {
+        for (int i = 0; i < sources.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            string? generated = await generate(sources[i], i, ct);
+            if (generated is not null)
+            {
+                record(sources[i], generated);
+            }
+        }
     }
 
     // ── Fix release detection ───────────────────────────────

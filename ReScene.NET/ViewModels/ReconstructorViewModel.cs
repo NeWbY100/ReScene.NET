@@ -638,85 +638,10 @@ public partial class ReconstructorViewModel : ViewModelBase
                 }
             }
 
-            // Compression method
-            if (srr.CompressionMethod.HasValue)
-            {
-                int method = srr.CompressionMethod.Value;
-                if (method is >= 0 and <= 5)
-                {
-                    SwitchM0 = method == 0;
-                    SwitchM1 = method == 1;
-                    SwitchM2 = method == 2;
-                    SwitchM3 = method == 3;
-                    SwitchM4 = method == 4;
-                    SwitchM5 = method == 5;
-                    string[] names = ["Store", "Fastest", "Fast", "Normal", "Good", "Best"];
-                    Log(LogTarget.System, $"Compression: -m{method} ({names[method]})");
-                }
-            }
-
-            // Dictionary size
-            if (srr.DictionarySize.HasValue)
-            {
-                SwitchMD64K = SwitchMD128K = SwitchMD256K = SwitchMD512K = false;
-                SwitchMD1024K = SwitchMD2048K = SwitchMD4096K = false;
-                SwitchMD8M = SwitchMD16M = SwitchMD32M = SwitchMD64M = false;
-                SwitchMD128M = SwitchMD256M = SwitchMD512M = SwitchMD1G = false;
-
-                switch (srr.DictionarySize.Value)
-                {
-                    case 64:
-                        SwitchMD64K = true;
-                        break;
-                    case 128:
-                        SwitchMD128K = true;
-                        break;
-                    case 256:
-                        SwitchMD256K = true;
-                        break;
-                    case 512:
-                        SwitchMD512K = true;
-                        break;
-                    case 1024:
-                        SwitchMD1024K = true;
-                        break;
-                    case 2048:
-                        SwitchMD2048K = true;
-                        break;
-                    case 4096:
-                        SwitchMD4096K = true;
-                        break;
-                }
-
-                Log(LogTarget.System, $"Dictionary: {srr.DictionarySize.Value} KB");
-            }
-
-            // Solid archive
-            if (srr.IsSolidArchive.HasValue)
-            {
-                SwitchSDash = !srr.IsSolidArchive.Value;
-            }
-
-            // Archive format
-            if (srr.RARVersion.HasValue)
-            {
-                SwitchMA4 = false;
-                SwitchMA5 = false;
-                if (srr.RARVersion.Value < 50)
-                {
-                    SwitchMA4 = true;
-                    Log(LogTarget.System, "Archive format: RAR4 (-ma4)");
-                }
-                else if (srr.RARVersion.Value < 70)
-                {
-                    SwitchMA5 = true;
-                    Log(LogTarget.System, "Archive format: RAR5 (-ma5)");
-                }
-                else
-                {
-                    Log(LogTarget.System, "Archive format: RAR7");
-                }
-            }
+            // Pure switch mapping: only the toggles the SRR actually specifies (partial diff —
+            // unspecified groups stay null and the corresponding toggles are left untouched).
+            SrrSwitchMapper.SwitchDiff switches = SrrSwitchMapper.Map(srr);
+            ApplySwitchDiff(switches);
 
             // Timestamp precision
             TimestampPrecision? mtimePrecision = srr.FileMtimePrecision ?? srr.CmtMtimePrecision;
@@ -1746,6 +1671,78 @@ public partial class ReconstructorViewModel : ViewModelBase
         set2(precision == TimestampPrecision.HighPrecision1);
         set3(precision == TimestampPrecision.HighPrecision2);
         set4(precision == TimestampPrecision.NtfsPrecision);
+    }
+
+    /// <summary>
+    /// Applies the partial switch diff produced by <see cref="SrrSwitchMapper"/> onto the bound
+    /// option toggles, emitting the same log lines in the same order as the original inline mapping.
+    /// Groups left null by the mapper (no SRR information) are skipped, so their toggles keep their
+    /// current values rather than being reset.
+    /// </summary>
+    private void ApplySwitchDiff(SrrSwitchMapper.SwitchDiff diff)
+    {
+        // Compression method
+        if (diff.Compression is { } compression)
+        {
+            int method = compression.Method;
+            SwitchM0 = method == 0;
+            SwitchM1 = method == 1;
+            SwitchM2 = method == 2;
+            SwitchM3 = method == 3;
+            SwitchM4 = method == 4;
+            SwitchM5 = method == 5;
+            Log(LogTarget.System, $"Compression: -m{method} ({compression.LogName})");
+        }
+
+        // Dictionary size
+        if (diff.Dictionary is { } dictionary)
+        {
+            SwitchMD64K = SwitchMD128K = SwitchMD256K = SwitchMD512K = false;
+            SwitchMD1024K = SwitchMD2048K = SwitchMD4096K = false;
+            SwitchMD8M = SwitchMD16M = SwitchMD32M = SwitchMD64M = false;
+            SwitchMD128M = SwitchMD256M = SwitchMD512M = SwitchMD1G = false;
+
+            switch (dictionary.Switch)
+            {
+                case SrrSwitchMapper.DictionarySwitch.MD64K:
+                    SwitchMD64K = true;
+                    break;
+                case SrrSwitchMapper.DictionarySwitch.MD128K:
+                    SwitchMD128K = true;
+                    break;
+                case SrrSwitchMapper.DictionarySwitch.MD256K:
+                    SwitchMD256K = true;
+                    break;
+                case SrrSwitchMapper.DictionarySwitch.MD512K:
+                    SwitchMD512K = true;
+                    break;
+                case SrrSwitchMapper.DictionarySwitch.MD1024K:
+                    SwitchMD1024K = true;
+                    break;
+                case SrrSwitchMapper.DictionarySwitch.MD2048K:
+                    SwitchMD2048K = true;
+                    break;
+                case SrrSwitchMapper.DictionarySwitch.MD4096K:
+                    SwitchMD4096K = true;
+                    break;
+            }
+
+            Log(LogTarget.System, $"Dictionary: {dictionary.SizeKb} KB");
+        }
+
+        // Solid archive
+        if (diff.SwitchSDash is { } switchSDash)
+        {
+            SwitchSDash = switchSDash;
+        }
+
+        // Archive format
+        if (diff.Format is { } format)
+        {
+            SwitchMA4 = format.MA4;
+            SwitchMA5 = format.MA5;
+            Log(LogTarget.System, format.LogLine);
+        }
     }
 
     private void ApplyVolumeSize(long sizeBytes)
