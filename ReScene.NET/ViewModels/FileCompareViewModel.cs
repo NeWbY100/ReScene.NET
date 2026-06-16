@@ -1,13 +1,12 @@
 using System.Collections.ObjectModel;
-using System.Text;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReScene.Core.Comparison;
 using ReScene.Hex;
 using ReScene.NET.Helpers;
-using ReScene.NET.Models;
 using ReScene.NET.Services;
+using ReScene.NET.ViewModels.Comparison;
 using ReScene.RAR;
 using ReScene.SRR;
 using ReScene.SRS;
@@ -138,25 +137,17 @@ public class CompareNodeData
 /// </summary>
 public partial class FileCompareViewModel(IFileCompareService compareService, IFileDialogService fileDialog, IHexDiffComputer diffComputer, IUiDispatcher? uiDispatcher = null) : ViewModelBase, IDisposable
 {
-    private const int MaxBlockCompareSize = 10 * 1024 * 1024;
-
     private readonly IFileCompareService _compareService = compareService;
     private readonly IFileDialogService _fileDialog = fileDialog;
     private readonly IHexDiffComputer _diffComputer = diffComputer;
     private readonly IUiDispatcher _uiDispatcher = uiDispatcher ?? new WpfDispatcher();
 
-    // Internal state
-    private object? _leftData;
-    private object? _rightData;
-    private string? _leftFilePathInternal;
-    private string? _rightFilePathInternal;
-    private long _leftFileSize;
-    private long _rightFileSize;
-    private IReadOnlyList<RARDetailedBlock>? _leftDetailedBlocks;
-    private IReadOnlyList<RARDetailedBlock>? _rightDetailedBlocks;
+    // Internal per-side state. Reassigned by reference on Swap; reset on Close/reload.
+    private ComparePane _left = new();
+    private ComparePane _right = new();
     private CompareResult? _compareResult;
-    private MemoryMappedDataSource? _leftFileSource;
-    private MemoryMappedDataSource? _rightFileSource;
+
+    private ComparePane Pane(bool isLeft) => isLeft ? _left : _right;
 
     // Diff state — CTS lifecycle is owned by RunDiffAsync's finally block.
 #pragma warning disable CA2213
@@ -279,34 +270,35 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     }
 
     [RelayCommand]
-    private void CloseLeft()
-    {
-        CancelDiff();
-        LeftHexDataSource = null;
-        _leftFileSource?.Dispose();
-        _leftFileSource = null;
-        _leftData = null;
-        _leftFilePathInternal = null;
-        _leftFileSize = 0;
-        _leftDetailedBlocks = null;
-        LeftFilePath = string.Empty;
-        LeftDiffRanges = null;
-        RightDiffRanges = null;
-        RefreshComparison();
-    }
+    private void CloseLeft() => ClosePane(true);
 
     [RelayCommand]
-    private void CloseRight()
+    private void CloseRight() => ClosePane(false);
+
+    private void ClosePane(bool isLeft)
     {
         CancelDiff();
-        RightHexDataSource = null;
-        _rightFileSource?.Dispose();
-        _rightFileSource = null;
-        _rightData = null;
-        _rightFilePathInternal = null;
-        _rightFileSize = 0;
-        _rightDetailedBlocks = null;
-        RightFilePath = string.Empty;
+        // Clear the bound hex source before disposing the mapping it wraps.
+        if (isLeft)
+        {
+            LeftHexDataSource = null;
+        }
+        else
+        {
+            RightHexDataSource = null;
+        }
+
+        Pane(isLeft).DisposeAndReset();
+
+        if (isLeft)
+        {
+            LeftFilePath = string.Empty;
+        }
+        else
+        {
+            RightFilePath = string.Empty;
+        }
+
         LeftDiffRanges = null;
         RightDiffRanges = null;
         RefreshComparison();
@@ -316,11 +308,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     private void Swap()
     {
         CancelDiff();
-        (_leftData, _rightData) = (_rightData, _leftData);
-        (_leftFilePathInternal, _rightFilePathInternal) = (_rightFilePathInternal, _leftFilePathInternal);
-        (_leftFileSize, _rightFileSize) = (_rightFileSize, _leftFileSize);
-        (_leftDetailedBlocks, _rightDetailedBlocks) = (_rightDetailedBlocks, _leftDetailedBlocks);
-        (_leftFileSource, _rightFileSource) = (_rightFileSource, _leftFileSource);
+        (_left, _right) = (_right, _left);
 
         (LeftFilePath, RightFilePath) = (RightFilePath, LeftFilePath);
 
@@ -342,40 +330,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     /// <param name="filePath">
     /// Absolute path to the file.
     /// </param>
-    public void LoadLeftFile(string filePath)
-    {
-        try
-        {
-            CancelDiff();
-            LeftDiffRanges = null;
-            RightDiffRanges = null;
-            // Clear the binding before disposing — a pending render would otherwise
-            // hit the disposed MemoryMappedDataSource via the HexDataSourceSlice.
-            LeftHexDataSource = null;
-            _leftFileSource?.Dispose();
-            _leftFileSource = null;
-
-            LeftFilePath = filePath;
-            _leftFilePathInternal = filePath;
-            _leftFileSize = new FileInfo(filePath).Length;
-            _leftData = _compareService.LoadFileData(filePath);
-            _leftDetailedBlocks = _compareService.ParseDetailedBlocks(filePath);
-            _leftFileSource = new MemoryMappedDataSource(filePath);
-            RefreshComparison();
-        }
-        catch (Exception ex)
-        {
-            LeftFilePath = string.Empty;
-            _leftData = null;
-            _leftFilePathInternal = null;
-            _leftFileSize = 0;
-            _leftDetailedBlocks = null;
-            _leftFileSource?.Dispose();
-            _leftFileSource = null;
-            LeftHexDataSource = null;
-            StatusMessage = $"Error loading left file: {ex.Message}";
-        }
-    }
+    public void LoadLeftFile(string filePath) => LoadFile(true, filePath);
 
     /// <summary>
     /// Loads and parses a file into the right comparison pane.
@@ -383,36 +338,69 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     /// <param name="filePath">
     /// Absolute path to the file.
     /// </param>
-    public void LoadRightFile(string filePath)
+    public void LoadRightFile(string filePath) => LoadFile(false, filePath);
+
+    private void LoadFile(bool isLeft, string filePath)
     {
+        ComparePane pane = Pane(isLeft);
         try
         {
             CancelDiff();
             LeftDiffRanges = null;
             RightDiffRanges = null;
-            RightHexDataSource = null;
-            _rightFileSource?.Dispose();
-            _rightFileSource = null;
+            // Clear the binding before disposing — a pending render would otherwise
+            // hit the disposed MemoryMappedDataSource via the HexDataSourceSlice.
+            if (isLeft)
+            {
+                LeftHexDataSource = null;
+            }
+            else
+            {
+                RightHexDataSource = null;
+            }
 
-            RightFilePath = filePath;
-            _rightFilePathInternal = filePath;
-            _rightFileSize = new FileInfo(filePath).Length;
-            _rightData = _compareService.LoadFileData(filePath);
-            _rightDetailedBlocks = _compareService.ParseDetailedBlocks(filePath);
-            _rightFileSource = new MemoryMappedDataSource(filePath);
+            pane.Source?.Dispose();
+            pane.Source = null;
+
+            if (isLeft)
+            {
+                LeftFilePath = filePath;
+            }
+            else
+            {
+                RightFilePath = filePath;
+            }
+
+            pane.Path = filePath;
+            pane.FileSize = new FileInfo(filePath).Length;
+            pane.Data = _compareService.LoadFileData(filePath);
+            pane.Blocks = _compareService.ParseDetailedBlocks(filePath);
+            pane.Source = new MemoryMappedDataSource(filePath);
             RefreshComparison();
         }
         catch (Exception ex)
         {
-            RightFilePath = string.Empty;
-            _rightData = null;
-            _rightFilePathInternal = null;
-            _rightFileSize = 0;
-            _rightDetailedBlocks = null;
-            _rightFileSource?.Dispose();
-            _rightFileSource = null;
-            RightHexDataSource = null;
-            StatusMessage = $"Error loading right file: {ex.Message}";
+            if (isLeft)
+            {
+                LeftFilePath = string.Empty;
+            }
+            else
+            {
+                RightFilePath = string.Empty;
+            }
+
+            pane.DisposeAndReset();
+
+            if (isLeft)
+            {
+                LeftHexDataSource = null;
+            }
+            else
+            {
+                RightHexDataSource = null;
+            }
+
+            StatusMessage = $"Error loading {(isLeft ? "left" : "right")} file: {ex.Message}";
         }
     }
 
@@ -427,22 +415,24 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         LeftProperties.Clear();
         RightProperties.Clear();
 
-        if (_leftData is not null)
+        if (_left.Data is not null)
         {
-            PopulateTree(LeftTreeRoots, _leftData, true);
+            PopulateTree(LeftTreeRoots, _left.Data, true);
         }
 
-        if (_rightData is not null)
+        if (_right.Data is not null)
         {
-            PopulateTree(RightTreeRoots, _rightData, false);
+            PopulateTree(RightTreeRoots, _right.Data, false);
         }
 
-        if (_leftData is not null && _rightData is not null)
+        if (_left.Data is not null && _right.Data is not null)
         {
-            _compareResult = _compareService.Compare(_leftData, _rightData,
-                _leftDetailedBlocks, _rightDetailedBlocks,
-                _leftFileSource, _rightFileSource);
-            ApplyComparisonHighlighting();
+            _compareResult = _compareService.Compare(_left.Data, _right.Data,
+                _left.Blocks, _right.Blocks,
+                _left.Source, _right.Source);
+            CompareHighlighter.Apply(_compareResult, LeftTreeRoots, RightTreeRoots,
+                _left.Blocks, _right.Blocks,
+                _left.Source, _right.Source);
             UpdateStatus();
         }
         else
@@ -563,7 +553,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         if (nodeData.NodeType == CompareNodeType.DetailedBlock && nodeData.Data is RARDetailedBlock block)
         {
             offset = block.StartOffset;
-            long fileSize = isLeft ? _leftFileSize : _rightFileSize;
+            long fileSize = Pane(isLeft).FileSize;
             length = Math.Max(0, Math.Min(block.StartOffset + block.TotalSize, fileSize) - offset);
         }
         else if (nodeData.Data is SRSFileDataBlock fd)
@@ -589,7 +579,7 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         else if (nodeData.Data is EBMLElement el)
         {
             offset = el.Position;
-            long fileSize = isLeft ? _leftFileSize : _rightFileSize;
+            long fileSize = Pane(isLeft).FileSize;
             // Clamp to the file: a malformed element may claim to extend past EOF.
             length = Math.Max(0, Math.Min(el.Position + el.TotalSize, fileSize) - offset);
         }
@@ -597,10 +587,10 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
         {
             // Show the entire file for non-block nodes (Archive Info, Root, etc.)
             offset = 0;
-            length = isLeft ? _leftFileSize : _rightFileSize;
+            length = Pane(isLeft).FileSize;
         }
 
-        MemoryMappedDataSource? source = isLeft ? _leftFileSource : _rightFileSource;
+        MemoryMappedDataSource? source = Pane(isLeft).Source;
 
         if (isLeft)
         {
@@ -641,8 +631,8 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         CancelDiff();
 
-        MemoryMappedDataSource? leftSrc = _leftFileSource;
-        MemoryMappedDataSource? rightSrc = _rightFileSource;
+        MemoryMappedDataSource? leftSrc = _left.Source;
+        MemoryMappedDataSource? rightSrc = _right.Source;
         long leftLen = LeftHexBlockLength;
         long rightLen = RightHexBlockLength;
 
@@ -793,571 +783,30 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
 
     private void PopulateTree(ObservableCollection<TreeNodeViewModel> roots, object data, bool isLeft)
     {
-        IReadOnlyList<RARDetailedBlock>? detailedBlocks = isLeft ? _leftDetailedBlocks : _rightDetailedBlocks;
+        IReadOnlyList<RARDetailedBlock>? detailedBlocks = Pane(isLeft).Blocks;
         bool hasFileHeaders = detailedBlocks is not null &&
                               detailedBlocks.Any(b => b.BlockType is "File Header" or "Service Block");
 
         if (detailedBlocks is not null && detailedBlocks.Count > 0 && hasFileHeaders)
         {
-            PopulateDetailedTree(roots, detailedBlocks, isLeft);
+            roots.Add(FileCompareTreeBuilder.BuildDetailed(detailedBlocks, isLeft));
         }
         else if (data is ReScene.Core.Comparison.SRRFileData srrData)
         {
-            PopulateSRRTree(roots, srrData, isLeft);
+            roots.Add(FileCompareTreeBuilder.BuildSrr(srrData, isLeft));
         }
         else if (data is SRSFile srsData)
         {
-            PopulateSRSTree(roots, srsData, isLeft);
+            roots.Add(FileCompareTreeBuilder.BuildSrs(srsData, isLeft));
         }
         else if (data is MKVFileData mkv)
         {
-            PopulateMKVTree(roots, mkv, isLeft);
+            roots.Add(FileCompareTreeBuilder.BuildMkv(mkv, isLeft));
         }
         else if (data is RARFileData rar)
         {
-            PopulateRARTree(roots, rar, isLeft);
+            roots.Add(FileCompareTreeBuilder.BuildRar(rar, isLeft));
         }
-    }
-
-    private static void PopulateDetailedTree(ObservableCollection<TreeNodeViewModel> roots, IReadOnlyList<RARDetailedBlock> blocks, bool isLeft)
-    {
-        bool isRAR5 = blocks.Count > 0 && blocks[0].BlockType == "Signature" &&
-                      blocks[0].Fields.Count > 0 && blocks[0].Fields[0].Value.StartsWith("52 61 72 21 1A 07 01", StringComparison.Ordinal);
-
-        string rootName = isRAR5 ? $"RAR 5.x Archive ({blocks.Count} blocks)" : $"RAR 4.x Archive ({blocks.Count} blocks)";
-
-        var rootNode = new TreeNodeViewModel
-        {
-            Text = rootName,
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, IsLeft = isLeft },
-            IsExpanded = true
-        };
-
-        for (int i = 0; i < blocks.Count; i++)
-        {
-            RARDetailedBlock block = blocks[i];
-            string blockType = block.HasData && block.BlockType.Contains("File", StringComparison.Ordinal) ? "File Data" : block.BlockType;
-            string blockLabel = $"[{i}] {blockType}";
-
-            if (!string.IsNullOrEmpty(block.ItemName))
-            {
-                blockLabel = $"[{i}] {blockType}: {block.ItemName}";
-            }
-
-            rootNode.Children.Add(new TreeNodeViewModel
-            {
-                Text = blockLabel,
-                Tag = new CompareNodeData
-                {
-                    NodeType = CompareNodeType.DetailedBlock,
-                    Data = block,
-                    FileName = block.ItemName,
-                    IsLeft = isLeft
-                }
-            });
-        }
-
-        roots.Add(rootNode);
-    }
-
-    private static void PopulateSRRTree(ObservableCollection<TreeNodeViewModel> roots, ReScene.Core.Comparison.SRRFileData srrData, bool isLeft)
-    {
-        SRRFile srr = srrData.SRRFile;
-
-        var rootNode = new TreeNodeViewModel
-        {
-            Text = "SRR File",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, Data = srr, IsLeft = isLeft },
-            IsExpanded = true
-        };
-
-        rootNode.Children.Add(new TreeNodeViewModel
-        {
-            Text = "Archive Info",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.ArchiveInfo, Data = srr, IsLeft = isLeft }
-        });
-
-        if (srr.RARFiles.Count > 0)
-        {
-            var volumesNode = new TreeNodeViewModel
-            {
-                Text = $"RAR Volumes ({srr.RARFiles.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.RARVolumes, Data = srr.RARFiles, IsLeft = isLeft }
-            };
-
-            foreach (SRRRarFileBlock rar in srr.RARFiles)
-            {
-                var volNode = new TreeNodeViewModel
-                {
-                    Text = rar.FileName,
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.RARVolume, Data = rar, IsLeft = isLeft }
-                };
-
-                if (srrData.VolumeDetailedBlocks.TryGetValue(rar.FileName, out List<RARDetailedBlock>? detailedBlocks))
-                {
-                    for (int i = 0; i < detailedBlocks.Count; i++)
-                    {
-                        RARDetailedBlock block = detailedBlocks[i];
-                        string blockType = block.HasData && block.BlockType.Contains("File", StringComparison.Ordinal) ? "File Data" : block.BlockType;
-                        string blockLabel = $"[{i}] {blockType}";
-                        if (!string.IsNullOrEmpty(block.ItemName))
-                        {
-                            blockLabel = $"[{i}] {blockType}: {block.ItemName}";
-                        }
-
-                        volNode.Children.Add(new TreeNodeViewModel
-                        {
-                            Text = blockLabel,
-                            Tag = new CompareNodeData
-                            {
-                                NodeType = CompareNodeType.DetailedBlock,
-                                Data = block,
-                                FileName = block.ItemName,
-                                IsLeft = isLeft
-                            }
-                        });
-                    }
-                }
-
-                volumesNode.Children.Add(volNode);
-            }
-
-            rootNode.Children.Add(volumesNode);
-        }
-
-        if (srr.StoredFiles.Count > 0)
-        {
-            var storedNode = new TreeNodeViewModel
-            {
-                Text = $"Stored Files ({srr.StoredFiles.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.StoredFiles, Data = srr.StoredFiles, IsLeft = isLeft }
-            };
-
-            foreach (SRRStoredFileBlock stored in srr.StoredFiles)
-            {
-                storedNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = stored.FileName,
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.StoredFile, Data = stored, FileName = stored.FileName, IsLeft = isLeft }
-                });
-            }
-
-            rootNode.Children.Add(storedNode);
-        }
-
-        if (srr.ArchivedFiles.Count > 0)
-        {
-            var archivedNode = new TreeNodeViewModel
-            {
-                Text = $"Archived Files ({srr.ArchivedFiles.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.ArchivedFiles, Data = srr, IsLeft = isLeft }
-            };
-
-            foreach (string? file in srr.ArchivedFiles.OrderBy(f => f))
-            {
-                string displayName = file;
-                if (srr.ArchivedFileCrcs.TryGetValue(file, out string? crc))
-                {
-                    displayName = $"{file} [CRC: {crc}]";
-                }
-
-                archivedNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = displayName,
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.ArchivedFile, Data = srr, FileName = file, IsLeft = isLeft }
-                });
-            }
-
-            rootNode.Children.Add(archivedNode);
-        }
-
-        if (srr.OSOHashBlocks.Count > 0)
-        {
-            var osoNode = new TreeNodeViewModel
-            {
-                Text = $"OSO Hashes ({srr.OSOHashBlocks.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.OSOHashes, Data = srr.OSOHashBlocks, IsLeft = isLeft }
-            };
-
-            foreach (SRROsoHashBlock oso in srr.OSOHashBlocks)
-            {
-                osoNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = oso.FileName,
-                    Tag = new CompareNodeData
-                    {
-                        NodeType = CompareNodeType.OSOHash,
-                        Data = oso,
-                        FileName = oso.FileName,
-                        IsLeft = isLeft
-                    }
-                });
-            }
-
-            rootNode.Children.Add(osoNode);
-        }
-
-        roots.Add(rootNode);
-    }
-
-    private static void PopulateSRSTree(ObservableCollection<TreeNodeViewModel> roots, SRSFile srs, bool isLeft)
-    {
-        var rootNode = new TreeNodeViewModel
-        {
-            Text = $"SRS File ({srs.ContainerType})",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, Data = srs, IsLeft = isLeft },
-            IsExpanded = true
-        };
-
-        if (srs.FileData is { } fd)
-        {
-            rootNode.Children.Add(new TreeNodeViewModel
-            {
-                Text = $"File Info: {fd.FileName}",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.SRSFileInfo, Data = fd, IsLeft = isLeft }
-            });
-        }
-
-        if (srs.Tracks.Count > 0)
-        {
-            var tracksNode = new TreeNodeViewModel
-            {
-                Text = $"Tracks ({srs.Tracks.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.Root, IsLeft = isLeft }
-            };
-
-            foreach (SRSTrackDataBlock track in srs.Tracks)
-            {
-                tracksNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = $"Track {track.TrackNumber}",
-                    Tag = new CompareNodeData
-                    {
-                        NodeType = CompareNodeType.SRSTrack,
-                        Data = track,
-                        FileName = $"Track {track.TrackNumber}",
-                        IsLeft = isLeft
-                    }
-                });
-            }
-
-            rootNode.Children.Add(tracksNode);
-        }
-
-        if (srs.ContainerChunks.Count > 0)
-        {
-            var chunksNode = new TreeNodeViewModel
-            {
-                Text = $"Container Structure ({srs.ContainerChunks.Count})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.SRSContainerChunks, Data = srs.ContainerChunks, IsLeft = isLeft }
-            };
-            BuildChunkHierarchy(chunksNode, srs.ContainerChunks, isLeft);
-            rootNode.Children.Add(chunksNode);
-        }
-
-        roots.Add(rootNode);
-    }
-
-    private static void PopulateMKVTree(ObservableCollection<TreeNodeViewModel> roots, MKVFileData mkv, bool isLeft)
-    {
-        var rootNode = new TreeNodeViewModel
-        {
-            Text = $"MKV File ({mkv.TrackCount} track{(mkv.TrackCount == 1 ? "" : "s")})",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, Data = mkv, IsLeft = isLeft },
-            IsExpanded = true
-        };
-
-        AddMKVElements(rootNode, "", mkv.Elements, isLeft, depth: 0);
-
-        roots.Add(rootNode);
-    }
-
-    /// <summary>
-    /// Recursively adds EBML elements as tree nodes. The path key is built with the identical scheme
-    /// as <see cref="FileComparer.ElementPath"/> so tree nodes line up with comparison diff keys:
-    /// <c>parentPath + "/" + Name</c>, with a <c>[index]</c> suffix for non-first same-named siblings;
-    /// root elements use <c>parentPath</c> = "".
-    /// </summary>
-    private static void AddMKVElements(TreeNodeViewModel parentNode, string parentPath,
-        IReadOnlyList<EBMLElement> elements, bool isLeft, int depth)
-    {
-        var occurrence = new Dictionary<string, int>(StringComparer.Ordinal);
-
-        foreach (EBMLElement element in elements)
-        {
-            occurrence.TryGetValue(element.Name, out int index);
-            occurrence[element.Name] = index + 1;
-
-            string path = FileComparer.ElementPath(parentPath, element, index);
-
-            string text = element.Value is { Length: > 0 } && element.Children.Count == 0
-                ? $"{element.Name}: {element.Value}"
-                : element.Name;
-
-            var node = new TreeNodeViewModel
-            {
-                Text = text,
-                Tag = new CompareNodeData
-                {
-                    NodeType = CompareNodeType.MKVElement,
-                    Data = element,
-                    FileName = path,
-                    IsLeft = isLeft
-                },
-                IsExpanded = depth < 2
-            };
-
-            if (element.Children.Count > 0)
-            {
-                AddMKVElements(node, path, element.Children, isLeft, depth + 1);
-            }
-
-            parentNode.Children.Add(node);
-        }
-    }
-
-    private static void PopulateRARTree(ObservableCollection<TreeNodeViewModel> roots, RARFileData rar, bool isLeft)
-    {
-        int fileCount = rar.IsRAR5 ? rar.RAR5FileInfos.Count : rar.FileHeaders.Count;
-        int blockCount = 2 + fileCount + 1 + (string.IsNullOrEmpty(rar.Comment) ? 0 : 1);
-
-        var rootNode = new TreeNodeViewModel
-        {
-            Text = rar.IsRAR5 ? $"RAR 5.x Archive (~{blockCount} blocks)" : $"RAR 4.x Archive (~{blockCount} blocks)",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, Data = rar, IsLeft = isLeft },
-            IsExpanded = true
-        };
-
-        int blockIndex = 0;
-
-        rootNode.Children.Add(new TreeNodeViewModel
-        {
-            Text = $"[{blockIndex++}] Signature",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, IsLeft = isLeft }
-        });
-
-        rootNode.Children.Add(new TreeNodeViewModel
-        {
-            Text = $"[{blockIndex++}] Archive Header",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.ArchiveInfo, Data = rar, IsLeft = isLeft }
-        });
-
-        if (rar.IsRAR5)
-        {
-            foreach (RAR5FileInfo file in rar.RAR5FileInfos)
-            {
-                rootNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = $"[{blockIndex++}] File Header: {file.FileName}",
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.ArchivedFile, Data = file, FileName = file.FileName, IsLeft = isLeft }
-                });
-            }
-        }
-        else
-        {
-            foreach (RARFileHeader file in rar.FileHeaders)
-            {
-                rootNode.Children.Add(new TreeNodeViewModel
-                {
-                    Text = $"[{blockIndex++}] File Header: {file.FileName}",
-                    Tag = new CompareNodeData { NodeType = CompareNodeType.ArchivedFile, Data = file, FileName = file.FileName, IsLeft = isLeft }
-                });
-            }
-        }
-
-        if (!string.IsNullOrEmpty(rar.Comment))
-        {
-            rootNode.Children.Add(new TreeNodeViewModel
-            {
-                Text = $"[{blockIndex++}] Service Block: CMT",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.Root, IsLeft = isLeft }
-            });
-        }
-
-        rootNode.Children.Add(new TreeNodeViewModel
-        {
-            Text = $"[{blockIndex}] End Archive",
-            Tag = new CompareNodeData { NodeType = CompareNodeType.Root, IsLeft = isLeft }
-        });
-
-        roots.Add(rootNode);
-    }
-
-    #endregion
-
-    #region Comparison Highlighting
-
-    private void ApplyComparisonHighlighting()
-    {
-        if (_compareResult is null)
-        {
-            return;
-        }
-
-        var addedFiles = _compareResult.FileDifferences
-            .Where(d => d.Type == DifferenceType.Added)
-            .Select(d => d.FileName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var removedFiles = _compareResult.FileDifferences
-            .Where(d => d.Type == DifferenceType.Removed)
-            .Select(d => d.FileName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var modifiedFiles = _compareResult.FileDifferences
-            .Where(d => d.Type == DifferenceType.Modified)
-            .Select(d => d.FileName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var addedStoredFiles = _compareResult.StoredFileDifferences
-            .Where(d => d.Type == DifferenceType.Added)
-            .Select(d => d.FileName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var removedStoredFiles = _compareResult.StoredFileDifferences
-            .Where(d => d.Type == DifferenceType.Removed)
-            .Select(d => d.FileName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Apply text annotations to tree nodes
-        foreach (TreeNodeViewModel root in LeftTreeRoots)
-        {
-            ApplyNodeHighlighting(root, removedFiles, addedFiles, modifiedFiles, removedStoredFiles, addedStoredFiles, true);
-        }
-
-        foreach (TreeNodeViewModel root in RightTreeRoots)
-        {
-            ApplyNodeHighlighting(root, addedFiles, removedFiles, modifiedFiles, addedStoredFiles, removedStoredFiles, false);
-        }
-
-        // Mark sections that exist on only one side
-        MarkUniqueSections(LeftTreeRoots, RightTreeRoots);
-        MarkUniqueSections(RightTreeRoots, LeftTreeRoots);
-    }
-
-    private static void MarkUniqueSections(ObservableCollection<TreeNodeViewModel> roots, ObservableCollection<TreeNodeViewModel> otherRoots)
-    {
-        var otherNodeTypes = new HashSet<CompareNodeType>();
-        foreach (TreeNodeViewModel root in otherRoots)
-        {
-            foreach (TreeNodeViewModel child in root.Children)
-            {
-                if (child.Tag is CompareNodeData d)
-                {
-                    otherNodeTypes.Add(d.NodeType);
-                }
-            }
-        }
-
-        foreach (TreeNodeViewModel root in roots)
-        {
-            foreach (TreeNodeViewModel child in root.Children)
-            {
-                if (child.Tag is CompareNodeData d && !otherNodeTypes.Contains(d.NodeType))
-                {
-                    MarkNodeAndChildren(child);
-                }
-            }
-        }
-    }
-
-    private static void MarkNodeAndChildren(TreeNodeViewModel node)
-    {
-        node.IsDifferent = true;
-        foreach (TreeNodeViewModel child in node.Children)
-        {
-            MarkNodeAndChildren(child);
-        }
-    }
-
-    private void ApplyNodeHighlighting(TreeNodeViewModel node, HashSet<string> removed, HashSet<string> added,
-        HashSet<string> modified, HashSet<string> storedRemoved, HashSet<string> storedAdded, bool isLeft)
-    {
-        if (node.Tag is CompareNodeData data)
-        {
-            if (data.NodeType is CompareNodeType.ArchiveInfo or CompareNodeType.SRSFileInfo
-                && _compareResult?.ArchiveDifferences.Count > 0)
-            {
-                node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
-                node.IsDifferent = true;
-            }
-            else if (data.NodeType == CompareNodeType.DetailedBlock && data.Data is RARDetailedBlock block)
-            {
-                IReadOnlyList<RARDetailedBlock>? otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
-                if (otherBlocks is not null)
-                {
-                    RARDetailedBlock? otherBlock = otherBlocks.FirstOrDefault(b =>
-                        b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-                    if (otherBlock is not null
-                        && FileComparer.HasBlockDifferences(block, otherBlock, _leftFileSource, _rightFileSource))
-                    {
-                        node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
-                        node.IsDifferent = true;
-                    }
-                }
-            }
-            else if (data.NodeType is CompareNodeType.SRSTrack or CompareNodeType.MKVElement && data.FileName is not null)
-            {
-                if (removed.Contains(data.FileName))
-                {
-                    node.Text = isLeft ? $"{GetBaseNodeText(node.Text)} [REMOVED]" : $"{GetBaseNodeText(node.Text)} [NEW]";
-                    node.IsDifferent = true;
-                }
-                else if (modified.Contains(data.FileName))
-                {
-                    node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
-                    node.IsDifferent = true;
-                }
-            }
-            else if (data.NodeType is CompareNodeType.ArchivedFile or CompareNodeType.StoredFile)
-            {
-                string fileName = data.FileName ?? "";
-
-                if (data.NodeType == CompareNodeType.StoredFile)
-                {
-                    if (storedRemoved.Contains(fileName))
-                    {
-                        node.Text = isLeft ? $"{GetBaseNodeText(node.Text)} [REMOVED]" : $"{GetBaseNodeText(node.Text)} [NEW]";
-                        node.IsDifferent = true;
-                    }
-                }
-                else
-                {
-                    if (removed.Contains(fileName))
-                    {
-                        node.Text = isLeft ? $"{GetBaseNodeText(node.Text)} [REMOVED]" : $"{GetBaseNodeText(node.Text)} [NEW]";
-                        node.IsDifferent = true;
-                    }
-                    else if (modified.Contains(fileName))
-                    {
-                        node.Text = $"{GetBaseNodeText(node.Text)} [DIFF]";
-                        node.IsDifferent = true;
-                    }
-                }
-            }
-        }
-
-        foreach (TreeNodeViewModel child in node.Children)
-        {
-            ApplyNodeHighlighting(child, removed, added, modified, storedRemoved, storedAdded, isLeft);
-        }
-
-        // Bubble up: mark parent as different if any child has differences
-        if (!node.IsDifferent && node.Children.Any(c => c.IsDifferent))
-        {
-            node.IsDifferent = true;
-        }
-    }
-
-    private static string GetBaseNodeText(string text)
-    {
-        int bracketIndex = text.LastIndexOf(" [", StringComparison.Ordinal);
-        if (bracketIndex > 0 && (text.EndsWith("[REMOVED]", StringComparison.Ordinal) || text.EndsWith("[NEW]", StringComparison.Ordinal) || text.EndsWith("[DIFF]", StringComparison.Ordinal)))
-        {
-            return text[..bracketIndex];
-        }
-
-        return text;
     }
 
     #endregion
@@ -1471,686 +920,27 @@ public partial class FileCompareViewModel(IFileCompareService compareService, IF
     {
         properties.Clear();
 
-        switch (nodeData.NodeType)
+        var builder = new CompareNodePropertyBuilder(
+            _compareResult,
+            _left.Blocks, _right.Blocks,
+            _left.Data, _right.Data,
+            _left.Path, _right.Path);
+
+        foreach (PropertyItem item in builder.Build(nodeData, isLeft))
         {
-            case CompareNodeType.DetailedBlock:
-                if (nodeData.Data is RARDetailedBlock detailedBlock)
-                {
-                    ShowDetailedBlockProperties(properties, detailedBlock, isLeft);
-                }
-
-                break;
-
-            case CompareNodeType.ArchiveInfo:
-                if (nodeData.Data is SRRFile srr)
-                {
-                    ShowSRRArchiveProperties(properties, srr);
-                }
-                else if (nodeData.Data is RARFileData rar)
-                {
-                    ShowRARArchiveProperties(properties, rar);
-                }
-
-                break;
-
-            case CompareNodeType.ArchivedFile:
-                if (nodeData.Data is RARFileHeader fileHeader)
-                {
-                    ShowRAR4FileProperties(properties, fileHeader);
-                }
-                else if (nodeData.Data is RAR5FileInfo fileInfo)
-                {
-                    ShowRAR5FileProperties(properties, fileInfo);
-                }
-                else if (nodeData.Data is SRRFile srrFile && nodeData.FileName is not null)
-                {
-                    ShowSRRArchivedFileProperties(properties, srrFile, nodeData.FileName);
-                }
-
-                break;
-
-            case CompareNodeType.StoredFile:
-                if (nodeData.Data is SRRStoredFileBlock stored)
-                {
-                    ShowStoredFileProperties(properties, stored);
-                }
-
-                break;
-
-            case CompareNodeType.RARVolume:
-                if (nodeData.Data is SRRRarFileBlock rarFile)
-                {
-                    ShowRarVolumeProperties(properties, rarFile);
-                }
-
-                break;
-
-            case CompareNodeType.SRSFileInfo:
-                if (nodeData.Data is SRSFileDataBlock fd)
-                {
-                    ShowSRSFileInfoProperties(properties, fd);
-                }
-
-                break;
-
-            case CompareNodeType.SRSTrack:
-                if (nodeData.Data is SRSTrackDataBlock track)
-                {
-                    ShowSRSTrackProperties(properties, track, nodeData.FileName);
-                }
-
-                break;
-
-            case CompareNodeType.SRSContainerChunks:
-                if (nodeData.Data is SRSContainerChunk chunk)
-                {
-                    ShowSRSContainerChunkProperties(properties, chunk);
-                }
-
-                break;
-
-            case CompareNodeType.OSOHash:
-                if (nodeData.Data is SRROsoHashBlock oso)
-                {
-                    ShowOSOHashProperties(properties, oso);
-                }
-
-                break;
-
-            case CompareNodeType.MKVElement:
-                if (nodeData.Data is EBMLElement el)
-                {
-                    ShowMKVElementProperties(properties, el, nodeData.FileName);
-                }
-
-                break;
+            properties.Add(item);
         }
-    }
-
-    private void ShowMKVElementProperties(ObservableCollection<PropertyItem> properties, EBMLElement element, string? path)
-    {
-        IReadOnlyList<PropertyDifference>? diffs = path is not null ? GetTrackDiffs(path) : null;
-
-        properties.Add(new PropertyItem { Name = "Element", Value = element.Name });
-        properties.Add(new PropertyItem { Name = "Element ID", Value = $"0x{element.ElementId:X}" });
-        properties.Add(new PropertyItem { Name = "Type", Value = element.ValueType.ToString() });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Value",
-            Value = element.Value ?? "",
-            // "Data" marks same-size payloads whose raw bytes differ (e.g., cluster A/V content);
-            // the value row is the closest visible stand-in for that payload.
-            IsDifferent = diffs?.Any(d => d.PropertyName is "Value" or "Data") == true,
-            // The value occupies the element's data region (after its id + size header).
-            ByteRange = new ByteRange { PropertyName = "Value", Offset = element.Position + element.HeaderSize, Length = element.DataSize }
-        });
-
-        properties.Add(new PropertyItem { Name = "Position", Value = $"0x{element.Position:X}" });
-        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{element.HeaderSize} bytes" });
-        properties.Add(new PropertyItem
-        {
-            Name = "Data Size",
-            Value = $"{element.DataSize:N0} bytes",
-            IsDifferent = diffs?.Any(d => d.PropertyName == "Data Size") == true
-        });
-        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{element.TotalSize:N0} bytes" });
-    }
-
-    private void ShowDetailedBlockProperties(ObservableCollection<PropertyItem> properties, RARDetailedBlock block, bool isLeft)
-    {
-        properties.Add(new PropertyItem { Name = "Block Type", Value = block.BlockType });
-        properties.Add(new PropertyItem { Name = "Start Offset", Value = $"0x{block.StartOffset:X8}" });
-        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{block.HeaderSize} bytes" });
-        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{block.TotalSize:N0} bytes" });
-
-        if (block.HasData)
-        {
-            properties.Add(new PropertyItem { Name = "Data Size", Value = $"{block.DataSize:N0} bytes" });
-        }
-
-        properties.Add(new PropertyItem { Name = "--- Fields ---", Value = "", IsSeparator = true });
-
-        RARDetailedBlock? otherBlock = _compareResult is not null ? FindMatchingDetailedBlock(block, isLeft) : null;
-
-        foreach (RARHeaderField field in block.Fields)
-        {
-            string value = field.Value;
-            if (!string.IsNullOrEmpty(field.Description) && field.Description != field.Value)
-            {
-                value = $"{field.Value} ({field.Description})";
-            }
-
-            bool isDiff = false;
-            if (_compareResult is not null && otherBlock is not null)
-            {
-                RARHeaderField? otherField = otherBlock.Fields.FirstOrDefault(f => f.Name == field.Name);
-                if (otherField is not null)
-                {
-                    isDiff = otherField.Value != field.Value;
-                }
-            }
-
-            properties.Add(new PropertyItem
-            {
-                Name = field.Name,
-                Value = value,
-                IsDifferent = isDiff,
-                ByteRange = new ByteRange
-                {
-                    PropertyName = field.Name,
-                    Offset = field.Offset,
-                    Length = field.Length
-                }
-            });
-
-            foreach (RARHeaderField child in field.Children)
-            {
-                bool childDiff = false;
-                if (_compareResult is not null && otherBlock is not null)
-                {
-                    RARHeaderField? otherParent = otherBlock.Fields.FirstOrDefault(f => f.Name == field.Name);
-                    RARHeaderField? otherChild = otherParent?.Children.FirstOrDefault(c => c.Name == child.Name);
-                    if (otherChild is not null)
-                    {
-                        childDiff = otherChild.Value != child.Value;
-                    }
-                }
-
-                long childOffset = child.Length > 0 ? child.Offset : field.Offset;
-                int childLength = child.Length > 0 ? child.Length : field.Length;
-
-                properties.Add(new PropertyItem
-                {
-                    Name = child.Name,
-                    Value = child.Value,
-                    IsIndented = true,
-                    IsDifferent = childDiff,
-                    ByteRange = childLength > 0
-                        ? new ByteRange { PropertyName = child.Name, Offset = childOffset, Length = childLength }
-                        : null
-                });
-            }
-        }
-
-        if (block.HasData && block.DataSize > 0)
-        {
-            long dataOffset = block.StartOffset + block.HeaderSize;
-            bool dataDiff = false;
-
-            if (_compareResult is not null && otherBlock is { HasData: true })
-            {
-                string? thisFilePath = isLeft ? _leftFilePathInternal : _rightFilePathInternal;
-                string? otherFilePath = isLeft ? _rightFilePathInternal : _leftFilePathInternal;
-                if (thisFilePath is not null && otherFilePath is not null)
-                {
-                    long otherDataOffset = otherBlock.StartOffset + otherBlock.HeaderSize;
-                    if (block.DataSize != otherBlock.DataSize)
-                    {
-                        dataDiff = true;
-                    }
-                    else if (block.DataSize <= MaxBlockCompareSize) // Compare up to 10 MB
-                    {
-                        byte[]? thisData = ReadFileSlice(thisFilePath, dataOffset, (int)block.DataSize);
-                        byte[]? otherData = ReadFileSlice(otherFilePath, otherDataOffset, (int)otherBlock.DataSize);
-                        dataDiff = thisData is null || otherData is null ||
-                            !thisData.AsSpan().SequenceEqual(otherData.AsSpan());
-                    }
-                }
-            }
-
-            properties.Add(new PropertyItem
-            {
-                Name = "Data",
-                Value = $"{block.DataSize:N0} bytes (offset 0x{dataOffset:X8})",
-                IsDifferent = dataDiff,
-                ByteRange = new ByteRange
-                {
-                    PropertyName = "Data",
-                    Offset = dataOffset,
-                    Length = (int)Math.Min(block.DataSize, int.MaxValue)
-                }
-            });
-        }
-    }
-
-    private RARDetailedBlock? FindMatchingDetailedBlock(RARDetailedBlock block, bool isLeft)
-    {
-        IReadOnlyList<RARDetailedBlock>? otherBlocks = isLeft ? _rightDetailedBlocks : _leftDetailedBlocks;
-        if (otherBlocks is not null)
-        {
-            RARDetailedBlock? match = otherBlocks.FirstOrDefault(b =>
-                b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-            if (match is not null)
-            {
-                return match;
-            }
-        }
-
-        object? otherData = isLeft ? _rightData : _leftData;
-        if (otherData is ReScene.Core.Comparison.SRRFileData otherSRRData)
-        {
-            foreach (List<RARDetailedBlock> volumeBlocks in otherSRRData.VolumeDetailedBlocks.Values)
-            {
-                RARDetailedBlock? match = volumeBlocks.FirstOrDefault(b =>
-                    b.BlockType == block.BlockType && b.ItemName == block.ItemName);
-                if (match is not null)
-                {
-                    return match;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private void ShowSRRArchiveProperties(ObservableCollection<PropertyItem> properties, SRRFile srr)
-    {
-        AddComparedProperty(properties, "App Name", srr.HeaderBlock?.AppName ?? "N/A", "App Name");
-        AddComparedProperty(properties, "RAR Version", FileComparer.FormatRARVersion(srr.RARVersion), "RAR Version");
-        AddComparedProperty(properties, "Compression Method", FileComparer.GetCompressionMethodName(srr.CompressionMethod), "Compression Method");
-        AddComparedProperty(properties, "Dictionary Size", FileComparer.FormatDictionarySize(srr.DictionarySize), "Dictionary Size");
-        AddComparedProperty(properties, "Solid Archive", FileComparer.FormatBool(srr.IsSolidArchive), "Solid Archive");
-        AddComparedProperty(properties, "Volume Archive", FileComparer.FormatBool(srr.IsVolumeArchive), "Volume Archive");
-        AddComparedProperty(properties, "Recovery Record", FileComparer.FormatBool(srr.HasRecoveryRecord), "Recovery Record");
-        AddComparedProperty(properties, "Encrypted Headers", FileComparer.FormatBool(srr.HasEncryptedHeaders), "Encrypted Headers");
-        AddComparedProperty(properties, "RAR Volumes", srr.RARFiles.Count.ToString(), "RAR Volumes Count");
-        AddComparedProperty(properties, "Stored Files", srr.StoredFiles.Count.ToString(), "Stored Files Count");
-        AddComparedProperty(properties, "Archived Files", srr.ArchivedFiles.Count.ToString(), "Archived Files Count");
-        AddComparedProperty(properties, "Header CRC Errors", srr.HeaderCRCMismatches.ToString(), "Header CRC Errors");
-        AddComparedProperty(properties, "Has Comment", FileComparer.FormatBool(!string.IsNullOrEmpty(srr.ArchiveComment)), "Has Comment");
-
-        properties.Add(new PropertyItem { Name = "--- Reconstruction Hints ---", Value = "", IsSeparator = true });
-
-        if (srr.DetectedHostOS.HasValue)
-        {
-            AddComparedProperty(properties, "Host OS (files)", $"{srr.DetectedHostOSName} (0x{srr.DetectedHostOS:X2})", "Host OS");
-        }
-
-        if (srr.CmtHostOS.HasValue)
-        {
-            AddComparedProperty(properties, "CMT Host OS", $"{srr.CmtHostOSName} (0x{srr.CmtHostOS:X2})", "CMT Host OS");
-        }
-
-        if (srr.CmtFileTimeDOS.HasValue)
-        {
-            string timeMode = srr.CmtHasZeroedFileTime
-                ? "Zeroed (0x00000000)"
-                : $"0x{srr.CmtFileTimeDOS:X8}";
-            AddComparedProperty(properties, "CMT Timestamp", timeMode, "CMT Timestamp");
-            AddComparedProperty(properties, "CMT Time Mode", srr.CmtTimestampMode, "CMT Time Mode");
-        }
-
-        if (srr.CmtFileAttributes.HasValue)
-        {
-            AddComparedProperty(properties, "CMT Attributes", $"0x{srr.CmtFileAttributes:X8}", "CMT Attributes");
-        }
-    }
-
-    private void ShowRARArchiveProperties(ObservableCollection<PropertyItem> properties, RARFileData rar)
-    {
-        AddComparedProperty(properties, "Format", rar.IsRAR5 ? "RAR 5.x" : "RAR 4.x", "Format");
-
-        if (rar.IsRAR5 && rar.RAR5ArchiveInfo is not null)
-        {
-            AddComparedProperty(properties, "Volume", FileComparer.FormatBool(rar.RAR5ArchiveInfo.IsVolume), "Volume");
-            AddComparedProperty(properties, "Solid", FileComparer.FormatBool(rar.RAR5ArchiveInfo.IsSolid), "Solid");
-            AddComparedProperty(properties, "Recovery Record", FileComparer.FormatBool(rar.RAR5ArchiveInfo.HasRecoveryRecord), "Recovery Record");
-            AddComparedProperty(properties, "Locked", FileComparer.FormatBool(rar.RAR5ArchiveInfo.IsLocked), "Locked");
-            AddComparedProperty(properties, "File Count", rar.RAR5FileInfos.Count.ToString(), "File Count");
-        }
-        else if (!rar.IsRAR5 && rar.ArchiveHeader is not null)
-        {
-            AddComparedProperty(properties, "Volume", FileComparer.FormatBool(rar.ArchiveHeader.IsVolume), "Volume");
-            AddComparedProperty(properties, "Solid", FileComparer.FormatBool(rar.ArchiveHeader.IsSolid), "Solid");
-            AddComparedProperty(properties, "Recovery Record", FileComparer.FormatBool(rar.ArchiveHeader.HasRecoveryRecord), "Recovery Record");
-            AddComparedProperty(properties, "Locked", FileComparer.FormatBool(rar.ArchiveHeader.IsLocked), "Locked");
-            AddComparedProperty(properties, "Encrypted Headers", FileComparer.FormatBool(rar.ArchiveHeader.HasEncryptedHeaders), "Encrypted Headers");
-            AddComparedProperty(properties, "File Count", rar.FileHeaders.Count.ToString(), "File Count");
-        }
-
-        AddComparedProperty(properties, "Has Comment", FileComparer.FormatBool(!string.IsNullOrEmpty(rar.Comment)), "Has Comment");
-    }
-
-    private void ShowRAR4FileProperties(ObservableCollection<PropertyItem> properties, RARFileHeader header)
-    {
-        properties.Add(new PropertyItem { Name = "File Name", Value = header.FileName });
-        properties.Add(new PropertyItem { Name = "Type", Value = header.IsDirectory ? "Directory" : "File" });
-        AddComparedProperty(properties, "Unpacked Size", $"{header.UnpackedSize:N0} bytes", "Unpacked Size");
-        AddComparedProperty(properties, "Packed Size", $"{header.PackedSize:N0} bytes", "Packed Size");
-        AddComparedProperty(properties, "CRC32", header.FileCRC.ToString("X8"), "CRC");
-        AddComparedProperty(properties, "Compression Method", FileComparer.GetCompressionMethodName((int?)header.CompressionMethod), "Compression Method");
-        properties.Add(new PropertyItem { Name = "Dictionary Size", Value = $"{header.DictionarySizeKB} KB" });
-        AddComparedProperty(properties, "Modified Time", header.ModifiedTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A", "Modified Time");
-        properties.Add(new PropertyItem { Name = "Split Before", Value = FileComparer.FormatBool(header.IsSplitBefore) });
-        properties.Add(new PropertyItem { Name = "Split After", Value = FileComparer.FormatBool(header.IsSplitAfter) });
-    }
-
-    private void ShowRAR5FileProperties(ObservableCollection<PropertyItem> properties, RAR5FileInfo info)
-    {
-        properties.Add(new PropertyItem { Name = "File Name", Value = info.FileName });
-        properties.Add(new PropertyItem { Name = "Type", Value = info.IsDirectory ? "Directory" : "File" });
-        AddComparedProperty(properties, "Unpacked Size", $"{info.UnpackedSize:N0} bytes", "Unpacked Size");
-        AddComparedProperty(properties, "CRC32", info.FileCRC?.ToString("X8") ?? "N/A", "CRC");
-        AddComparedProperty(properties, "Compression Method", FileComparer.GetCompressionMethodName(info.CompressionMethod), "Compression Method");
-        properties.Add(new PropertyItem { Name = "Dictionary Size", Value = $"{info.DictionarySizeKB} KB" });
-        if (info.ModificationTime.HasValue)
-        {
-            DateTime dt = DateTimeOffset.FromUnixTimeSeconds(info.ModificationTime.Value).LocalDateTime;
-            properties.Add(new PropertyItem { Name = "Modified Time", Value = dt.ToString("yyyy-MM-dd HH:mm:ss") });
-        }
-
-        properties.Add(new PropertyItem { Name = "Split Before", Value = FileComparer.FormatBool(info.IsSplitBefore) });
-        properties.Add(new PropertyItem { Name = "Split After", Value = FileComparer.FormatBool(info.IsSplitAfter) });
-    }
-
-    private void ShowSRRArchivedFileProperties(ObservableCollection<PropertyItem> properties, SRRFile srr, string fileName)
-    {
-        properties.Add(new PropertyItem { Name = "File Name", Value = fileName });
-
-        if (srr.ArchivedFileCrcs.TryGetValue(fileName, out string? crc))
-        {
-            AddComparedProperty(properties, "CRC32", crc, "CRC");
-        }
-
-        if (srr.ArchivedFileTimestamps.TryGetValue(fileName, out DateTime modTime))
-        {
-            AddComparedProperty(properties, "Modified Time", modTime.ToString("yyyy-MM-dd HH:mm:ss"), "Modified Time");
-        }
-
-        if (srr.ArchivedFileCreationTimes.TryGetValue(fileName, out DateTime createTime))
-        {
-            properties.Add(new PropertyItem { Name = "Creation Time", Value = createTime.ToString("yyyy-MM-dd HH:mm:ss") });
-        }
-
-        if (srr.ArchivedFileAccessTimes.TryGetValue(fileName, out DateTime accessTime))
-        {
-            properties.Add(new PropertyItem { Name = "Access Time", Value = accessTime.ToString("yyyy-MM-dd HH:mm:ss") });
-        }
-    }
-
-    private static void ShowStoredFileProperties(ObservableCollection<PropertyItem> properties, SRRStoredFileBlock stored)
-    {
-        long p = stored.BlockPosition;
-        int nameLen = Encoding.UTF8.GetByteCount(stored.FileName);
-
-        properties.Add(new PropertyItem
-        {
-            Name = "File Name",
-            Value = stored.FileName,
-            ByteRange = new ByteRange { Offset = p + 7 + 4 + 2, Length = nameLen }
-        });
-        properties.Add(new PropertyItem
-        {
-            Name = "File Size",
-            Value = $"{stored.FileLength:N0} bytes",
-            ByteRange = new ByteRange { Offset = stored.DataOffset, Length = (int)Math.Min(stored.FileLength, int.MaxValue) }
-        });
-        properties.Add(new PropertyItem
-        {
-            Name = "Data Offset",
-            Value = $"0x{stored.DataOffset:X8}"
-        });
-    }
-
-    private static void ShowRarVolumeProperties(ObservableCollection<PropertyItem> properties, SRRRarFileBlock rarFile)
-    {
-        long p = rarFile.BlockPosition;
-        int nameLen = Encoding.UTF8.GetByteCount(rarFile.FileName);
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Volume Name",
-            Value = rarFile.FileName,
-            ByteRange = new ByteRange { Offset = p + 7 + 2, Length = nameLen }
-        });
-        properties.Add(new PropertyItem
-        {
-            Name = "Block Position",
-            Value = $"0x{rarFile.BlockPosition:X8}"
-        });
-        properties.Add(new PropertyItem
-        {
-            Name = "Header CRC",
-            Value = $"0x{rarFile.CRC:X4}",
-            ByteRange = new ByteRange { Offset = p, Length = 2 }
-        });
-    }
-
-    private void ShowSRSFileInfoProperties(ObservableCollection<PropertyItem> properties, SRSFileDataBlock fd)
-    {
-        AddComparedProperty(properties, "App Name", fd.AppName, "App Name");
-
-        properties.Add(new PropertyItem
-        {
-            Name = "File Name",
-            Value = fd.FileName,
-            ByteRange = new ByteRange { PropertyName = "File Name", Offset = fd.FileNameOffset, Length = fd.FileNameSize }
-        });
-
-        AddComparedProperty(properties, "Sample Size", $"{fd.SampleSize:N0} bytes", "Sample Size");
-        AddComparedProperty(properties, "CRC32", fd.CRC32.ToString("X8"), "CRC32");
-        AddComparedProperty(properties, "Flags", $"0x{fd.Flags:X4}", "Flags");
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Block Position",
-            Value = $"0x{fd.BlockPosition:X8}"
-        });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Block Size",
-            Value = $"{fd.BlockSize:N0} bytes"
-        });
-    }
-
-    private void ShowSRSTrackProperties(ObservableCollection<PropertyItem> properties, SRSTrackDataBlock track, string? trackName)
-    {
-        IReadOnlyList<PropertyDifference>? trackDiffs = trackName is not null ? GetTrackDiffs(trackName) : null;
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Track Number",
-            Value = track.TrackNumber.ToString(),
-            ByteRange = new ByteRange { PropertyName = "Track Number", Offset = track.TrackNumberOffset, Length = track.TrackNumberFieldSize }
-        });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Data Length",
-            Value = $"{track.DataLength:N0} bytes",
-            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Data Length") == true,
-            ByteRange = new ByteRange { PropertyName = "Data Length", Offset = track.DataLengthOffset, Length = track.DataLengthFieldSize }
-        });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Match Offset",
-            Value = $"0x{track.MatchOffset:X}",
-            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Match Offset") == true,
-            ByteRange = new ByteRange { PropertyName = "Match Offset", Offset = track.MatchOffsetOffset, Length = 8 }
-        });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Signature Size",
-            Value = track.SignatureSize.ToString(),
-            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Signature Size") == true,
-            ByteRange = new ByteRange { PropertyName = "Signature Size", Offset = track.SignatureSizeOffset, Length = 2 }
-        });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Flags",
-            Value = $"0x{track.Flags:X4}",
-            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Flags") == true,
-            ByteRange = new ByteRange { PropertyName = "Flags", Offset = track.FlagsOffset, Length = 2 }
-        });
-
-        if (track.Signature.Length > 0)
-        {
-            const int maxSignatureDisplayBytes = 32;
-            string sigHex = Convert.ToHexString(track.Signature.Span[..Math.Min(maxSignatureDisplayBytes, track.Signature.Length)]);
-            if (track.Signature.Length > maxSignatureDisplayBytes)
-            {
-                sigHex += "...";
-            }
-
-            properties.Add(new PropertyItem
-            {
-                Name = "Signature",
-                Value = sigHex,
-                IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Signature") == true,
-                ByteRange = new ByteRange { PropertyName = "Signature", Offset = track.SignatureOffset, Length = track.SignatureSize }
-            });
-        }
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Block Position",
-            Value = $"0x{track.BlockPosition:X8}"
-        });
-
-        properties.Add(new PropertyItem
-        {
-            Name = "Block Size",
-            Value = $"{track.BlockSize:N0} bytes",
-            IsDifferent = trackDiffs?.Any(d => d.PropertyName == "Block Size") == true
-        });
-    }
-
-    private static void ShowSRSContainerChunkProperties(ObservableCollection<PropertyItem> properties, SRSContainerChunk chunk)
-    {
-        properties.Add(new PropertyItem { Name = "Label", Value = chunk.Label });
-        properties.Add(new PropertyItem { Name = "Chunk ID", Value = chunk.ChunkId });
-        properties.Add(new PropertyItem { Name = "Position", Value = $"0x{chunk.BlockPosition:X8}" });
-        properties.Add(new PropertyItem { Name = "Header Size", Value = $"{chunk.HeaderSize:N0} bytes ({FormatUtilities.FormatSize(chunk.HeaderSize)})" });
-        properties.Add(new PropertyItem { Name = "Payload Size", Value = $"{chunk.PayloadSize:N0} bytes ({FormatUtilities.FormatSize(chunk.PayloadSize)})" });
-        properties.Add(new PropertyItem { Name = "Total Size", Value = $"{chunk.BlockSize:N0} bytes ({FormatUtilities.FormatSize(chunk.BlockSize)})" });
-    }
-
-    private static void ShowOSOHashProperties(ObservableCollection<PropertyItem> properties, SRROsoHashBlock oso)
-    {
-        long p = oso.BlockPosition + 7; // skip base header (CRC + type + flags + headerSize)
-
-        properties.Add(new PropertyItem
-        {
-            Name = "File Name",
-            Value = oso.FileName,
-            ByteRange = new ByteRange { Offset = p + 16 + 2, Length = Encoding.UTF8.GetByteCount(oso.FileName) }
-        });
-        properties.Add(new PropertyItem
-        {
-            Name = "File Size",
-            Value = $"{oso.FileSize:N0} bytes",
-            ByteRange = new ByteRange { Offset = p, Length = 8 }
-        });
-        properties.Add(new PropertyItem
-        {
-            Name = "OSO Hash",
-            Value = Convert.ToHexString(oso.OSOHash.Span),
-            ByteRange = new ByteRange { Offset = p + 8, Length = 8 }
-        });
-    }
-
-    private static byte[]? ReadFileSlice(string? filePath, long offset, int length)
-    {
-        if (filePath is null || length <= 0)
-        {
-            return null;
-        }
-
-        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (offset >= fs.Length)
-        {
-            return null;
-        }
-
-        fs.Seek(offset, SeekOrigin.Begin);
-        int toRead = (int)Math.Min(length, fs.Length - offset);
-        byte[] buffer = new byte[toRead];
-        int totalRead = 0;
-        while (totalRead < toRead)
-        {
-            int read = fs.Read(buffer, totalRead, toRead - totalRead);
-            if (read == 0)
-            {
-                break;
-            }
-            totalRead += read;
-        }
-
-        if (totalRead < toRead)
-        {
-            Array.Resize(ref buffer, totalRead);
-        }
-
-        return buffer;
-    }
-
-    private void AddComparedProperty(ObservableCollection<PropertyItem> properties, string name, string value, string? diffPropertyName)
-    {
-        bool isDiff = false;
-        if (diffPropertyName is not null && _compareResult is not null)
-        {
-            isDiff = _compareResult.ArchiveDifferences.Any(d => d.PropertyName == diffPropertyName);
-        }
-
-        properties.Add(new PropertyItem
-        {
-            Name = name,
-            Value = value,
-            IsDifferent = isDiff
-        });
-    }
-
-    private IReadOnlyList<PropertyDifference>? GetTrackDiffs(string trackName)
-    {
-        FileDifference? fileDiff = _compareResult?.FileDifferences
-            .FirstOrDefault(d => d.FileName == trackName && d.Type == DifferenceType.Modified);
-        return fileDiff?.PropertyDifferences;
     }
 
     #endregion
 
-    private static void BuildChunkHierarchy(TreeNodeViewModel root, IReadOnlyList<SRSContainerChunk> chunks, bool isLeft)
-    {
-        var nodeStack = new Stack<TreeNodeViewModel>();
-        var endStack = new Stack<long>();
-        nodeStack.Push(root);
-        endStack.Push(long.MaxValue);
-
-        foreach (SRSContainerChunk chunk in chunks)
-        {
-            long chunkEnd = chunk.BlockPosition + chunk.BlockSize;
-
-            while (endStack.Count > 1 && chunk.BlockPosition >= endStack.Peek())
-            {
-                nodeStack.Pop();
-                endStack.Pop();
-            }
-
-            var node = new TreeNodeViewModel
-            {
-                Text = $"{chunk.Label} (0x{chunk.BlockPosition:X}, {FormatUtilities.FormatSize(chunk.BlockSize)})",
-                Tag = new CompareNodeData { NodeType = CompareNodeType.SRSContainerChunks, Data = chunk, IsLeft = isLeft }
-            };
-            nodeStack.Peek().Children.Add(node);
-
-            nodeStack.Push(node);
-            endStack.Push(chunkEnd);
-        }
-    }
-
-
     public void Dispose()
     {
         CancelDiff();
-        _leftFileSource?.Dispose();
-        _leftFileSource = null;
-        _rightFileSource?.Dispose();
-        _rightFileSource = null;
+        _left.Source?.Dispose();
+        _left.Source = null;
+        _right.Source?.Dispose();
+        _right.Source = null;
         GC.SuppressFinalize(this);
     }
 }
