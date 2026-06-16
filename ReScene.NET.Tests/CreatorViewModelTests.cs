@@ -63,23 +63,16 @@ public sealed class CreatorViewModelTests : IDisposable
             => Task.FromResult(new SRSCreationResult { Success = true, SRSFileSize = 1 });
     }
 
-    private sealed class FakeAppSettingsService : IAppSettingsService
+    private sealed class FakeTempDirectoryService(List<string> createdSink) : NoOpTempDirectoryService
     {
-        public event EventHandler? Changed { add { } remove { } }
-        public AppSettings Load() => new();
-        public void Save(AppSettings settings) { }
-    }
-
-    private sealed class FakeTempDirectoryService(List<string> createdSink) : ITempDirectoryService
-    {
-        public string CreateTempDirectory()
+        public override string CreateTempDirectory()
         {
             string dir = Directory.CreateTempSubdirectory("rescene-creator-test-").FullName;
             createdSink.Add(dir);   // tracked so the test fixture can clean it up
             return dir;
         }
 
-        public void Cleanup(string? tempDir)
+        public override void Cleanup(string? tempDir)
         {
             if (!string.IsNullOrEmpty(tempDir) && Directory.Exists(tempDir))
             {
@@ -88,23 +81,17 @@ public sealed class CreatorViewModelTests : IDisposable
         }
     }
 
-    private sealed class FakeFileDialogService : IFileDialogService
+    private sealed class FakeFileDialogService : NoOpFileDialogService
     {
         public string? PromptResult { get; set; }
         public Queue<string?> PromptResults { get; } = new();   // consumed first, for re-prompt loops
         public IReadOnlyList<string> OpenFilesResult { get; set; } = [];
 
-        public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<string?>(null);
-        public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFilesResult);
-        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null) => Task.FromResult<string?>(null);
-        public Task<string?> OpenFolderAsync(string title) => Task.FromResult<string?>(null);
-        public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
-        public Task<string?> PromptForTextAsync(string title, string message, string initialValue)
+        public override Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFilesResult);
+        public override Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
+        public override Task<string?> PromptForTextAsync(string title, string message, string initialValue)
             => Task.FromResult(PromptResults.Count > 0 ? PromptResults.Dequeue() : PromptResult);
-        public void ShowError(string title, string message) { }
-        public void ShowWarning(string title, string message) { }
-        public void ShowInfo(string title, string message) { }
-        public bool Confirm(string title, string message) => true;
+        public override bool Confirm(string title, string message) => true;
     }
 
     // ── Helpers ─────────────────────────────────────────────
@@ -116,7 +103,7 @@ public sealed class CreatorViewModelTests : IDisposable
         srr = new FakeSrrCreationService();
         _dialog = new FakeFileDialogService();
         var vm = new CreatorViewModel(srr, new FakeSrsCreationService(), _dialog,
-            new FakeTempDirectoryService(_tempPaths), new FakeAppSettingsService())
+            new FakeTempDirectoryService(_tempPaths), new NoOpAppSettingsService())
         {
             // Keep the build trivial and deterministic: no sample/vobsub/fix phases.
             AutoCreateSRS = false,

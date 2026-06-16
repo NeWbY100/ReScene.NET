@@ -108,7 +108,7 @@ public class SrrEditorViewModelTests
     }
 
     /// <summary>Fake dialog: serves scripted responses and records prompts.</summary>
-    private sealed class FakeFileDialogService : IFileDialogService
+    private sealed class FakeFileDialogService : NoOpFileDialogService
     {
         public string? OpenFileResult { get; set; }
         public IReadOnlyList<string> OpenFilesResult { get; set; } = [];
@@ -119,34 +119,24 @@ public class SrrEditorViewModelTests
         public string? LastPromptInitialValue { get; private set; }
         public string? LastSaveDefaultFileName { get; private set; }
 
-        public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFileResult);
-        public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFilesResult);
+        public override Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFileResult);
+        public override Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult(OpenFilesResult);
 
-        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null)
+        public override Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null)
         {
             LastSaveDefaultFileName = defaultFileName;
             return Task.FromResult(SaveFileResult);
         }
-        public Task<string?> OpenFolderAsync(string title) => Task.FromResult(OpenFolderResult);
-        public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
+        public override Task<string?> OpenFolderAsync(string title) => Task.FromResult(OpenFolderResult);
+        public override Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(true);
 
-        public Task<string?> PromptForTextAsync(string title, string message, string initialValue)
+        public override Task<string?> PromptForTextAsync(string title, string message, string initialValue)
         {
             LastPromptInitialValue = initialValue;
             return Task.FromResult(PromptResult);
         }
 
-        public void ShowError(string title, string message) { }
-        public void ShowWarning(string title, string message) { }
-        public void ShowInfo(string title, string message) { }
-        public bool Confirm(string title, string message) => true;
-    }
-
-    /// <summary>Fake temp service — never used because the seam is overridden.</summary>
-    private sealed class FakeTempDirectoryService : ITempDirectoryService
-    {
-        public string CreateTempDirectory() => throw new InvalidOperationException("Temp dir should not be created in unit tests.");
-        public void Cleanup(string? tempDir) { }
+        public override bool Confirm(string title, string message) => true;
     }
 
     /// <summary>
@@ -181,7 +171,7 @@ public class SrrEditorViewModelTests
     {
         editing = new FakeSrrEditingService();
         dialog = new FakeFileDialogService();
-        return new TestSrrEditorViewModel(editing, dialog, new FakeTempDirectoryService());
+        return new TestSrrEditorViewModel(editing, dialog, new NoOpTempDirectoryService());
     }
 
     // ── StoredFileInfo model ────────────────────────────────

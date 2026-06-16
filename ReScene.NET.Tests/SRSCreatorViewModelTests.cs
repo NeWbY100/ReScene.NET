@@ -31,48 +31,25 @@ public sealed class SRSCreatorViewModelTests : IDisposable
         }
     }
 
-    private sealed class FakeFileDialogService : IFileDialogService
+    private sealed class FakeFileDialogService : NoOpFileDialogService
     {
         public bool ConfirmResult { get; set; } = true;
         public int ConfirmCalls { get; private set; }
 
-        public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<string?>(null);
-        public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<IReadOnlyList<string>>([]);
-        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null) => Task.FromResult<string?>(null);
-        public Task<string?> OpenFolderAsync(string title) => Task.FromResult<string?>(null);
-
-        public Task<bool> ShowConfirmAsync(string title, string message)
+        public override Task<bool> ShowConfirmAsync(string title, string message)
         {
             ConfirmCalls++;
             return Task.FromResult(ConfirmResult);
         }
 
-        public Task<string?> PromptForTextAsync(string title, string message, string initialValue) => Task.FromResult<string?>(null);
-
-        public void ShowError(string title, string message) { }
-        public void ShowWarning(string title, string message) { }
-        public void ShowInfo(string title, string message) { }
-        public bool Confirm(string title, string message) => true;
-    }
-
-    private sealed class FakeTempDirectoryService : ITempDirectoryService
-    {
-        public string CreateTempDirectory() => throw new InvalidOperationException("Temp dir should not be created in these tests.");
-        public void Cleanup(string? tempDir) { }
-    }
-
-    private sealed class FakeAppSettingsService : IAppSettingsService
-    {
-        public event EventHandler? Changed { add { } remove { } }
-        public AppSettings Load() => new();
-        public void Save(AppSettings settings) { }
+        public override bool Confirm(string title, string message) => true;
     }
 
     private static SRSCreatorViewModel CreateVm(out FakeSrsCreationService srs, out FakeFileDialogService dialog)
     {
         srs = new FakeSrsCreationService();
         dialog = new FakeFileDialogService();
-        return new SRSCreatorViewModel(srs, dialog, new FakeTempDirectoryService(), new FakeAppSettingsService());
+        return new SRSCreatorViewModel(srs, dialog, new NoOpTempDirectoryService(), new NoOpAppSettingsService());
     }
 
     private string CreateTempFile(string ext)

@@ -9,45 +9,9 @@ namespace ReScene.NET.Tests;
 /// End-to-end tests for MKV comparison through <see cref="FileCompareViewModel"/>: loading two MKV
 /// files must mark differing elements red (IsDifferent) in the structure trees.
 /// </summary>
-public class FileCompareViewModelMkvTests : IDisposable
+public class FileCompareViewModelMkvTests : TempDirTestBase
 {
-    private readonly string _tempDir;
-
-    public FileCompareViewModelMkvTests()
-    {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"comparevm_mkv_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-    }
-
-    public void Dispose()
-    {
-        try
-        {
-            Directory.Delete(_tempDir, true);
-        }
-        catch (IOException)
-        {
-            // Best-effort cleanup.
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
     #region Stub services
-
-    private sealed class StubFileDialogService : IFileDialogService
-    {
-        public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<string?>(null);
-        public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<IReadOnlyList<string>>([]);
-        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null) => Task.FromResult<string?>(null);
-        public Task<string?> OpenFolderAsync(string title) => Task.FromResult<string?>(null);
-        public Task<bool> ShowConfirmAsync(string title, string message) => Task.FromResult(false);
-        public Task<string?> PromptForTextAsync(string title, string message, string initialValue) => Task.FromResult<string?>(null);
-        public void ShowError(string title, string message) { }
-        public void ShowWarning(string title, string message) { }
-        public void ShowInfo(string title, string message) { }
-        public bool Confirm(string title, string message) => false;
-    }
 
     private sealed class StubHexDiffComputer : IHexDiffComputer
     {
@@ -61,32 +25,6 @@ public class FileCompareViewModelMkvTests : IDisposable
     #endregion
 
     #region EBML encoding helpers
-
-    private static byte[] Master(byte[] id, params byte[][] children)
-    {
-        byte[] body = Concat(children);
-        return Concat(id, EncodeSize(body.Length), body);
-    }
-
-    private static byte[] Leaf(byte[] id, byte[] payload) => Concat(id, EncodeSize(payload.Length), payload);
-
-    private static byte[] Str(byte[] id, string value) => Leaf(id, System.Text.Encoding.UTF8.GetBytes(value));
-
-    private static byte[] EncodeSize(long size) =>
-        size < 0x7F ? [(byte)(0x80 | size)] : [(byte)(0x40 | (size >> 8)), (byte)size];
-
-    private static byte[] Concat(params byte[][] parts)
-    {
-        byte[] result = new byte[parts.Sum(p => p.Length)];
-        int offset = 0;
-        foreach (byte[] p in parts)
-        {
-            Buffer.BlockCopy(p, 0, result, offset, p.Length);
-            offset += p.Length;
-        }
-
-        return result;
-    }
 
     private static byte[] IdEbml => [0x1A, 0x45, 0xDF, 0xA3];
     private static byte[] IdDocType => [0x42, 0x82];
@@ -102,38 +40,26 @@ public class FileCompareViewModelMkvTests : IDisposable
     /// </summary>
     private static byte[] BuildMkv(string muxingApp, byte clusterFill)
     {
-        byte[] ebml = Master(IdEbml, Str(IdDocType, "matroska"));
-        byte[] info = Master(IdInfo, Str(IdMuxingApp, muxingApp));
+        byte[] ebml = EbmlTestWriter.Master(IdEbml, EbmlTestWriter.Str(IdDocType, "matroska"));
+        byte[] info = EbmlTestWriter.Master(IdInfo, EbmlTestWriter.Str(IdMuxingApp, muxingApp));
         byte[] payload = new byte[64];
         Array.Fill(payload, clusterFill);
-        byte[] cluster = Master(IdCluster, Leaf(IdClusterTimestamp, [0x00]), Leaf(IdSimpleBlock, payload));
-        byte[] segment = Master(IdSegment, info, cluster);
-        return Concat(ebml, segment);
+        byte[] cluster = EbmlTestWriter.Master(IdCluster, EbmlTestWriter.Leaf(IdClusterTimestamp, [0x00]), EbmlTestWriter.Leaf(IdSimpleBlock, payload));
+        byte[] segment = EbmlTestWriter.Master(IdSegment, info, cluster);
+        return EbmlTestWriter.Concat(ebml, segment);
     }
 
     #endregion
 
     private string WriteMkv(string name, byte[] bytes)
     {
-        string path = Path.Combine(_tempDir, name);
+        string path = Path.Combine(TempDir, name);
         File.WriteAllBytes(path, bytes);
         return path;
     }
 
     private static FileCompareViewModel CreateViewModel() =>
-        new(new FileCompareService(), new StubFileDialogService(), new StubHexDiffComputer());
-
-    private static IEnumerable<TreeNodeViewModel> Flatten(IEnumerable<TreeNodeViewModel> nodes)
-    {
-        foreach (TreeNodeViewModel node in nodes)
-        {
-            yield return node;
-            foreach (TreeNodeViewModel child in Flatten(node.Children))
-            {
-                yield return child;
-            }
-        }
-    }
+        new(new FileCompareService(), new NoOpFileDialogService(), new StubHexDiffComputer());
 
     [Fact]
     public void Compare_MetadataDiffers_MarksTreeNodesDifferent()
@@ -145,8 +71,8 @@ public class FileCompareViewModelMkvTests : IDisposable
         vm.LoadLeftFile(left);
         vm.LoadRightFile(right);
 
-        TreeNodeViewModel? muxLeft = Flatten(vm.LeftTreeRoots).FirstOrDefault(n => n.Text.StartsWith("MuxingApp", StringComparison.Ordinal));
-        TreeNodeViewModel? muxRight = Flatten(vm.RightTreeRoots).FirstOrDefault(n => n.Text.StartsWith("MuxingApp", StringComparison.Ordinal));
+        TreeNodeViewModel? muxLeft = vm.LeftTreeRoots.Flatten().FirstOrDefault(n => n.Text.StartsWith("MuxingApp", StringComparison.Ordinal));
+        TreeNodeViewModel? muxRight = vm.RightTreeRoots.Flatten().FirstOrDefault(n => n.Text.StartsWith("MuxingApp", StringComparison.Ordinal));
 
         Assert.NotNull(muxLeft);
         Assert.NotNull(muxRight);
@@ -167,7 +93,7 @@ public class FileCompareViewModelMkvTests : IDisposable
         vm.LoadLeftFile(left);
         vm.LoadRightFile(right);
 
-        TreeNodeViewModel? clusterLeft = Flatten(vm.LeftTreeRoots).FirstOrDefault(n => n.Text.StartsWith("Cluster", StringComparison.Ordinal));
+        TreeNodeViewModel? clusterLeft = vm.LeftTreeRoots.Flatten().FirstOrDefault(n => n.Text.StartsWith("Cluster", StringComparison.Ordinal));
         Assert.NotNull(clusterLeft);
         Assert.True(clusterLeft!.IsDifferent,
             $"Cluster node should be red when its content differs; text was '{clusterLeft.Text}'");
@@ -186,6 +112,6 @@ public class FileCompareViewModelMkvTests : IDisposable
         vm.LoadRightFile(right);
 
         Assert.True(vm.FilesIdentical, $"status was '{vm.StatusMessage}'");
-        Assert.DoesNotContain(Flatten(vm.LeftTreeRoots), n => n.IsDifferent);
+        Assert.DoesNotContain(vm.LeftTreeRoots.Flatten(), n => n.IsDifferent);
     }
 }

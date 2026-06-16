@@ -17,7 +17,7 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
     // ── Fakes ───────────────────────────────────────────────
 
     /// <summary>Records the dialogs raised so tests can assert on title/message and Confirm answers.</summary>
-    private sealed class RecordingFileDialogService : IFileDialogService
+    private sealed class RecordingFileDialogService : NoOpFileDialogService
     {
         public List<(string Title, string Message)> Errors { get; } = [];
         public List<(string Title, string Message)> Warnings { get; } = [];
@@ -27,23 +27,17 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
         public bool ConfirmResult { get; set; } = true;
         public List<(string Title, string Message)> Confirms { get; } = [];
 
-        public Task<string?> OpenFileAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<string?>(null);
-        public Task<IReadOnlyList<string>> OpenFilesAsync(string title, IReadOnlyList<string> filters) => Task.FromResult<IReadOnlyList<string>>([]);
-        public Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null) => Task.FromResult<string?>(null);
-        public Task<string?> OpenFolderAsync(string title) => Task.FromResult<string?>(null);
-        public Task<string?> PromptForTextAsync(string title, string message, string initialValue) => Task.FromResult<string?>(null);
-
-        public Task<bool> ShowConfirmAsync(string title, string message)
+        public override Task<bool> ShowConfirmAsync(string title, string message)
         {
             Confirms.Add((title, message));
             return Task.FromResult(ConfirmResult);
         }
 
-        public void ShowError(string title, string message) => Errors.Add((title, message));
-        public void ShowWarning(string title, string message) => Warnings.Add((title, message));
-        public void ShowInfo(string title, string message) => Infos.Add((title, message));
+        public override void ShowError(string title, string message) => Errors.Add((title, message));
+        public override void ShowWarning(string title, string message) => Warnings.Add((title, message));
+        public override void ShowInfo(string title, string message) => Infos.Add((title, message));
 
-        public bool Confirm(string title, string message)
+        public override bool Confirm(string title, string message)
         {
             Confirms.Add((title, message));
             return ConfirmResult;
