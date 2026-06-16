@@ -8,12 +8,6 @@ namespace ReScene.NET.Helpers;
 /// </summary>
 public static class FieldGuidance
 {
-    private static readonly HashSet<string> _knownSampleExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".mkv", ".avi", ".mp4", ".m4v", ".mov", ".wmv", ".vob", ".mpg", ".mpeg",
-        ".ts", ".m2ts", ".flac", ".mp3", ".ogg", ".wav"
-    };
-
     /// <summary>
     /// Returns <paramref name="inputPath"/> with its extension replaced by
     /// <paramref name="newExtension"/>, in the same directory. Empty input yields empty output.
@@ -78,7 +72,7 @@ public static class FieldGuidance
     public static FieldStatus DescribeSample(string extension, long sizeBytes)
     {
         string label = extension.TrimStart('.').ToUpperInvariant();
-        return _knownSampleExtensions.Contains(extension)
+        return SceneFileTypes.IsMediaExtension(extension)
             ? FieldStatus.Ok($"{label} sample, {FormatUtilities.FormatSize(sizeBytes)}")
             : FieldStatus.Warning($"Unrecognized media type ({label}); SRS may not support it.");
     }
@@ -98,31 +92,12 @@ public static class FieldGuidance
         foreach (string file in Directory.EnumerateFiles(directory))
         {
             string ext = Path.GetExtension(file);
-            if (ext.Equals(".rar", StringComparison.OrdinalIgnoreCase) || IsOldStyleVolume(ext))
+            if (SceneFileTypes.IsRarVolumeExtension(ext))
             {
                 count++;
             }
         }
 
         return count;
-    }
-
-    // Matches ".r00".."r999": 'r' followed by digits.
-    private static bool IsOldStyleVolume(string ext)
-    {
-        if (ext.Length < 3 || (ext[1] != 'r' && ext[1] != 'R'))
-        {
-            return false;
-        }
-
-        for (int i = 2; i < ext.Length; i++)
-        {
-            if (!char.IsDigit(ext[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

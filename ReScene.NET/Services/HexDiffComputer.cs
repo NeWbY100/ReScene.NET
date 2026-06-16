@@ -139,15 +139,7 @@ public class HexDiffComputer : IHexDiffComputer
 
         var copy = new List<HexMatchRange>(baseList.Count + 1);
         copy.AddRange(baseList);
-        long offset = baseOffset + openStart;
-        long length = openEndExclusive - openStart;
-        while (length > 0)
-        {
-            int chunk = length > MaxRangeLength ? MaxRangeLength : (int)length;
-            copy.Add(new HexMatchRange(offset, chunk));
-            offset += chunk;
-            length -= chunk;
-        }
+        EmitRange(copy, baseOffset + openStart, openEndExclusive - openStart);
 
         return copy;
     }

@@ -20,13 +20,6 @@ internal static partial class ReleaseFileScanner
         ".jpg", ".jpeg", ".png", ".bmp", ".gif"
     };
 
-    private static readonly HashSet<string> _sampleExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".avi", ".mkv", ".mp4", ".wmv", ".m4v",
-        ".flac", ".mp3",
-        ".vob", ".m2ts", ".ts", ".mpg", ".mpeg", ".evo"
-    };
-
     private static readonly HashSet<string> _musicExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".mp3", ".flac", ".mp2"
@@ -130,7 +123,7 @@ internal static partial class ReleaseFileScanner
         {
             foreach (string file in Directory.GetFiles(sampleDir))
             {
-                if (_sampleExtensions.Contains(Path.GetExtension(file)))
+                if (SceneFileTypes.IsMediaExtension(Path.GetExtension(file)))
                 {
                     samples.Add(file);
                 }
@@ -142,7 +135,7 @@ internal static partial class ReleaseFileScanner
         {
             string name = Path.GetFileNameWithoutExtension(file);
             if (name.Contains("sample", StringComparison.OrdinalIgnoreCase) &&
-                _sampleExtensions.Contains(Path.GetExtension(file)) &&
+                SceneFileTypes.IsMediaExtension(Path.GetExtension(file)) &&
                 !samples.Contains(file))
             {
                 samples.Add(file);
@@ -263,9 +256,7 @@ internal static partial class ReleaseFileScanner
             string fileName = line[..lastSpace].Trim();
             string ext = Path.GetExtension(fileName);
 
-            if (ext.Equals(".rar", StringComparison.OrdinalIgnoreCase) ||
-                (ext.Length == 4 && ext.StartsWith(".r", StringComparison.OrdinalIgnoreCase) &&
-                 char.IsDigit(ext[2]) && char.IsDigit(ext[3])))
+            if (SceneFileTypes.IsRarVolumeExtension(ext))
             {
                 string fullPath = Path.Combine(dir, fileName);
                 if (File.Exists(fullPath))

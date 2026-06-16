@@ -1080,7 +1080,7 @@ public partial class CreatorViewModel : ViewModelBase
             // silently truncate the set (the loop here previously stopped at the first missing one).
             foreach (string file in Directory.GetFiles(dir, baseName + ".*"))
             {
-                if (IsOldStyleVolumeExtension(Path.GetExtension(file)))
+                if (SceneFileTypes.IsOldStyleRarVolumeExtension(Path.GetExtension(file)))
                 {
                     volumes.Add(file);
                 }
@@ -1090,17 +1090,6 @@ public partial class CreatorViewModel : ViewModelBase
         volumes.Sort(RARVolumeNameComparer.Instance);
         return volumes;
     }
-
-    /// <summary>
-    /// True for an old-style RAR continuation-volume extension: a dot, a letter r–z, then two
-    /// digits (".r00" … ".z99"). The first volume keeps its ".rar" extension and is excluded.
-    /// </summary>
-    private static bool IsOldStyleVolumeExtension(string extension)
-        => extension.Length == 4
-            && extension[0] == '.'
-            && char.ToLowerInvariant(extension[1]) is >= 'r' and <= 'z'
-            && char.IsAsciiDigit(extension[2])
-            && char.IsAsciiDigit(extension[3]);
 
     /// <summary>
     /// Represents a file to be stored inside the SRR, with its full path and relative stored name.

@@ -1548,7 +1548,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
         if (srr.CompressionMethod.HasValue)
         {
-            AddProperty("Compression Method", GetCompressionMethodName((byte)srr.CompressionMethod.Value));
+            AddProperty("Compression Method", ReScene.Core.Comparison.FileComparer.GetCompressionMethodName((byte)srr.CompressionMethod.Value));
         }
 
         if (srr.DictionarySize.HasValue)
@@ -1641,17 +1641,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
     }
 
-
-    private static string GetCompressionMethodName(byte method) => method switch
-    {
-        0x00 or 0x30 => "Store",
-        0x01 or 0x31 => "Fastest",
-        0x02 or 0x32 => "Fast",
-        0x03 or 0x33 => "Normal",
-        0x04 or 0x34 => "Good",
-        0x05 or 0x35 => "Best",
-        _ => $"Unknown (0x{method:X2})"
-    };
 
     private static string SafeFileName(string text)
     {

@@ -2,9 +2,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ReScene.NET.Models;
 using ReScene.NET.ViewModels;
-using ReScene.RAR;
-using ReScene.SRR;
-using ReScene.SRS;
 
 namespace ReScene.NET.Services;
 
@@ -48,10 +45,10 @@ public sealed class PropertyExportService : IPropertyExportService
         var export = new PropertyExportNode
         {
             Text = node.Text,
-            BlockType = BlockTypeOf(node.Tag)
+            BlockType = BlockMetadata.BlockTypeOf(node.Tag)
         };
 
-        (long? offset, long? length) = RangeOf(node.Tag);
+        (long? offset, long? length) = BlockMetadata.RangeOf(node.Tag);
         export.Offset = offset;
         export.Length = length;
 
@@ -67,34 +64,4 @@ public sealed class PropertyExportService : IPropertyExportService
 
         return export;
     }
-
-    private static string? BlockTypeOf(object? tag) => tag switch
-    {
-        SRRHeaderBlock => "SRR Header",
-        SRRStoredFileBlock => "SRR Stored File",
-        SRROsoHashBlock => "SRR OSO Hash",
-        SRRRarPaddingBlock => "SRR RAR Padding",
-        SRRRarFileBlock => "SRR RAR File",
-        SRRFile => "SRR Archive",
-        RARDetailedBlock b => b.BlockType,
-        SRSFileDataBlock => "SRS File Data",
-        SRSTrackDataBlock => "SRS Track Data",
-        SRSContainerChunk => "SRS Container Chunk",
-        SRSFile => "SRS File",
-        _ => null
-    };
-
-    private static (long? Offset, long? Length) RangeOf(object? tag) => tag switch
-    {
-        SRRHeaderBlock b => (b.BlockPosition, b.HeaderSize),
-        SRRStoredFileBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
-        SRROsoHashBlock b => (b.BlockPosition, b.HeaderSize),
-        SRRRarPaddingBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
-        SRRRarFileBlock b => (b.BlockPosition, (long)b.HeaderSize + b.AddSize),
-        RARDetailedBlock b => (b.StartOffset, b.TotalSize),
-        SRSFileDataBlock b => (b.BlockPosition, b.BlockSize),
-        SRSTrackDataBlock b => (b.BlockPosition, b.BlockSize),
-        SRSContainerChunk b => (b.BlockPosition, b.BlockSize),
-        _ => (null, null)
-    };
 }
