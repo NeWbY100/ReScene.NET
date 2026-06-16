@@ -21,7 +21,8 @@ public class BruteForceService : IBruteForceService
 
         // A fresh Manager per run, kept local: cancellation flows through the token below
         // rather than a shared field, so a Cancel during setup can never target a stale run.
-        var manager = new Manager(logger);
+        // Disposed when the run finishes so the run's linked cancellation source is released.
+        using var manager = new Manager(logger);
         manager.BruteForceProgress += (s, e) => Progress?.Invoke(s, e);
         manager.BruteForceStatusChanged += (s, e) => StatusChanged?.Invoke(s, e);
         manager.FileCopyProgress += (s, e) => FileCopyProgress?.Invoke(s, e);
