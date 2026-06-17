@@ -39,6 +39,7 @@ public partial class SRSReconstructorViewModel : OperationViewModelBase
 
     // ISO support
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RebuildCommand))]
     public partial bool IsISOSource { get; set; }
 
     [ObservableProperty]

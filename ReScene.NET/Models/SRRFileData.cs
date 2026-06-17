@@ -11,7 +11,7 @@ public class SRRFileData
     /// <summary>
     /// The parsed SRR file.
     /// </summary>
-    public SRRFile SRRFile { get; set; } = null!;
+    public required SRRFile SRRFile { get; init; }
 
     /// <summary>
     /// Detailed RAR blocks per volume, keyed by volume filename.

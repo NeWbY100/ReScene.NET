@@ -7,7 +7,7 @@ namespace ReScene.NET.Models;
 /// </summary>
 public class SRSInspectorData
 {
-    public SRSFile SRSFile { get; set; } = null!;
+    public required SRSFile SRSFile { get; init; }
 
     /// <summary>
     /// Loads and parses an SRS file from disk.

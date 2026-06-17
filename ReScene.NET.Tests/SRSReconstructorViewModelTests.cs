@@ -127,6 +127,20 @@ public sealed class SRSReconstructorViewModelTests : TempDirTestBase
         Assert.False(vm.RebuildCommand.CanExecute(null));
     }
 
+    [Fact]
+    // Regression: IsISOSource gates CanRebuild but lacked [NotifyCanExecuteChangedFor], so toggling
+    // it left the Rebuild button's enabled state stale (the same defect fixed in SRSCreatorViewModel).
+    public void IsISOSource_Change_RaisesRebuildCommandCanExecuteChanged()
+    {
+        SRSReconstructorViewModel vm = CreateVm(new FakeReconstructionService(), new NoOpTempDirectoryService());
+        bool raised = false;
+        vm.RebuildCommand.CanExecuteChanged += (_, _) => raised = true;
+
+        vm.IsISOSource = true;
+
+        Assert.True(raised, "Toggling IsISOSource must re-evaluate RebuildCommand.CanExecute.");
+    }
+
     // ── RebuildAsync result handling ────────────────────────
 
     [Fact]
