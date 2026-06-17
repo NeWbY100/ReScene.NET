@@ -70,6 +70,7 @@ public partial class SRSCreatorViewModel : OperationViewModelBase
     // ISO support
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowISOSelection))]
+    [NotifyCanExecuteChangedFor(nameof(CreateSRSCommand))]
     public partial bool IsISOSource { get; set; }
 
     [ObservableProperty]

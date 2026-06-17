@@ -143,6 +143,39 @@ public sealed class SRSCreatorViewModelTests : IDisposable
         Assert.Equal(movie, srs.LastMainFile);  // the movie reaches the creation service
     }
 
+    // ── CanExecute notification wiring ──────────────────────
+
+    [Fact]
+    public void IsISOSource_Change_RaisesCreateCommandCanExecuteChanged()
+    {
+        // Regression: IsISOSource gates CanCreateSRS (the ISO branch requires a
+        // selected media file), but it lacked [NotifyCanExecuteChangedFor(
+        // nameof(CreateSRSCommand))], so toggling it left the Create button's
+        // enabled state stale in the UI.
+        SRSCreatorViewModel vm = CreateVm(out _, out _);
+        bool raised = false;
+        vm.CreateSRSCommand.CanExecuteChanged += (_, _) => raised = true;
+
+        vm.IsISOSource = true;
+
+        Assert.True(raised, "Toggling IsISOSource must re-evaluate CreateSRSCommand.CanExecute.");
+    }
+
+    [Fact]
+    public void CanCreateSRS_IsoSourceWithoutSelection_IsFalse_ThenTrueWhenSelected()
+    {
+        SRSCreatorViewModel vm = CreateVm(out _, out _);
+        vm.InputPath = @"C:\rel\disc.iso";
+        vm.OutputPath = @"C:\rel\sample.srs";
+        vm.IsISOSource = true;
+
+        Assert.False(vm.CreateSRSCommand.CanExecute(null)); // no media member selected yet
+
+        vm.SelectedISOMediaFile = "VIDEO_TS/VTS_01_1.VOB";
+
+        Assert.True(vm.CreateSRSCommand.CanExecute(null));
+    }
+
     [Fact]
     public async Task Create_WithSuppressFlag_SkipsWarning_AndConsumesFlag()
     {
