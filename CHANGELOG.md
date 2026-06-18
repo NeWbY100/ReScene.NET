@@ -23,7 +23,7 @@ All notable changes to ReScene.NET are documented here. Releases follow [SemVer]
 
 ### Changed
 
-- Updated to ReScene.Lib 2.0.1 (the library fixes above, plus faster SHA-1 hashing and OpenSubtitles hashing that now reports any file it has to skip).
+- Faster SHA-1 hashing, and OpenSubtitles (OSO) hashing now reports any file it has to skip — from the bundled ReScene.Lib, which is released in lockstep (its library fixes are listed above).
 - Internal refactoring with no behavioural change: view-model dialog and UI-dispatch calls now go through injectable abstractions (making the validation logic unit-testable), and the large Reconstructor view-model was decomposed into focused collaborators.
 - Large additions to the automated test suite and assorted best-practice cleanups.
 
