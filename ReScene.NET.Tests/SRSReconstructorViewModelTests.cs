@@ -168,8 +168,8 @@ public sealed class SRSReconstructorViewModelTests : TempDirTestBase
         Assert.True(vm.ShowResult);
         Assert.False(vm.IsRebuilding);
         // Summary format: "CRC32 match: {ActualCRC:X8} ({ActualSize:N0} bytes)".
-        Assert.Contains("0ABCDEF1", vm.ResultSummary);
-        Assert.Contains(1234567L.ToString("N0"), vm.ResultSummary);
+        Assert.Contains("0ABCDEF1", vm.ResultSummary, StringComparison.Ordinal);
+        Assert.Contains(1234567L.ToString("N0"), vm.ResultSummary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed class SRSReconstructorViewModelTests : TempDirTestBase
         Assert.False(vm.ResultSuccess);
         Assert.True(vm.ShowResult);
         Assert.False(vm.IsRebuilding);
-        Assert.Contains("rebuild blew up", vm.ResultSummary);
+        Assert.Contains("rebuild blew up", vm.ResultSummary, StringComparison.Ordinal);
     }
 
     [Fact]
