@@ -4,13 +4,16 @@ All notable changes to ReScene.NET are documented here.
 Releases follow [SemVer](https://semver.org/) and this file follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.4.0] — 2026-06-16
+## [1.4.0] — 2026-06-18
 
 ### Added
 
 - Global exception handling: unhandled UI-thread exceptions, faulted unobserved
   tasks, and fatal background-thread exceptions are now surfaced (an error dialog
   plus a trace entry) instead of crashing silently or vanishing.
+- Operation logs now auto-scroll to follow the newest line as work progresses —
+  in the Create-an-SRR / Create-an-SRS / Edit / Restore wizards and the matching
+  Advanced tabs — unless you have scrolled up to read earlier entries.
 
 ### Fixed
 
@@ -22,14 +25,26 @@ Releases follow [SemVer](https://semver.org/) and this file follows
   when there is a gap in the numbering.
 - Settings load/save failures are now recorded (trace) instead of being silently
   swallowed.
+- **WMV/ASF samples now reconstruct byte-exactly** — previously the rebuilt file
+  could never match the original.
+- **Reconstructing archives larger than 2 GB** now applies the correct per-file
+  timestamps.
+- Inspecting or comparing a file no longer crashes on corrupt RAR5 metadata, and
+  loading a truncated or incomplete SRR no longer throws.
+- Reading the contents of compressed RAR entries larger than 32 KB is now correct.
+- SHA-1 verification files that contain blank lines are accepted.
+- SRS reconstruction from an ISO: the Rebuild button now enables and disables
+  correctly when the ISO source is toggled.
 
 ### Changed
 
-- Updated to ReScene.Lib 2.0.0 (narrowed library API).
+- Updated to ReScene.Lib 2.0.1 (the library fixes above, plus faster SHA-1 hashing
+  and OpenSubtitles hashing that now reports any file it has to skip).
 - Internal refactoring with no behavioural change: view-model dialog and
   UI-dispatch calls now go through injectable abstractions (making the validation
   logic unit-testable), and the large Reconstructor view-model was decomposed
   into focused collaborators.
+- Large additions to the automated test suite and assorted best-practice cleanups.
 
 ## [1.3.0] — 2026-06-14
 
