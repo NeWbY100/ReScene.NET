@@ -233,6 +233,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             _fileDataSource?.Dispose();
             _fileDataSource = null;
 
+            // Drop any view over the previous file so a reload never reads the now-disposed
+            // source (the Text view's UpdateTextView would otherwise throw on the stale slice).
+            // Both views repopulate when a tree node is selected.
+            HexDataSource = null;
+            HexBlockOffset = 0;
+            HexBlockLength = 0;
+
             if (isSRS)
             {
                 _sRSData = SRSInspectorData.Load(filePath);

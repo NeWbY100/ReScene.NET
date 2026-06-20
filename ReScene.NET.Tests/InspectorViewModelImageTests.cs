@@ -206,4 +206,31 @@ public class InspectorViewModelImageTests : TempDirTestBase
         // Still in Hex mode → no decode happened.
         Assert.Equal(string.Empty, vm.TextViewContent);
     }
+
+    [Fact]
+    public void LoadFile_SecondFileWhileTextActive_DoesNotFailFromDisposedSource()
+    {
+        byte[] a = Encoding.ASCII.GetBytes("AAA_FILE_ONE");
+        byte[] b = Encoding.ASCII.GetBytes("BBB_FILE_TWO");
+        string srrA = SRREditingServiceImageTests.WriteMinimalSrr(TempDir, "first.srr", "a.nfo", a);
+        string srrB = SRREditingServiceImageTests.WriteMinimalSrr(TempDir, "second.srr", "b.nfo", b);
+
+        using InspectorViewModel vm = CreateVm(new FakeReadEditingService(), new RecordingImagePreviewService());
+        vm.LoadFile(srrA);
+        vm.SelectedTreeNode = vm.TreeRoots.Flatten()
+            .First(n => n.Tag is SRRStoredFileBlock s && s.FileName == "a.nfo");
+        vm.IsTextViewActive = true;
+        Assert.Contains("AAA_FILE_ONE", vm.TextViewContent, StringComparison.Ordinal);
+
+        // Opening a second valid file while the Text view is active must not read the now-disposed
+        // data source of the first file (which would throw and be reported as a load failure).
+        vm.LoadFile(srrB);
+
+        Assert.True(vm.HasFile, $"second load failed; status='{vm.StatusMessage}'");
+
+        // And the Text view tracks the new file once a node is selected.
+        vm.SelectedTreeNode = vm.TreeRoots.Flatten()
+            .First(n => n.Tag is SRRStoredFileBlock s && s.FileName == "b.nfo");
+        Assert.Contains("BBB_FILE_TWO", vm.TextViewContent, StringComparison.Ordinal);
+    }
 }
