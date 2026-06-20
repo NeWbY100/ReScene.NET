@@ -26,6 +26,13 @@ public partial class InspectorView : UserControl
     // Double-clicking an image stored-file node opens the preview, mirroring the header button.
     private void OnTreeViewMouseDoubleClick(object _, MouseButtonEventArgs e)
     {
+        // Only act when the double-click lands on a tree item (not the empty area or an expander gap).
+        if (e.OriginalSource is not DependencyObject source
+            || FindVisualParent<TreeViewItem>(source) is null)
+        {
+            return;
+        }
+
         if (DataContext is InspectorViewModel vm && vm.PreviewStoredImageCommand.CanExecute(null))
         {
             vm.PreviewStoredImageCommand.Execute(null);
