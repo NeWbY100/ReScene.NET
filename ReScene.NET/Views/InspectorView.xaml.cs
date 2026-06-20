@@ -29,6 +29,7 @@ public partial class InspectorView : UserControl
         if (DataContext is InspectorViewModel vm && vm.PreviewStoredImageCommand.CanExecute(null))
         {
             vm.PreviewStoredImageCommand.Execute(null);
+            e.Handled = true;
         }
     }
 
