@@ -38,6 +38,13 @@ public class InspectorViewModelImageTests : TempDirTestBase
         public Task ExportTreeAsync(string outputPath, IEnumerable<TreeNodeViewModel> roots, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
+    // File dialog whose Save returns a fixed path, so an export writes to a known location.
+    private sealed class SaveToPathDialog(string path) : NoOpFileDialogService
+    {
+        public override Task<string?> SaveFileAsync(string title, string defaultExtension, IReadOnlyList<string> filters, string? defaultFileName = null)
+            => Task.FromResult<string?>(path);
+    }
+
     private static InspectorViewModel CreateVm(FakeReadEditingService editing, RecordingImagePreviewService preview) =>
         new(new NoOpFileDialogService(), editing, new StubVerifyService(), new StubPropertyExportService(), preview);
 
@@ -82,5 +89,27 @@ public class InspectorViewModelImageTests : TempDirTestBase
         Assert.Equal(new byte[] { 0x01, 0x02, 0x03 }, data);
         Assert.Equal("proof.jpg", fileName);
         Assert.Equal("proof.jpg", editing.LastRead!.Value.Name);
+    }
+
+    [Fact]
+    public async Task ExportBlock_StoredFile_WritesPayloadWithoutSrrHeader()
+    {
+        // A distinctive payload so we can prove only it (not the wrapping SRR block header) is written.
+        byte[] payload = [0x66, 0x4C, 0x61, 0x43, 0x73, 0x00, 0x01, 0x02]; // "fLaCs"…
+        string srr = SRREditingServiceImageTests.WriteMinimalSrr(TempDir, "wrap.srr", "song.srs", payload);
+        string outPath = Path.Combine(TempDir, "exported.srs");
+
+        using InspectorViewModel vm = new(
+            new SaveToPathDialog(outPath), new FakeReadEditingService(),
+            new StubVerifyService(), new StubPropertyExportService(), new RecordingImagePreviewService());
+        vm.LoadFile(srr);
+        vm.SelectedTreeNode = vm.TreeRoots.Flatten()
+            .First(n => n.Tag is SRRStoredFileBlock b && b.FileName == "song.srs");
+
+        await vm.ExportBlockCommand.ExecuteAsync(null);
+
+        Assert.True(File.Exists(outPath));
+        // Exactly the stored payload — no leading SRR StoredFile block header.
+        Assert.Equal(payload, File.ReadAllBytes(outPath));
     }
 }

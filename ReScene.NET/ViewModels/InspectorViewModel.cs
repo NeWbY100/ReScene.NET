@@ -433,8 +433,21 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             return;
         }
 
-        long offset = HexBlockOffset;
-        long length = HexBlockLength;
+        // For a stored file, export just the embedded file's payload — not the SRR StoredFile
+        // block header that wraps it — so the result is a usable standalone file (e.g. an .srs
+        // that opens in the Inspector). Other block types export their raw selected bytes.
+        long offset;
+        long length;
+        if (SelectedTreeNode?.Tag is SRRStoredFileBlock storedExport)
+        {
+            offset = storedExport.DataOffset;
+            length = storedExport.FileLength;
+        }
+        else
+        {
+            offset = HexBlockOffset;
+            length = HexBlockLength;
+        }
 
         IsExporting = true;
         StatusMessage = $"Exporting {length:N0} bytes...";
