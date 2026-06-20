@@ -45,6 +45,14 @@ public class InspectorViewModelImageTests : TempDirTestBase
             => Task.FromResult<string?>(path);
     }
 
+    // File dialog that records ShowError calls, so a failed load can be asserted.
+    private sealed class RecordingErrorDialog : NoOpFileDialogService
+    {
+        public List<(string Title, string Message)> Errors { get; } = [];
+
+        public override void ShowError(string title, string message) => Errors.Add((title, message));
+    }
+
     private static InspectorViewModel CreateVm(FakeReadEditingService editing, RecordingImagePreviewService preview) =>
         new(new NoOpFileDialogService(), editing, new StubVerifyService(), new StubPropertyExportService(), preview);
 
@@ -111,5 +119,24 @@ public class InspectorViewModelImageTests : TempDirTestBase
         Assert.True(File.Exists(outPath));
         // Exactly the stored payload — no leading SRR StoredFile block header.
         Assert.Equal(payload, File.ReadAllBytes(outPath));
+    }
+
+    [Fact]
+    public void LoadFile_UnparseableFile_ShowsErrorDialog()
+    {
+        // A .srs whose bytes match no SRS container marker → the parser throws.
+        string bad = Path.Combine(TempDir, "bad.srs");
+        File.WriteAllBytes(bad, [0x6A, 0x6A, 0x6A, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
+        var dialog = new RecordingErrorDialog();
+        using InspectorViewModel vm = new(
+            dialog, new FakeReadEditingService(),
+            new StubVerifyService(), new StubPropertyExportService(), new RecordingImagePreviewService());
+
+        vm.LoadFile(bad);
+
+        Assert.False(vm.HasFile);
+        (_, string message) = Assert.Single(dialog.Errors);
+        Assert.Contains("bad.srs", message, StringComparison.Ordinal);
     }
 }
