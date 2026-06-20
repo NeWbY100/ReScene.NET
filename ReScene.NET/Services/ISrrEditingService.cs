@@ -98,9 +98,17 @@ public interface ISrrEditingService
     /// <summary>
     /// Reads the bytes of the first stored file whose name equals <paramref name="storedName"/>.
     /// </summary>
-    /// <param name="srrFilePath">Path to the SRR file to read from.</param>
-    /// <param name="storedName">The stored file name to match.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The stored file's bytes, or <see langword="null"/> if no match was found.</returns>
+    /// <param name="srrFilePath">
+    /// Path to the SRR file to read from.
+    /// </param>
+    /// <param name="storedName">
+    /// The stored file name to match.
+    /// </param>
+    /// <param name="ct">
+    /// Cancellation token.
+    /// </param>
+    /// <returns>
+    /// The stored file's bytes, or <see langword="null"/> if no match was found.
+    /// </returns>
     public Task<byte[]?> ReadStoredFileBytesAsync(string srrFilePath, string storedName, CancellationToken ct = default);
 }
