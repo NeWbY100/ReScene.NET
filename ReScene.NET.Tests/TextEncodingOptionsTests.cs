@@ -31,4 +31,15 @@ public class TextEncodingOptionsTests
     {
         Assert.All(TextEncodingOptions.All, e => Assert.NotNull(e.Encoding));
     }
+
+    [Fact]
+    public void ToString_ReturnsDisplayName()
+    {
+        // The encoding ComboBox's selection box renders via ToString(), so it must be the
+        // friendly name — not the record's default "TextEncodingOption { ... }" form.
+        var utf8 = TextEncodingOptions.All[0];
+
+        Assert.Equal("UTF-8", utf8.ToString());
+        Assert.All(TextEncodingOptions.All, e => Assert.Equal(e.DisplayName, e.ToString()));
+    }
 }
