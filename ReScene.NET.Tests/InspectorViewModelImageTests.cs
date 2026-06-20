@@ -1,3 +1,4 @@
+using System.Text;
 using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.NET.ViewModels;
@@ -139,5 +140,70 @@ public class InspectorViewModelImageTests : TempDirTestBase
         (string title, string message) = Assert.Single(dialog.Errors);
         Assert.Equal("Could not open file", title);
         Assert.Contains("bad.srs", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextView_FreshVm_DefaultsToUtf8Inactive()
+    {
+        using InspectorViewModel vm = CreateVm(new FakeReadEditingService(), new RecordingImagePreviewService());
+
+        Assert.False(vm.IsTextViewActive);
+        Assert.True(vm.IsHexViewActive);
+        Assert.False(vm.TextWordWrap);
+        Assert.Equal("UTF-8", vm.SelectedEncoding.DisplayName);
+        Assert.Equal(string.Empty, vm.TextViewContent);
+    }
+
+    [Fact]
+    public void TextView_WhenActivated_DecodesSelectedBlock()
+    {
+        byte[] payload = Encoding.ASCII.GetBytes("MARKER_TEXT_12345");
+        string srr = SRREditingServiceImageTests.WriteMinimalSrr(TempDir, "note.srr", "note.nfo", payload);
+
+        using InspectorViewModel vm = CreateVm(new FakeReadEditingService(), new RecordingImagePreviewService());
+        vm.LoadFile(srr);
+        vm.SelectedTreeNode = vm.TreeRoots.Flatten()
+            .First(n => n.Tag is SRRStoredFileBlock b && b.FileName == "note.nfo");
+
+        vm.IsTextViewActive = true;
+
+        // The selected block region (stored file) decodes to text containing the payload.
+        Assert.Contains("MARKER_TEXT_12345", vm.TextViewContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextView_ChangingEncoding_Redecodes()
+    {
+        // 0xC9 → CP437 '╔' (U+2554) vs Latin-1 'É' (U+00C9): proves a re-decode on encoding change.
+        byte[] payload = [0xC9];
+        string srr = SRREditingServiceImageTests.WriteMinimalSrr(TempDir, "enc.srr", "enc.bin", payload);
+
+        using InspectorViewModel vm = CreateVm(new FakeReadEditingService(), new RecordingImagePreviewService());
+        vm.LoadFile(srr);
+        vm.SelectedTreeNode = vm.TreeRoots.Flatten()
+            .First(n => n.Tag is SRRStoredFileBlock b && b.FileName == "enc.bin");
+        vm.IsTextViewActive = true;
+
+        vm.SelectedEncoding = vm.TextEncodings.First(e => e.DisplayName == "CP437 (DOS)");
+        Assert.Contains('╔', vm.TextViewContent);
+
+        vm.SelectedEncoding = vm.TextEncodings.First(e => e.DisplayName == "ISO-8859-1 (Latin-1)");
+        Assert.Contains('É', vm.TextViewContent);
+        Assert.DoesNotContain('╔', vm.TextViewContent);
+    }
+
+    [Fact]
+    public void TextView_InactiveByDefault_DoesNotDecodeOnSelection()
+    {
+        byte[] payload = Encoding.ASCII.GetBytes("SHOULD_NOT_DECODE");
+        string srr = SRREditingServiceImageTests.WriteMinimalSrr(TempDir, "lazy.srr", "lazy.nfo", payload);
+
+        using InspectorViewModel vm = CreateVm(new FakeReadEditingService(), new RecordingImagePreviewService());
+        vm.LoadFile(srr);
+        vm.SelectedTreeNode = vm.TreeRoots.Flatten()
+            .First(n => n.Tag is SRRStoredFileBlock b && b.FileName == "lazy.nfo");
+
+        // Still in Hex mode → no decode happened.
+        Assert.Equal(string.Empty, vm.TextViewContent);
     }
 }

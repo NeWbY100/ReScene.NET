@@ -69,6 +69,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
         LoadedFilePath = string.Empty;
         HexDataSource = null;
+        UpdateTextView();
         HexBlockOffset = 0;
         HexBlockLength = 0;
         HexSelectionOffset = -1;
@@ -140,6 +141,31 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
 
     [ObservableProperty]
     public partial bool ShowHexView { get; set; } = true;
+
+    private const int TextViewMaxBytes = 1024 * 1024; // 1 MB
+
+    /// <summary>The encodings offered by the Text view (UTF-8 first / default).</summary>
+    public IReadOnlyList<TextEncodingOption> TextEncodings { get; } = TextEncodingOptions.All;
+
+    [ObservableProperty]
+    public partial TextEncodingOption SelectedEncoding { get; set; } = TextEncodingOptions.All[0];
+
+    /// <summary>True when the bottom panel shows the Text view; false shows the Hex view.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHexViewActive))]
+    public partial bool IsTextViewActive { get; set; }
+
+    /// <summary>Convenience inverse of <see cref="IsTextViewActive"/> for the Hex toggle and hex-only chrome.</summary>
+    public bool IsHexViewActive => !IsTextViewActive;
+
+    [ObservableProperty]
+    public partial bool TextWordWrap { get; set; }
+
+    [ObservableProperty]
+    public partial string TextViewContent { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool TextViewTruncated { get; set; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CloseFileCommand))]
@@ -283,6 +309,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
                     WarningMessage = $"Custom RAR packer detected ({srr.CustomPackerDetected}) — file size fields may be unreliable. Known groups: {groups}.";
                 }
             }
+
+            UpdateTextView();
         }
         catch (Exception ex)
         {
@@ -386,6 +414,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
 
         ExportSelectedPropertiesCommand.NotifyCanExecuteChanged();
+        UpdateTextView();
     }
 
     partial void OnSelectedPropertyChanged(PropertyItem? value)
@@ -983,6 +1012,29 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         if (!value)
         {
             HexMatchRanges = null;
+        }
+    }
+
+    private void UpdateTextView()
+    {
+        if (!IsTextViewActive || HexDataSource is null || HexBlockLength <= 0)
+        {
+            TextViewContent = string.Empty;
+            TextViewTruncated = false;
+            return;
+        }
+
+        (TextViewContent, TextViewTruncated) = TextDecoder.Decode(
+            HexDataSource, HexBlockLength, SelectedEncoding.Encoding, TextViewMaxBytes);
+    }
+
+    partial void OnIsTextViewActiveChanged(bool value) => UpdateTextView();
+
+    partial void OnSelectedEncodingChanged(TextEncodingOption value)
+    {
+        if (IsTextViewActive)
+        {
+            UpdateTextView();
         }
     }
 
