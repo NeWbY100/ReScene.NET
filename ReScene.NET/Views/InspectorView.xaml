@@ -268,16 +268,26 @@
                       HorizontalAlignment="Stretch"
                       ResizeBehavior="PreviousAndNext" />
 
-        <!-- Hex view panel -->
+        <!-- Hex / Text view panel -->
         <Border Grid.Row="3"
                 Style="{StaticResource PanelSection}">
           <DockPanel>
-            <!-- Panel header -->
+            <!-- Panel header: Hex/Text toggle + mode-specific controls -->
             <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
               <DockPanel>
-                <TextBlock Style="{StaticResource PanelHeaderText}" Text="Hex View" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                  <RadioButton Content="Hex" GroupName="InspectorViewMode"
+                               IsChecked="{Binding IsHexViewActive, Mode=OneWay}"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <RadioButton Content="Text" GroupName="InspectorViewMode"
+                               IsChecked="{Binding IsTextViewActive, Mode=TwoWay}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Hex-mode: Bytes/Row -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            Margin="0,0,4,0">
+                            Margin="0,0,4,0"
+                            Visibility="{Binding IsHexViewActive, Converter={StaticResource BoolToVisibility}}">
                   <TextBlock Text="Bytes/Row:" VerticalAlignment="Center"
                              Foreground="{DynamicResource ForegroundSecondary}"
                              FontSize="{DynamicResource FontSizeCaption}"
@@ -296,63 +306,119 @@
                     <ComboBoxItem Content="64" />
                   </ComboBox>
                 </StackPanel>
+
+                <!-- Text-mode: Encoding + word wrap -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            Margin="0,0,4,0"
+                            Visibility="{Binding IsTextViewActive, Converter={StaticResource BoolToVisibility}}">
+                  <TextBlock Text="Encoding:" VerticalAlignment="Center"
+                             Foreground="{DynamicResource ForegroundSecondary}"
+                             FontSize="{DynamicResource FontSizeCaption}"
+                             Margin="0,0,4,0" />
+                  <ComboBox ItemsSource="{Binding TextEncodings}"
+                            SelectedItem="{Binding SelectedEncoding}"
+                            DisplayMemberPath="DisplayName"
+                            Width="160" FontSize="{DynamicResource FontSizeCaption}"
+                            VerticalAlignment="Center" Padding="4,1" />
+                  <CheckBox Content="Word wrap"
+                            IsChecked="{Binding TextWordWrap}"
+                            VerticalAlignment="Center"
+                            Margin="10,0,0,0" />
+                </StackPanel>
               </DockPanel>
             </Border>
 
-            <DockPanel>
-              <Border DockPanel.Dock="Top"
-                      Visibility="{Binding IsHexSearchVisible, Converter={StaticResource BoolToVisibility}}"
-                      Background="{DynamicResource SurfaceBackground}"
-                      BorderBrush="{DynamicResource BorderSeparator}"
-                      BorderThickness="0,0,0,1"
-                      Padding="4"
-                      IsVisibleChanged="OnHexSearchBarVisibleChanged">
-                <DockPanel>
-                  <Button DockPanel.Dock="Right" Content="Close"
-                          Command="{Binding HideHexSearchCommand}"
-                          Style="{StaticResource GhostButton}"
-                          MinWidth="55" Margin="4,0,0,0" />
-                  <Button DockPanel.Dock="Right" Content="Prev"
-                          Command="{Binding FindPreviousCommand}"
-                          Style="{StaticResource GhostButton}"
-                          MinWidth="55" Margin="4,0,0,0" />
-                  <Button DockPanel.Dock="Right" Content="Next"
-                          Command="{Binding FindNextCommand}"
-                          Style="{StaticResource PrimaryButton}"
-                          MinWidth="55" Margin="4,0,0,0" />
-                  <TextBlock DockPanel.Dock="Right"
-                             Text="{Binding HexSearchStatus}"
-                             Foreground="{DynamicResource ForegroundSecondary}"
-                             VerticalAlignment="Center"
-                             Margin="8,0" />
-                  <CheckBox DockPanel.Dock="Right" Content="Hex"
-                            IsChecked="{Binding HexSearchAsHex}"
-                            VerticalAlignment="Center"
-                            Margin="4,0,0,0" />
-                  <CheckBox DockPanel.Dock="Right" Content="Highlight all"
-                            IsChecked="{Binding HighlightAllMatches}"
-                            VerticalAlignment="Center"
-                            Margin="4,0,0,0" />
-                  <TextBox x:Name="HexSearchBox"
-                           Text="{Binding HexSearchText, UpdateSourceTrigger=PropertyChanged}"
-                           FontFamily="{DynamicResource MonoFontFamily}"
-                           VerticalAlignment="Center">
-                    <TextBox.InputBindings>
-                      <KeyBinding Key="Enter" Command="{Binding FindNextCommand}" />
-                      <KeyBinding Key="Enter" Modifiers="Shift" Command="{Binding FindPreviousCommand}" />
-                    </TextBox.InputBindings>
-                  </TextBox>
-                </DockPanel>
-              </Border>
+            <!-- Content: Hex view OR Text view -->
+            <Grid>
+              <!-- Hex content -->
+              <DockPanel Visibility="{Binding IsHexViewActive, Converter={StaticResource BoolToVisibility}}">
+                <Border DockPanel.Dock="Top"
+                        Visibility="{Binding IsHexSearchVisible, Converter={StaticResource BoolToVisibility}}"
+                        Background="{DynamicResource SurfaceBackground}"
+                        BorderBrush="{DynamicResource BorderSeparator}"
+                        BorderThickness="0,0,0,1"
+                        Padding="4"
+                        IsVisibleChanged="OnHexSearchBarVisibleChanged">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Close"
+                            Command="{Binding HideHexSearchCommand}"
+                            Style="{StaticResource GhostButton}"
+                            MinWidth="55" Margin="4,0,0,0" />
+                    <Button DockPanel.Dock="Right" Content="Prev"
+                            Command="{Binding FindPreviousCommand}"
+                            Style="{StaticResource GhostButton}"
+                            MinWidth="55" Margin="4,0,0,0" />
+                    <Button DockPanel.Dock="Right" Content="Next"
+                            Command="{Binding FindNextCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            MinWidth="55" Margin="4,0,0,0" />
+                    <TextBlock DockPanel.Dock="Right"
+                               Text="{Binding HexSearchStatus}"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               VerticalAlignment="Center"
+                               Margin="8,0" />
+                    <CheckBox DockPanel.Dock="Right" Content="Hex"
+                              IsChecked="{Binding HexSearchAsHex}"
+                              VerticalAlignment="Center"
+                              Margin="4,0,0,0" />
+                    <CheckBox DockPanel.Dock="Right" Content="Highlight all"
+                              IsChecked="{Binding HighlightAllMatches}"
+                              VerticalAlignment="Center"
+                              Margin="4,0,0,0" />
+                    <TextBox x:Name="HexSearchBox"
+                             Text="{Binding HexSearchText, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="{DynamicResource MonoFontFamily}"
+                             VerticalAlignment="Center">
+                      <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding FindNextCommand}" />
+                        <KeyBinding Key="Enter" Modifiers="Shift" Command="{Binding FindPreviousCommand}" />
+                      </TextBox.InputBindings>
+                    </TextBox>
+                  </DockPanel>
+                </Border>
 
-              <controls:HexViewControl DataSource="{Binding HexDataSource}"
-                                       BlockOffset="{Binding HexBlockOffset}"
-                                       BlockLength="{Binding HexBlockLength}"
-                                       SelectionOffset="{Binding HexSelectionOffset}"
-                                       SelectionLength="{Binding HexSelectionLength}"
-                                       BytesPerLine="{Binding HexBytesPerLine}"
-                                       HighlightRanges="{Binding HexMatchRanges}" />
-            </DockPanel>
+                <controls:HexViewControl DataSource="{Binding HexDataSource}"
+                                         BlockOffset="{Binding HexBlockOffset}"
+                                         BlockLength="{Binding HexBlockLength}"
+                                         SelectionOffset="{Binding HexSelectionOffset}"
+                                         SelectionLength="{Binding HexSelectionLength}"
+                                         BytesPerLine="{Binding HexBytesPerLine}"
+                                         HighlightRanges="{Binding HexMatchRanges}" />
+              </DockPanel>
+
+              <!-- Text content -->
+              <DockPanel Visibility="{Binding IsTextViewActive, Converter={StaticResource BoolToVisibility}}">
+                <Border DockPanel.Dock="Bottom"
+                        Visibility="{Binding TextViewTruncated, Converter={StaticResource BoolToVisibility}}"
+                        Background="{DynamicResource SurfaceBackground}"
+                        BorderBrush="{DynamicResource BorderSeparator}"
+                        BorderThickness="0,1,0,0"
+                        Padding="6,3">
+                  <TextBlock Text="Large block — showing the first 1 MB as text."
+                             Foreground="{DynamicResource ForegroundSecondary}"
+                             FontSize="{DynamicResource FontSizeCaption}" />
+                </Border>
+                <TextBox Text="{Binding TextViewContent, Mode=OneWay}"
+                         IsReadOnly="True"
+                         FontFamily="{DynamicResource MonoFontFamily}"
+                         FontSize="{DynamicResource FontSizeCaption}"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         Padding="6"
+                         BorderThickness="0">
+                  <TextBox.Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding TextWordWrap}" Value="True">
+                          <Setter Property="TextWrapping" Value="Wrap" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBox.Style>
+                </TextBox>
+              </DockPanel>
+            </Grid>
           </DockPanel>
         </Border>
 
