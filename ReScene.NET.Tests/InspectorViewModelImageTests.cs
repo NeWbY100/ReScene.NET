@@ -136,7 +136,8 @@ public class InspectorViewModelImageTests : TempDirTestBase
         vm.LoadFile(bad);
 
         Assert.False(vm.HasFile);
-        (_, string message) = Assert.Single(dialog.Errors);
+        (string title, string message) = Assert.Single(dialog.Errors);
+        Assert.Equal("Could not open file", title);
         Assert.Contains("bad.srs", message, StringComparison.Ordinal);
     }
 }

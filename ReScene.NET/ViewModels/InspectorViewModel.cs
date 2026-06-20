@@ -286,11 +286,12 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
             HasFile = false;
 
             // Surface the failure directly so the user isn't left wondering why the file
-            // didn't open (the status-bar text alone is easy to miss).
+            // didn't open; the status bar alone is easy to miss. The dialog carries the
+            // detail, so the status text stays brief.
+            StatusMessage = "Could not open file";
             _fileDialog.ShowError(
                 "Could not open file",
                 $"{Path.GetFileName(filePath)} could not be opened.\n\n{ex.Message}");
