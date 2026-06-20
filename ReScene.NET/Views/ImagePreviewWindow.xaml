@@ -1,0 +1,29 @@
+<Window x:Class="ReScene.NET.Views.ImagePreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding TitleText}"
+        Width="800" Height="600" MinWidth="240" MinHeight="180"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        Background="{DynamicResource SurfaceBackground}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource SurfaceBackground}"
+            BorderBrush="{DynamicResource BorderSeparator}"
+            BorderThickness="0,1,0,0"
+            Padding="8,4">
+      <TextBlock Text="{Binding StatusText}"
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextTrimming="CharacterEllipsis" />
+    </Border>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <Image Source="{Binding Image}"
+             Stretch="Uniform"
+             StretchDirection="DownOnly"
+             SnapsToDevicePixels="True" />
+    </ScrollViewer>
+  </DockPanel>
+</Window>
