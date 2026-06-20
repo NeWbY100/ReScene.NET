@@ -271,23 +271,13 @@
         <!-- Hex / Text view panel -->
         <Border Grid.Row="3"
                 Style="{StaticResource PanelSection}">
-          <DockPanel>
-            <!-- Panel header: Hex/Text toggle + mode-specific controls -->
-            <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
+          <TabControl>
+            <!-- Hex tab -->
+            <TabItem Header="Hex" IsSelected="{Binding IsHexViewActive, Mode=OneWay}">
               <DockPanel>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <RadioButton Content="Hex" GroupName="InspectorViewMode"
-                               IsChecked="{Binding IsHexViewActive, Mode=OneWay}"
-                               VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <RadioButton Content="Text" GroupName="InspectorViewMode"
-                               IsChecked="{Binding IsTextViewActive, Mode=TwoWay}"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-
-                <!-- Hex-mode: Bytes/Row -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            Margin="0,0,4,0"
-                            Visibility="{Binding IsHexViewActive, Converter={StaticResource BoolToVisibility}}">
+                <!-- Hex toolbar: Bytes/Row -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                            HorizontalAlignment="Right" Margin="4,4,4,2">
                   <TextBlock Text="Bytes/Row:" VerticalAlignment="Center"
                              Foreground="{DynamicResource ForegroundSecondary}"
                              FontSize="{DynamicResource FontSizeCaption}"
@@ -307,31 +297,7 @@
                   </ComboBox>
                 </StackPanel>
 
-                <!-- Text-mode: Encoding + word wrap -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            Margin="0,0,4,0"
-                            Visibility="{Binding IsTextViewActive, Converter={StaticResource BoolToVisibility}}">
-                  <TextBlock Text="Encoding:" VerticalAlignment="Center"
-                             Foreground="{DynamicResource ForegroundSecondary}"
-                             FontSize="{DynamicResource FontSizeCaption}"
-                             Margin="0,0,4,0" />
-                  <ComboBox ItemsSource="{Binding TextEncodings}"
-                            SelectedItem="{Binding SelectedEncoding}"
-                            DisplayMemberPath="DisplayName"
-                            Width="160" FontSize="{DynamicResource FontSizeCaption}"
-                            VerticalAlignment="Center" Padding="4,1" />
-                  <CheckBox Content="Word wrap"
-                            IsChecked="{Binding TextWordWrap}"
-                            VerticalAlignment="Center"
-                            Margin="10,0,0,0" />
-                </StackPanel>
-              </DockPanel>
-            </Border>
-
-            <!-- Content: Hex view OR Text view -->
-            <Grid>
-              <!-- Hex content -->
-              <DockPanel Visibility="{Binding IsHexViewActive, Converter={StaticResource BoolToVisibility}}">
+                <!-- Search bar -->
                 <Border DockPanel.Dock="Top"
                         Visibility="{Binding IsHexSearchVisible, Converter={StaticResource BoolToVisibility}}"
                         Background="{DynamicResource SurfaceBackground}"
@@ -385,9 +351,30 @@
                                          BytesPerLine="{Binding HexBytesPerLine}"
                                          HighlightRanges="{Binding HexMatchRanges}" />
               </DockPanel>
+            </TabItem>
 
-              <!-- Text content -->
-              <DockPanel Visibility="{Binding IsTextViewActive, Converter={StaticResource BoolToVisibility}}">
+            <!-- Text tab -->
+            <TabItem Header="Text" IsSelected="{Binding IsTextViewActive, Mode=TwoWay}">
+              <DockPanel>
+                <!-- Text toolbar: Encoding + word wrap -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                            HorizontalAlignment="Right" Margin="4,4,4,2">
+                  <TextBlock Text="Encoding:" VerticalAlignment="Center"
+                             Foreground="{DynamicResource ForegroundSecondary}"
+                             FontSize="{DynamicResource FontSizeCaption}"
+                             Margin="0,0,4,0" />
+                  <ComboBox ItemsSource="{Binding TextEncodings}"
+                            SelectedItem="{Binding SelectedEncoding}"
+                            DisplayMemberPath="DisplayName"
+                            Width="160" FontSize="{DynamicResource FontSizeCaption}"
+                            VerticalAlignment="Center" Padding="4,1" />
+                  <CheckBox Content="Word wrap"
+                            IsChecked="{Binding TextWordWrap}"
+                            VerticalAlignment="Center"
+                            Margin="10,0,0,0" />
+                </StackPanel>
+
+                <!-- Truncation note -->
                 <Border DockPanel.Dock="Bottom"
                         Visibility="{Binding TextViewTruncated, Converter={StaticResource BoolToVisibility}}"
                         Background="{DynamicResource SurfaceBackground}"
@@ -418,8 +405,8 @@
                   </TextBox.Style>
                 </TextBox>
               </DockPanel>
-            </Grid>
-          </DockPanel>
+            </TabItem>
+          </TabControl>
         </Border>
 
       </Grid>
