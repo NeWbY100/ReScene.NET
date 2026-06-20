@@ -46,8 +46,15 @@ public partial class StoredFilesManagePanel : UserControl
     }
 
     // Double-clicking an image row opens the preview, mirroring the Preview… button.
-    private void StoredFilesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void StoredFilesGrid_MouseDoubleClick(object _, MouseButtonEventArgs e)
     {
+        // Only act on double-clicks that land on a data row (not column headers or empty space).
+        if (e.OriginalSource is not DependencyObject source
+            || FindAncestor<DataGridRow>(source) is null)
+        {
+            return;
+        }
+
         if (DataContext is SrrEditorViewModel vm && vm.PreviewStoredImageCommand.CanExecute(null))
         {
             vm.PreviewStoredImageCommand.Execute(null);

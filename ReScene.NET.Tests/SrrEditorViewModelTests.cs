@@ -583,6 +583,7 @@ public class SrrEditorViewModelTests
         Assert.False(vm.MoveStoredFileUpCommand.CanExecute(null));
         Assert.False(vm.MoveStoredFileDownCommand.CanExecute(null));
         Assert.False(vm.ExtractStoredFileCommand.CanExecute(null));
+        Assert.False(vm.PreviewStoredImageCommand.CanExecute(null));
     }
 
     [Fact]
@@ -876,6 +877,7 @@ public class SrrEditorViewModelTests
         (byte[] data, string fileName) = Assert.Single(preview.Calls);
         Assert.Equal(new byte[] { 0x09, 0x08, 0x07 }, data);
         Assert.Equal("proof.jpg", fileName);
-        Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "proof.jpg"), editing.LastRead!.Value);
+        Assert.NotNull(editing.LastRead);
+        Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "proof.jpg"), editing.LastRead.Value);
     }
 }
