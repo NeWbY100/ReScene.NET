@@ -21,8 +21,8 @@ public partial class ImagePreviewWindow : Window
     private void SizeToImage(BitmapSource image)
     {
         Rect work = SystemParameters.WorkArea;
-        double maxW = work.Width - 80;
-        double maxH = work.Height - 120;
+        double maxW = Math.Max(work.Width - 80, MinWidth);
+        double maxH = Math.Max(work.Height - 120, MinHeight);
         Width = Math.Clamp(image.PixelWidth + 40, MinWidth, maxW);
         Height = Math.Clamp(image.PixelHeight + 90, MinHeight, maxH);
     }

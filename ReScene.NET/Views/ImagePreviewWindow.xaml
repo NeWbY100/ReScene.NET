@@ -5,7 +5,10 @@
         Width="800" Height="600" MinWidth="240" MinHeight="180"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
-        Background="{DynamicResource SurfaceBackground}">
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource ForegroundPrimary}"
+        FontFamily="{DynamicResource UIFontFamily}">
   <DockPanel>
     <Border DockPanel.Dock="Bottom"
             Background="{DynamicResource SurfaceBackground}"
