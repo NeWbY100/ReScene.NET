@@ -233,4 +233,17 @@ public class InspectorViewModelImageTests : TempDirTestBase
             .First(n => n.Tag is SRRStoredFileBlock s && s.FileName == "b.nfo");
         Assert.Contains("BBB_FILE_TWO", vm.TextViewContent, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ShowHexSearch_FromTextTab_SwitchesToHexAndShowsSearch()
+    {
+        using InspectorViewModel vm = CreateVm(new FakeReadEditingService(), new RecordingImagePreviewService());
+        vm.IsTextViewActive = true;
+
+        vm.ShowHexSearchCommand.Execute(null);
+
+        // Search lives in the Hex tab, so invoking it must switch back to Hex and reveal the bar.
+        Assert.False(vm.IsTextViewActive);
+        Assert.True(vm.IsHexSearchVisible);
+    }
 }

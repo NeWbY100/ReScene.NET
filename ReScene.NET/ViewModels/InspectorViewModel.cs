@@ -792,7 +792,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private void DismissVerifyResult() => IsVerifyResultVisible = false;
 
     [RelayCommand]
-    private void ShowHexSearch() => IsHexSearchVisible = true;
+    private void ShowHexSearch()
+    {
+        // Search applies to the Hex view, so switch to the Hex tab first — otherwise the
+        // search bar (which lives in that tab) would never become visible from the Text tab.
+        IsTextViewActive = false;
+        IsHexSearchVisible = true;
+    }
 
     [RelayCommand]
     private void HideHexSearch()
