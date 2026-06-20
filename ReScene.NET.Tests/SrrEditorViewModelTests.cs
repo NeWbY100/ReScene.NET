@@ -105,6 +105,19 @@ public class SrrEditorViewModelTests
             string? result = ExtractResultByName.TryGetValue(storedName, out string? perName) ? perName : ExtractResult;
             return Task.FromResult(result);
         }
+
+        /// <summary>Scripted bytes returned by <see cref="ReadStoredFileBytesAsync"/>.</summary>
+        public byte[]? BytesToReturn { get; set; }
+
+        /// <summary>The (path, name) of the last read request.</summary>
+        public (string Path, string Name)? LastRead { get; private set; }
+
+        public Task<byte[]?> ReadStoredFileBytesAsync(string srrFilePath, string storedName, CancellationToken ct = default)
+        {
+            Calls.Add(nameof(ReadStoredFileBytesAsync));
+            LastRead = (srrFilePath, storedName);
+            return Task.FromResult(BytesToReturn);
+        }
     }
 
     /// <summary>Fake dialog: serves scripted responses and records prompts.</summary>
