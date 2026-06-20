@@ -13,11 +13,12 @@ namespace ReScene.NET.ViewModels;
 /// <see cref="SourcePath"/> is never modified — edits are applied to a temp working
 /// copy and written to a user-chosen <see cref="OutputPath"/> on Save.
 /// </summary>
-public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir) : ViewModelBase
+public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir, IImagePreviewService imagePreview) : ViewModelBase
 {
     private readonly ISrrEditingService _srrEditing = srrEditing;
     private readonly IFileDialogService _fileDialog = fileDialog;
     private readonly ITempDirectoryService _tempDir = tempDir;
+    private readonly IImagePreviewService _imagePreview = imagePreview;
 
     /// <summary>Full path to the temp working copy currently being edited, if any.</summary>
     private string? _workingCopyPath;
@@ -215,6 +216,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         MoveStoredFileUpCommand.NotifyCanExecuteChanged();
         MoveStoredFileDownCommand.NotifyCanExecuteChanged();
         ExtractStoredFileCommand.NotifyCanExecuteChanged();
+        PreviewStoredImageCommand.NotifyCanExecuteChanged();
     }
 
     // ── Browse ──────────────────────────────────────────────
@@ -287,6 +289,10 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
     /// <summary>True when exactly one stored file is selected (Rename / Move up / Move down).</summary>
     private bool HasSingleSelection() => SelectedStoredFiles.Count == 1;
+
+    /// <summary>True when exactly one selected stored file is a previewable image.</summary>
+    private bool HasSingleImageSelection()
+        => SelectedStoredFiles.Count == 1 && ImagePreviewSupport.IsSupported(SelectedStoredFiles[0].Name);
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void RemoveStoredFile()
@@ -413,6 +419,33 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         }
 
         ManageStatus = BuildExtractStatus(saved, failures, folder, lastPath, names);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSingleImageSelection))]
+    private async Task PreviewStoredImageAsync()
+    {
+        if (_workingCopyPath is null || SelectedStoredFiles.Count != 1)
+        {
+            return;
+        }
+
+        string name = SelectedStoredFiles[0].Name;
+
+        try
+        {
+            byte[]? bytes = await _srrEditing.ReadStoredFileBytesAsync(_workingCopyPath, name);
+            if (bytes is null)
+            {
+                Log($"Could not read \"{name}\" to preview.");
+                return;
+            }
+
+            _imagePreview.Preview(bytes, name);
+        }
+        catch (Exception ex)
+        {
+            Log($"Preview failed for \"{name}\": {ex.Message}");
+        }
     }
 
     /// <summary>Summarises the outcome of an extract over one or more selected files.</summary>

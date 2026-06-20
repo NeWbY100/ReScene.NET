@@ -156,8 +156,8 @@ public class SrrEditorViewModelTests
     /// Test ViewModel that overrides the working-copy seam to return a dummy path with no I/O,
     /// so the orchestration runs against the fake service without touching disk.
     /// </summary>
-    private sealed class TestSrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir)
-        : SrrEditorViewModel(srrEditing, fileDialog, tempDir)
+    private sealed class TestSrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir, IImagePreviewService imagePreview)
+        : SrrEditorViewModel(srrEditing, fileDialog, tempDir, imagePreview)
     {
         public const string DummyWorkingPath = @"X:\__working__\copy.srr";
 
@@ -184,7 +184,7 @@ public class SrrEditorViewModelTests
     {
         editing = new FakeSrrEditingService();
         dialog = new FakeFileDialogService();
-        return new TestSrrEditorViewModel(editing, dialog, new NoOpTempDirectoryService());
+        return new TestSrrEditorViewModel(editing, dialog, new NoOpTempDirectoryService(), new RecordingImagePreviewService());
     }
 
     // ── StoredFileInfo model ────────────────────────────────
@@ -814,5 +814,68 @@ public class SrrEditorViewModelTests
 
         // Reset cleared the cached working-copy source, so a new copy is created.
         Assert.Equal(2, vm.CreateWorkingCopyCalls);
+    }
+
+    private static TestSrrEditorViewModel CreateImageVm(
+        out FakeSrrEditingService editing,
+        out RecordingImagePreviewService preview)
+    {
+        editing = new FakeSrrEditingService();
+        preview = new RecordingImagePreviewService();
+        return new TestSrrEditorViewModel(editing, new FakeFileDialogService(), new NoOpTempDirectoryService(), preview);
+    }
+
+    private static TestSrrEditorViewModel WithSelectedStored(
+        string storedName, out FakeSrrEditingService editing, out RecordingImagePreviewService preview)
+    {
+        TestSrrEditorViewModel vm = CreateImageVm(out editing, out preview);
+        editing.StoredFileNames.Add(storedName);
+        vm.SourcePath = @"X:\src.srr";
+        vm.EnsureWorkingCopy();              // builds the dummy working copy + reloads the list
+        vm.SetSelection([vm.StoredFiles.First(f => f.Name == storedName)]);
+        return vm;
+    }
+
+    // ── Preview command ─────────────────────────────────────
+
+    [Fact]
+    public void PreviewCommand_SingleImageSelected_IsEnabled()
+    {
+        TestSrrEditorViewModel vm = WithSelectedStored("proof.jpg", out _, out _);
+        Assert.True(vm.PreviewStoredImageCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void PreviewCommand_NonImageSelected_IsDisabled()
+    {
+        TestSrrEditorViewModel vm = WithSelectedStored("readme.nfo", out _, out _);
+        Assert.False(vm.PreviewStoredImageCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void PreviewCommand_MultipleSelected_IsDisabled()
+    {
+        TestSrrEditorViewModel vm = CreateImageVm(out FakeSrrEditingService editing, out _);
+        editing.StoredFileNames.Add("a.jpg");
+        editing.StoredFileNames.Add("b.jpg");
+        vm.SourcePath = @"X:\src.srr";
+        vm.EnsureWorkingCopy();
+        vm.SetSelection([vm.StoredFiles[0], vm.StoredFiles[1]]);
+
+        Assert.False(vm.PreviewStoredImageCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task PreviewCommand_ForwardsBytesAndName()
+    {
+        TestSrrEditorViewModel vm = WithSelectedStored("proof.jpg", out FakeSrrEditingService editing, out RecordingImagePreviewService preview);
+        editing.BytesToReturn = [0x09, 0x08, 0x07];
+
+        await vm.PreviewStoredImageCommand.ExecuteAsync(null);
+
+        (byte[] data, string fileName) = Assert.Single(preview.Calls);
+        Assert.Equal(new byte[] { 0x09, 0x08, 0x07 }, data);
+        Assert.Equal("proof.jpg", fileName);
+        Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "proof.jpg"), editing.LastRead!.Value);
     }
 }

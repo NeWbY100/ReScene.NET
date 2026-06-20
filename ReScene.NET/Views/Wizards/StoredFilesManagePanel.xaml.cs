@@ -45,6 +45,16 @@ public partial class StoredFilesManagePanel : UserControl
         grid.UnselectAll();
     }
 
+    // Double-clicking an image row opens the preview, mirroring the Preview… button.
+    private void StoredFilesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (DataContext is SrrEditorViewModel vm && vm.PreviewStoredImageCommand.CanExecute(null))
+        {
+            vm.PreviewStoredImageCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
     {
         while (current is not null and not T)

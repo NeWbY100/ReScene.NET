@@ -13,6 +13,8 @@
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
       <Button Content="Extract…" Command="{Binding ExtractStoredFileCommand}"
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
+      <Button Content="Preview…" Command="{Binding PreviewStoredImageCommand}"
+              Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
       <Button Content="Move up" Command="{Binding MoveStoredFileUpCommand}"
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
       <Button Content="Move down" Command="{Binding MoveStoredFileDownCommand}"
@@ -23,6 +25,7 @@
               ItemsSource="{Binding StoredFiles}" SelectedItem="{Binding SelectedStoredFile}"
               SelectionChanged="StoredFilesGrid_SelectionChanged"
               PreviewMouseDown="StoredFilesGrid_PreviewMouseDown"
+              MouseDoubleClick="StoredFilesGrid_MouseDoubleClick"
               AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserSortColumns="False"
               CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
               SelectionMode="Extended" SelectionUnit="FullRow" BorderThickness="0" IsReadOnly="True" MinHeight="120">
