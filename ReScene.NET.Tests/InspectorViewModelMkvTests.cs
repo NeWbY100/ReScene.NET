@@ -52,7 +52,8 @@ public class InspectorViewModelMkvTests : TempDirTestBase
 
     private static InspectorViewModel CreateViewModel() => new(
         new NoOpFileDialogService(), new StubSrrEditingService(),
-        new StubSrrVerifyService(), new StubPropertyExportService());
+        new StubSrrVerifyService(), new StubPropertyExportService(),
+        new RecordingImagePreviewService());
 
     [Fact]
     public void LoadFile_Mkv_BuildsElementTree()

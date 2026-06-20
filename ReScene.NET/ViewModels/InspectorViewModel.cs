@@ -15,7 +15,7 @@ using ReScene.SRS;
 
 namespace ReScene.NET.ViewModels;
 
-public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService, IPropertyExportService propertyExportService, IAppSettingsService? settingsService = null) : ViewModelBase, IDisposable
+public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditingService srrEditingService, ISrrVerifyService verifyService, IPropertyExportService propertyExportService, IImagePreviewService imagePreviewService, IAppSettingsService? settingsService = null) : ViewModelBase, IDisposable
 {
     private const int ExportBufferSize = 80 * 1024;
 
@@ -23,6 +23,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     private readonly ISrrEditingService _sRREditingService = srrEditingService;
     private readonly ISrrVerifyService _verifyService = verifyService;
     private readonly IPropertyExportService _propertyExportService = propertyExportService;
+    private readonly IImagePreviewService _imagePreviewService = imagePreviewService;
     private readonly IAppSettingsService? _settingsService = settingsService;
     private SRRFileData? _sRRData;
     private SRSInspectorData? _sRSData;
@@ -78,6 +79,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         StatusMessage = "No file loaded";
         OnPropertyChanged(nameof(IsSRRLoaded));
         OnPropertyChanged(nameof(IsStoredFileSelected));
+        OnPropertyChanged(nameof(IsImagePreviewAvailable));
+        PreviewStoredImageCommand.NotifyCanExecuteChanged();
         VerifyIntegrityCommand.NotifyCanExecuteChanged();
         RenameStoredFileCommand.NotifyCanExecuteChanged();
         MoveStoredFileUpCommand.NotifyCanExecuteChanged();
@@ -98,6 +101,14 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
     /// Gets whether the selected tree node is a stored file block.
     /// </summary>
     public bool IsStoredFileSelected => IsSRRFileLoaded() && SelectedTreeNode?.Tag is SRRStoredFileBlock;
+
+    /// <summary>
+    /// Gets whether the selected stored file is a previewable image.
+    /// </summary>
+    public bool IsImagePreviewAvailable =>
+        IsSRRFileLoaded()
+        && SelectedTreeNode?.Tag is SRRStoredFileBlock block
+        && ImagePreviewSupport.IsSupported(block.FileName);
 
     [ObservableProperty]
     public partial TreeNodeViewModel? SelectedTreeNode { get; set; }
@@ -224,6 +235,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
             OnPropertyChanged(nameof(IsSRRLoaded));
             ExportTreeCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(IsStoredFileSelected));
+            OnPropertyChanged(nameof(IsImagePreviewAvailable));
+            PreviewStoredImageCommand.NotifyCanExecuteChanged();
             VerifyIntegrityCommand.NotifyCanExecuteChanged();
 
             if (isSRS)
@@ -292,6 +305,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         VerifyIntegrityCommand.NotifyCanExecuteChanged();
         ExportSelectedPropertiesCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsStoredFileSelected));
+        OnPropertyChanged(nameof(IsImagePreviewAvailable));
+        PreviewStoredImageCommand.NotifyCanExecuteChanged();
 
         foreach (PropertyItem item in new InspectorPropertyBuilder().Build(value?.Tag))
         {
@@ -675,6 +690,32 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISrrEditi
         catch (Exception ex)
         {
             StatusMessage = $"Error removing stored file: {ex.Message}";
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(IsImagePreviewAvailable))]
+    private async Task PreviewStoredImageAsync()
+    {
+        if (SelectedTreeNode?.Tag is not SRRStoredFileBlock stored
+            || string.IsNullOrEmpty(_loadedFilePathInternal))
+        {
+            return;
+        }
+
+        try
+        {
+            byte[]? bytes = await _sRREditingService.ReadStoredFileBytesAsync(_loadedFilePathInternal, stored.FileName);
+            if (bytes is null)
+            {
+                StatusMessage = $"Could not read stored file: {stored.FileName}";
+                return;
+            }
+
+            _imagePreviewService.Preview(bytes, stored.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error previewing image: {ex.Message}";
         }
     }
 

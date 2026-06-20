@@ -164,7 +164,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         IUiDispatcher dispatcher = uiDispatcher ?? new WpfDispatcher();
 
-        Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService, appSettingsService);
+        var imagePreviewService = new ImagePreviewService(fileDialog);
+        Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService, imagePreviewService, appSettingsService);
         Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService, dispatcher);
         SRSCreator = new SRSCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService, dispatcher);
         Reconstructor = new ReconstructorViewModel(bruteForceService, fileDialog, appSettingsService, dispatcher);

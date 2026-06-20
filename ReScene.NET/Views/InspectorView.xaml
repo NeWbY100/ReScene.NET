@@ -73,6 +73,7 @@
           <TreeView ItemsSource="{Binding TreeRoots}"
                     SelectedItemChanged="TreeView_SelectedItemChanged"
                     PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
+                    MouseDoubleClick="OnTreeViewMouseDoubleClick"
                     Margin="{DynamicResource TreeViewMargin}"
                     FontSize="{DynamicResource FontSizeBody}">
             <TreeView.ItemContainerStyle>
@@ -173,7 +174,14 @@
           <DockPanel>
             <!-- Panel header -->
             <Border DockPanel.Dock="Top" Style="{StaticResource PanelHeaderBar}">
-              <TextBlock Style="{StaticResource PanelHeaderText}" Text="Properties" />
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Content="View Image"
+                        Command="{Binding PreviewStoredImageCommand}"
+                        Style="{StaticResource GhostButton}"
+                        MinWidth="80" Margin="4,0,0,0"
+                        Visibility="{Binding IsImagePreviewAvailable, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Style="{StaticResource PanelHeaderText}" Text="Properties" />
+              </DockPanel>
             </Border>
 
             <Grid>
