@@ -2,6 +2,22 @@
 
 All notable changes to ReScene.NET are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] — 2026-06-20
+
+### Added
+
+- **View embedded images.** Proof and cover images stored inside an SRR (JPG, PNG, GIF, BMP) open in a resizable preview window — via a "View Image" button in the Inspector's Properties header (or double-clicking the stored file), and a "Preview…" button in the Edit-an-SRR wizard.
+- **Inspector Text view.** The Inspector's bottom panel now has Hex and Text tabs; the Text tab decodes the selected block as text with a selectable encoding (UTF-8, UTF-16 LE, UTF-16 BE, ASCII, Windows-1252, ISO-8859-1, and CP437 for DOS/NFO art) and an optional word-wrap, shown up to a 1 MB cap.
+
+### Fixed
+
+- Exporting a stored file from the Inspector now writes just the file's contents, not the surrounding SRR block header — so an exported `.srs`, `.nfo`, or proof image opens correctly in its own application.
+- Files that fail to open in the Inspector now show an error dialog explaining why, instead of only a status-bar note that is easy to miss.
+
+### Changed
+
+- Bundled `ReScene.Lib` updated in lockstep — it adds the in-memory stored-file read (`SRRFile.ReadStoredFile`) that backs the new image preview and text view.
+
 ## [1.4.0] — 2026-06-18
 
 ### Added
