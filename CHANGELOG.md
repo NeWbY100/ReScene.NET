@@ -2,6 +2,21 @@
 
 All notable changes to ReScene.NET are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.1] — 2026-06-21
+
+### Added
+
+- The Edit-an-SRR wizard's "Preview…" now works for any stored file (not just images) and opens a tabbed preview with **Hex**, **Text** (selectable encoding + word-wrap), and — for images — **Image** tabs.
+
+### Fixed
+
+- The rename / text-input dialog is now wider and resizable, so long stored-file names are fully visible.
+- The Bytes/Row selector (in the Inspector's Hex view and the new preview) now shows its selected value — the editable combo box had no visible text area.
+
+### Changed
+
+- Bundled `ReScene.Lib` updated in lockstep — the Inspector now names many more MKV/Matroska elements (FlagLacing, the HDR Colour/MasteringMetadata set, BlockGroup, Cues, and other TrackEntry/Video/Audio fields) instead of "Unknown".
+
 ## [1.5.0] — 2026-06-20
 
 ### Added
