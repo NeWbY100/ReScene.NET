@@ -654,6 +654,19 @@
                                                   VerticalAlignment="Center"
                                                   HorizontalAlignment="Left"
                                                   TextElement.Foreground="{TemplateBinding Foreground}" />
+                                <!-- Editable entry: required (and named PART_EditableTextBox) for
+                                     IsEditable combos to show and edit their text; collapsed otherwise. -->
+                                <TextBox x:Name="PART_EditableTextBox"
+                                         Style="{x:Null}"
+                                         Visibility="Collapsed"
+                                         Margin="6,3,24,3"
+                                         Padding="0"
+                                         VerticalContentAlignment="Center"
+                                         Background="Transparent"
+                                         Foreground="{TemplateBinding Foreground}"
+                                         CaretBrush="{TemplateBinding Foreground}"
+                                         BorderThickness="0"
+                                         IsReadOnly="{TemplateBinding IsReadOnly}" />
                                 <Popup x:Name="PART_Popup"
                                        IsOpen="{TemplateBinding IsDropDownOpen}"
                                        Placement="Bottom"
@@ -676,6 +689,10 @@
                                 </Popup>
                             </Grid>
                             <ControlTemplate.Triggers>
+                                <Trigger Property="IsEditable" Value="True">
+                                    <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="contentPresenter" Property="Visibility" Value="Collapsed" />
+                                </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter TargetName="contentPresenter" Property="Opacity" Value="0.35" />
                                 </Trigger>
