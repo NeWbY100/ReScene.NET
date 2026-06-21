@@ -13,12 +13,12 @@ namespace ReScene.NET.ViewModels;
 /// <see cref="SourcePath"/> is never modified — edits are applied to a temp working
 /// copy and written to a user-chosen <see cref="OutputPath"/> on Save.
 /// </summary>
-public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir, IImagePreviewService imagePreview) : ViewModelBase
+public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir, IFilePreviewService filePreview) : ViewModelBase
 {
     private readonly ISrrEditingService _srrEditing = srrEditing;
     private readonly IFileDialogService _fileDialog = fileDialog;
     private readonly ITempDirectoryService _tempDir = tempDir;
-    private readonly IImagePreviewService _imagePreview = imagePreview;
+    private readonly IFilePreviewService _filePreview = filePreview;
 
     /// <summary>Full path to the temp working copy currently being edited, if any.</summary>
     private string? _workingCopyPath;
@@ -216,7 +216,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         MoveStoredFileUpCommand.NotifyCanExecuteChanged();
         MoveStoredFileDownCommand.NotifyCanExecuteChanged();
         ExtractStoredFileCommand.NotifyCanExecuteChanged();
-        PreviewStoredImageCommand.NotifyCanExecuteChanged();
+        PreviewStoredFileCommand.NotifyCanExecuteChanged();
     }
 
     // ── Browse ──────────────────────────────────────────────
@@ -289,10 +289,6 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
 
     /// <summary>True when exactly one stored file is selected (Rename / Move up / Move down).</summary>
     private bool HasSingleSelection() => SelectedStoredFiles.Count == 1;
-
-    /// <summary>True when exactly one selected stored file is a previewable image.</summary>
-    private bool HasSingleImageSelection()
-        => SelectedStoredFiles.Count == 1 && ImagePreviewSupport.IsSupported(SelectedStoredFiles[0].Name);
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void RemoveStoredFile()
@@ -421,8 +417,8 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
         ManageStatus = BuildExtractStatus(saved, failures, folder, lastPath, names);
     }
 
-    [RelayCommand(CanExecute = nameof(HasSingleImageSelection))]
-    private async Task PreviewStoredImageAsync()
+    [RelayCommand(CanExecute = nameof(HasSingleSelection))]
+    private async Task PreviewStoredFileAsync()
     {
         if (_workingCopyPath is null || SelectedStoredFiles.Count != 1)
         {
@@ -440,7 +436,7 @@ public partial class SrrEditorViewModel(ISrrEditingService srrEditing, IFileDial
                 return;
             }
 
-            _imagePreview.Preview(bytes, name);
+            _filePreview.Preview(bytes, name);
         }
         catch (Exception ex)
         {

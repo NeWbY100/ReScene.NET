@@ -13,7 +13,7 @@
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
       <Button Content="Extract…" Command="{Binding ExtractStoredFileCommand}"
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
-      <Button Content="Preview…" Command="{Binding PreviewStoredImageCommand}"
+      <Button Content="Preview…" Command="{Binding PreviewStoredFileCommand}"
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />
       <Button Content="Move up" Command="{Binding MoveStoredFileUpCommand}"
               Style="{StaticResource GhostButton}" Padding="10,4" Margin="0,0,4,0" />

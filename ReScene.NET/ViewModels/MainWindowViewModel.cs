@@ -165,6 +165,7 @@ public partial class MainWindowViewModel : ViewModelBase
         IUiDispatcher dispatcher = uiDispatcher ?? new WpfDispatcher();
 
         var imagePreviewService = new ImagePreviewService(fileDialog);
+        var filePreviewService = new FilePreviewService();
         Inspector = new InspectorViewModel(fileDialog, srrEditingService, srrVerifyService, propertyExportService, imagePreviewService, appSettingsService);
         Creator = new CreatorViewModel(srrService, srsService, fileDialog, tempDir, appSettingsService, dispatcher);
         SRSCreator = new SRSCreatorViewModel(srsService, fileDialog, tempDir, appSettingsService, dispatcher);
@@ -186,7 +187,7 @@ public partial class MainWindowViewModel : ViewModelBase
             SRSCreator = SRSCreator,
             Reconstructor = Reconstructor,
             Restore = beginnerRestore,
-            SrrEditor = new SrrEditorViewModel(srrEditingService, fileDialog, tempDir, imagePreviewService),
+            SrrEditor = new SrrEditorViewModel(srrEditingService, fileDialog, tempDir, filePreviewService),
         };
 
         Home = new HomeViewModel(

@@ -51,3 +51,11 @@ public sealed class RecordingImagePreviewService : ReScene.NET.Services.IImagePr
 
     public void Preview(byte[] data, string fileName) => Calls.Add((data, fileName));
 }
+
+/// <summary>Records every <see cref="IFilePreviewService.Preview"/> call for assertions.</summary>
+public sealed class RecordingFilePreviewService : ReScene.NET.Services.IFilePreviewService
+{
+    public List<(byte[] Data, string FileName)> Calls { get; } = [];
+
+    public void Preview(byte[] data, string fileName) => Calls.Add((data, fileName));
+}

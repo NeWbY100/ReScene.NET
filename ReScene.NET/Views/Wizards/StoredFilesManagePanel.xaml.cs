@@ -45,7 +45,7 @@ public partial class StoredFilesManagePanel : UserControl
         grid.UnselectAll();
     }
 
-    // Double-clicking an image row opens the preview, mirroring the Preview… button.
+    // Double-clicking a row opens the preview, mirroring the Preview… button.
     private void StoredFilesGrid_MouseDoubleClick(object _, MouseButtonEventArgs e)
     {
         // Only act on double-clicks that land on a data row (not column headers or empty space).
@@ -55,9 +55,9 @@ public partial class StoredFilesManagePanel : UserControl
             return;
         }
 
-        if (DataContext is SrrEditorViewModel vm && vm.PreviewStoredImageCommand.CanExecute(null))
+        if (DataContext is SrrEditorViewModel vm && vm.PreviewStoredFileCommand.CanExecute(null))
         {
-            vm.PreviewStoredImageCommand.Execute(null);
+            vm.PreviewStoredFileCommand.Execute(null);
             e.Handled = true;
         }
     }

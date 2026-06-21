@@ -156,8 +156,8 @@ public class SrrEditorViewModelTests
     /// Test ViewModel that overrides the working-copy seam to return a dummy path with no I/O,
     /// so the orchestration runs against the fake service without touching disk.
     /// </summary>
-    private sealed class TestSrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir, IImagePreviewService imagePreview)
-        : SrrEditorViewModel(srrEditing, fileDialog, tempDir, imagePreview)
+    private sealed class TestSrrEditorViewModel(ISrrEditingService srrEditing, IFileDialogService fileDialog, ITempDirectoryService tempDir, IFilePreviewService filePreview)
+        : SrrEditorViewModel(srrEditing, fileDialog, tempDir, filePreview)
     {
         public const string DummyWorkingPath = @"X:\__working__\copy.srr";
 
@@ -184,7 +184,7 @@ public class SrrEditorViewModelTests
     {
         editing = new FakeSrrEditingService();
         dialog = new FakeFileDialogService();
-        return new TestSrrEditorViewModel(editing, dialog, new NoOpTempDirectoryService(), new RecordingImagePreviewService());
+        return new TestSrrEditorViewModel(editing, dialog, new NoOpTempDirectoryService(), new RecordingFilePreviewService());
     }
 
     // ── StoredFileInfo model ────────────────────────────────
@@ -583,7 +583,7 @@ public class SrrEditorViewModelTests
         Assert.False(vm.MoveStoredFileUpCommand.CanExecute(null));
         Assert.False(vm.MoveStoredFileDownCommand.CanExecute(null));
         Assert.False(vm.ExtractStoredFileCommand.CanExecute(null));
-        Assert.False(vm.PreviewStoredImageCommand.CanExecute(null));
+        Assert.False(vm.PreviewStoredFileCommand.CanExecute(null));
     }
 
     [Fact]
@@ -819,15 +819,15 @@ public class SrrEditorViewModelTests
 
     private static TestSrrEditorViewModel CreateImageVm(
         out FakeSrrEditingService editing,
-        out RecordingImagePreviewService preview)
+        out RecordingFilePreviewService preview)
     {
         editing = new FakeSrrEditingService();
-        preview = new RecordingImagePreviewService();
+        preview = new RecordingFilePreviewService();
         return new TestSrrEditorViewModel(editing, new FakeFileDialogService(), new NoOpTempDirectoryService(), preview);
     }
 
     private static TestSrrEditorViewModel WithSelectedStored(
-        string storedName, out FakeSrrEditingService editing, out RecordingImagePreviewService preview)
+        string storedName, out FakeSrrEditingService editing, out RecordingFilePreviewService preview)
     {
         TestSrrEditorViewModel vm = CreateImageVm(out editing, out preview);
         editing.StoredFileNames.Add(storedName);
@@ -843,14 +843,14 @@ public class SrrEditorViewModelTests
     public void PreviewCommand_SingleImageSelected_IsEnabled()
     {
         TestSrrEditorViewModel vm = WithSelectedStored("proof.jpg", out _, out _);
-        Assert.True(vm.PreviewStoredImageCommand.CanExecute(null));
+        Assert.True(vm.PreviewStoredFileCommand.CanExecute(null));
     }
 
     [Fact]
-    public void PreviewCommand_NonImageSelected_IsDisabled()
+    public void PreviewCommand_SingleNonImageSelected_IsEnabled()
     {
         TestSrrEditorViewModel vm = WithSelectedStored("readme.nfo", out _, out _);
-        Assert.False(vm.PreviewStoredImageCommand.CanExecute(null));
+        Assert.True(vm.PreviewStoredFileCommand.CanExecute(null));
     }
 
     [Fact]
@@ -863,21 +863,21 @@ public class SrrEditorViewModelTests
         vm.EnsureWorkingCopy();
         vm.SetSelection([vm.StoredFiles[0], vm.StoredFiles[1]]);
 
-        Assert.False(vm.PreviewStoredImageCommand.CanExecute(null));
+        Assert.False(vm.PreviewStoredFileCommand.CanExecute(null));
     }
 
     [Fact]
     public async Task PreviewCommand_ForwardsBytesAndName()
     {
-        TestSrrEditorViewModel vm = WithSelectedStored("proof.jpg", out FakeSrrEditingService editing, out RecordingImagePreviewService preview);
+        TestSrrEditorViewModel vm = WithSelectedStored("readme.nfo", out FakeSrrEditingService editing, out RecordingFilePreviewService preview);
         editing.BytesToReturn = [0x09, 0x08, 0x07];
 
-        await vm.PreviewStoredImageCommand.ExecuteAsync(null);
+        await vm.PreviewStoredFileCommand.ExecuteAsync(null);
 
         (byte[] data, string fileName) = Assert.Single(preview.Calls);
         Assert.Equal(new byte[] { 0x09, 0x08, 0x07 }, data);
-        Assert.Equal("proof.jpg", fileName);
+        Assert.Equal("readme.nfo", fileName);
         Assert.NotNull(editing.LastRead);
-        Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "proof.jpg"), editing.LastRead.Value);
+        Assert.Equal((TestSrrEditorViewModel.DummyWorkingPath, "readme.nfo"), editing.LastRead.Value);
     }
 }
