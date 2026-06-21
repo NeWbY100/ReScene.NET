@@ -35,8 +35,6 @@ public partial class FilePreviewViewModel : ViewModelBase
     /// <summary>The file's bytes, for the Hex view and text decoder.</summary>
     public IHexDataSource HexDataSource { get; }
 
-    public long HexBlockOffset => 0;
-
     public long HexBlockLength { get; }
 
     [ObservableProperty]

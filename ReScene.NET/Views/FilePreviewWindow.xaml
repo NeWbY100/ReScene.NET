@@ -47,7 +47,7 @@
             </ComboBox>
           </StackPanel>
           <controls:HexViewControl DataSource="{Binding HexDataSource}"
-                                   BlockOffset="{Binding HexBlockOffset}"
+                                   BlockOffset="0"
                                    BlockLength="{Binding HexBlockLength}"
                                    BytesPerLine="{Binding HexBytesPerLine}" />
         </DockPanel>
