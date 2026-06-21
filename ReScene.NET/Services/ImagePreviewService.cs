@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media.Imaging;
+using ReScene.NET.Helpers;
 using ReScene.NET.Views;
 
 namespace ReScene.NET.Services;
@@ -15,15 +16,8 @@ public class ImagePreviewService(IFileDialogService fileDialog) : IImagePreviewS
     /// <inheritdoc />
     public void Preview(byte[] data, string fileName)
     {
-        BitmapSource image;
-        try
-        {
-            using var stream = new MemoryStream(data);
-            BitmapFrame frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-            frame.Freeze();
-            image = frame;
-        }
-        catch (Exception ex) when (ex is NotSupportedException or ArgumentException or FileFormatException or IOException or OverflowException)
+        BitmapSource? image = ImageDecoder.TryDecode(data);
+        if (image is null)
         {
             _fileDialog.ShowError("Could not display image",
                 $"\"{fileName}\" could not be decoded as an image.");
