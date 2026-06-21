@@ -1,0 +1,120 @@
+<Window x:Class="ReScene.NET.Views.FilePreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ReScene.NET.Controls"
+        Title="{Binding TitleText}"
+        Width="880" Height="620" MinWidth="360" MinHeight="240"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource ForegroundPrimary}"
+        FontFamily="{DynamicResource UIFontFamily}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource SurfaceBackground}"
+            BorderBrush="{DynamicResource BorderSeparator}"
+            BorderThickness="0,1,0,0"
+            Padding="8,4">
+      <TextBlock Text="{Binding StatusText}"
+                 Foreground="{DynamicResource ForegroundSecondary}"
+                 FontSize="{DynamicResource FontSizeCaption}"
+                 TextTrimming="CharacterEllipsis" />
+    </Border>
+
+    <TabControl>
+      <!-- Hex tab (first → default) -->
+      <TabItem Header="Hex">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                      HorizontalAlignment="Right" Margin="4,4,4,2">
+            <TextBlock Text="Bytes/Row:" VerticalAlignment="Center"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       FontSize="{DynamicResource FontSizeCaption}"
+                       Margin="0,0,4,0" />
+            <ComboBox SelectedValue="{Binding HexBytesPerLine}"
+                      SelectedValuePath="Content"
+                      IsEditable="True"
+                      Text="{Binding HexBytesPerLine, UpdateSourceTrigger=LostFocus}"
+                      Width="52" FontSize="{DynamicResource FontSizeCaption}"
+                      VerticalAlignment="Center" Padding="4,1">
+              <ComboBoxItem Content="8" />
+              <ComboBoxItem Content="16" />
+              <ComboBoxItem Content="24" />
+              <ComboBoxItem Content="32" />
+              <ComboBoxItem Content="48" />
+              <ComboBoxItem Content="64" />
+            </ComboBox>
+          </StackPanel>
+          <controls:HexViewControl DataSource="{Binding HexDataSource}"
+                                   BlockOffset="{Binding HexBlockOffset}"
+                                   BlockLength="{Binding HexBlockLength}"
+                                   BytesPerLine="{Binding HexBytesPerLine}" />
+        </DockPanel>
+      </TabItem>
+
+      <!-- Text tab -->
+      <TabItem Header="Text">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                      HorizontalAlignment="Right" Margin="4,4,4,2">
+            <TextBlock Text="Encoding:" VerticalAlignment="Center"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       FontSize="{DynamicResource FontSizeCaption}"
+                       Margin="0,0,4,0" />
+            <ComboBox ItemsSource="{Binding TextEncodings}"
+                      SelectedItem="{Binding SelectedEncoding}"
+                      DisplayMemberPath="DisplayName"
+                      Width="160" FontSize="{DynamicResource FontSizeCaption}"
+                      VerticalAlignment="Center" Padding="4,1" />
+            <CheckBox Content="Word wrap"
+                      IsChecked="{Binding TextWordWrap}"
+                      VerticalAlignment="Center"
+                      Margin="10,0,0,0" />
+          </StackPanel>
+          <Border DockPanel.Dock="Bottom"
+                  Visibility="{Binding TextViewTruncated, Converter={StaticResource BoolToVisibility}}"
+                  Background="{DynamicResource SurfaceBackground}"
+                  BorderBrush="{DynamicResource BorderSeparator}"
+                  BorderThickness="0,1,0,0"
+                  Padding="6,3">
+            <TextBlock Text="Large file — showing the first 1 MB as text."
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       FontSize="{DynamicResource FontSizeCaption}" />
+          </Border>
+          <TextBox Text="{Binding TextViewContent, Mode=OneWay}"
+                   IsReadOnly="True"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource FontSizeCaption}"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   Padding="6"
+                   BorderThickness="0">
+            <TextBox.Style>
+              <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding TextWordWrap}" Value="True">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBox.Style>
+          </TextBox>
+        </DockPanel>
+      </TabItem>
+
+      <!-- Image tab (collapsed unless an image decoded) -->
+      <TabItem Header="Image"
+               Visibility="{Binding HasImageTab, Converter={StaticResource BoolToVisibility}}">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+          <Image Source="{Binding Image}"
+                 Stretch="Uniform"
+                 StretchDirection="DownOnly"
+                 SnapsToDevicePixels="True" />
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>
