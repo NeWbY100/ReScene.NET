@@ -2,13 +2,14 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Input"
-        Width="560" Height="160"
+        Width="760" Height="170"
+        MinWidth="420" MinHeight="150"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource ForegroundPrimary}"
         FontFamily="{DynamicResource UIFontFamily}"
-        ResizeMode="NoResize">
+        ResizeMode="CanResize">
   <DockPanel Margin="{DynamicResource PageMargin}">
     <TextBlock x:Name="MessageBlock"
                DockPanel.Dock="Top"
