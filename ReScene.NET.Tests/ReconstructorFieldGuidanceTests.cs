@@ -20,6 +20,15 @@ public class ReconstructorFieldGuidanceTests : TempDirTestBase
     }
 
     [Fact]
+    public void PathsNeedAttention_OutputWhitespace_IsTrue()
+    {
+        string verify = Path.Combine(TempDir, "verify.sfv");
+        File.WriteAllText(verify, "");
+        // Output that is only whitespace counts as unset (IsNullOrWhiteSpace).
+        Assert.True(ReconstructorFieldGuidance.PathsNeedAttention(TempDir, TempDir, verify, "   "));
+    }
+
+    [Fact]
     public void PathsNeedAttention_NonexistentWinRar_IsTrue()
     {
         string verify = Path.Combine(TempDir, "verify.sfv");
