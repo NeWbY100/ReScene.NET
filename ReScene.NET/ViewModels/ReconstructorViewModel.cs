@@ -68,6 +68,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         _elapsedTimer.Tick += (_, _) => OnElapsedTimerTick();
 
         ApplyPathDefaultsFromSettings();
+        RefreshPathStatuses();
     }
 
     /// <summary>
@@ -157,6 +158,9 @@ public partial class ReconstructorViewModel : ViewModelBase
     [ObservableProperty]
     public partial FieldStatus VerifyStatus { get; set; } = FieldStatus.None;
 
+    [ObservableProperty]
+    public partial FieldStatus OutputStatus { get; set; } = FieldStatus.None;
+
     partial void OnWinRarPathChanged(string value) =>
         WinRarStatus = ReconstructorFieldGuidance.EvaluateWinRarPath(value);
 
@@ -165,6 +169,22 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     partial void OnVerificationPathChanged(string value) =>
         VerifyStatus = ReconstructorFieldGuidance.EvaluateVerificationPath(value);
+
+    partial void OnOutputPathChanged(string value) =>
+        OutputStatus = ReconstructorFieldGuidance.EvaluateOutputPath(value);
+
+    /// <summary>
+    /// Recomputes all four path statuses from the current path values. Called at construction and
+    /// after <see cref="Reset"/> so a blank field shows its "Required" marker immediately — the
+    /// per-property change hooks only fire when a value actually changes.
+    /// </summary>
+    private void RefreshPathStatuses()
+    {
+        WinRarStatus = ReconstructorFieldGuidance.EvaluateWinRarPath(WinRarPath);
+        ReleaseStatus = ReconstructorFieldGuidance.EvaluateReleasePath(ReleasePath);
+        VerifyStatus = ReconstructorFieldGuidance.EvaluateVerificationPath(VerificationPath);
+        OutputStatus = ReconstructorFieldGuidance.EvaluateOutputPath(OutputPath);
+    }
 
     /// <summary>
     /// True while any required path (WinRAR, Release, Verify, Output) is empty or invalid —
@@ -459,11 +479,6 @@ public partial class ReconstructorViewModel : ViewModelBase
         // Imported SRR + detected header state — back to empty/null
         _import.Clear();
 
-        // Path status
-        WinRarStatus = FieldStatus.None;
-        ReleaseStatus = FieldStatus.None;
-        VerifyStatus = FieldStatus.None;
-
         // Progress
         ProgressPercent = 0;
         ProgressMessage = string.Empty;
@@ -489,6 +504,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
         // The paths were just cleared; pre-fill the configured defaults again.
         ApplyPathDefaultsFromSettings();
+        RefreshPathStatuses();
     }
 
     // ── Browse Commands ──

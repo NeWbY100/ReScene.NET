@@ -17,7 +17,7 @@ internal static class ReconstructorFieldGuidance
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return FieldStatus.None;
+            return FieldStatus.Warning("Required — choose the WinRAR installations folder.");
         }
 
         if (!Directory.Exists(value))
@@ -33,7 +33,7 @@ internal static class ReconstructorFieldGuidance
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return FieldStatus.None;
+            return FieldStatus.Warning("Required — choose the release folder.");
         }
 
         if (!Directory.Exists(value) && !File.Exists(value))
@@ -49,7 +49,7 @@ internal static class ReconstructorFieldGuidance
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return FieldStatus.None;
+            return FieldStatus.Warning("Required — choose the .srr/.sfv/.sha1 to verify against.");
         }
 
         if (!File.Exists(value))
@@ -61,22 +61,36 @@ internal static class ReconstructorFieldGuidance
     }
 
     /// <summary>
-    /// Whether the Paths tab still needs attention: any of the four paths required for a
-    /// successful run (WinRAR, Release, Verify, Output) is empty or invalid, so the run could
-    /// not start. Drives the warning glyph on the Paths sub-tab header.
+    /// Status for the output directory (where rebuilt archives are written). It is created at
+    /// Start if missing, so only emptiness is flagged here.
+    /// </summary>
+    public static FieldStatus EvaluateOutputPath(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return FieldStatus.Warning("Required — choose the output folder.");
+        }
+
+        return FieldStatus.Ok("Output folder set.");
+    }
+
+    /// <summary>
+    /// Whether the Paths tab still needs attention: any of the four required paths (WinRAR,
+    /// Release, Verify, Output) is empty or invalid, so the run could not start. Drives the
+    /// warning glyph on the Paths sub-tab header.
     /// </summary>
     public static bool PathsNeedAttention(
         string winRarPath, string releasePath, string verificationPath, string outputPath)
     {
-        // The Evaluate* helpers return None for an empty value and Error for an invalid one,
-        // so "None or Error" covers both "empty" and "missing" without re-checking the strings.
-        // A valid value returns Ok/Info and does not trigger the glyph. Output has no existence
-        // check today (it is created at Start), so only its emptiness matters.
-        return EvaluateWinRarPath(winRarPath).State is FieldState.None or FieldState.Error
-            || EvaluateReleasePath(releasePath).State is FieldState.None or FieldState.Error
-            || EvaluateVerificationPath(verificationPath).State is FieldState.None or FieldState.Error
-            || string.IsNullOrWhiteSpace(outputPath);
+        return NeedsAttention(EvaluateWinRarPath(winRarPath))
+            || NeedsAttention(EvaluateReleasePath(releasePath))
+            || NeedsAttention(EvaluateVerificationPath(verificationPath))
+            || NeedsAttention(EvaluateOutputPath(outputPath));
     }
+
+    /// <summary>A field needs attention unless its value is accepted (Ok) or merely informational (Info).</summary>
+    private static bool NeedsAttention(FieldStatus status) =>
+        status.State is not (FieldState.Ok or FieldState.Info);
 
     /// <summary>
     /// Whether Start would show the subdirectory modified-date warning: the release directory has
