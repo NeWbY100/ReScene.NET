@@ -113,6 +113,7 @@
                 Style="{StaticResource GhostButton}" Margin="4,0,0,0" MinWidth="75" />
         <TextBox Text="{Binding OutputPath}" />
       </DockPanel>
+      <c:FieldStatusLine Status="{Binding OutputStatus}" />
 
       <TextBlock Text="Verification file (.sfv or .sha1)" FontWeight="SemiBold" Margin="0,12,0,2" />
       <TextBlock Text="Auto-filled from the SRR when it includes one — otherwise pick the release's .sfv. The rebuilt archives are checked against it to confirm they came out identical."
