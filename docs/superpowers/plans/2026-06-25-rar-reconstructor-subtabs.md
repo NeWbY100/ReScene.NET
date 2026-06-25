@@ -1,0 +1,695 @@
+# RAR Reconstructor Sub-Tabbed Advanced Layout — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Reorganise the advanced RAR Reconstructor view so each configuration section lives on its own sub-tab, with a persistent action bar and a warning glyph on the Paths tab, so the screen stays usable on short displays.
+
+**Architecture:** Almost entirely an XAML restructure of one view (`ReconstructorView.xaml`): every existing control keeps its exact binding; only its position in the visual tree changes. The themed `TabControl`/`TabItem` styles in `App.xaml` are inherited automatically. The only logic added is one pure, unit-tested helper (`ReconstructorFieldGuidance.PathsNeedAttention`) surfaced as a computed view-model property that drives the Paths-tab glyph.
+
+**Tech Stack:** .NET 10, WPF, CommunityToolkit.Mvvm (partial-property `[ObservableProperty]`), xUnit.
+
+**Spec:** `docs/superpowers/specs/2026-06-25-rar-reconstructor-subtabs-design.md`
+
+## Global Constraints
+
+- **Target framework:** `net10.0-windows` (WPF). The library multitargets `net8.0;net10.0` but is untouched here.
+- **The running app locks `ReScene.NET/bin/`.** ALWAYS build and test with `-p:BaseOutputPath=bin2/`. NEVER kill the app.
+- **Verify with a non-incremental build** so analyzers re-run: `dotnet build ... --no-incremental`. A clean build must produce **0 warnings** (the project sets `AnalysisLevel=latest-All` and `EnforceCodeStyleInBuild`).
+- After verification, delete the scratch output: `find E:/Projects/ReScene.NET -type d -name bin2 -prune -exec rm -rf {} + 2>/dev/null` (do not delete the real `bin/`).
+- **Work on a feature branch off `main`** (created at execution start) — do not commit to `main`. The uncommitted spec doc travels with the branch and is committed in Task 1.
+- **`InternalsVisibleTo ReScene.NET.Tests`** is already set on `ReScene.NET.csproj`, so tests can reach the internal `ReconstructorFieldGuidance`.
+- **End every commit message** with: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+- **No behavioural changes** to reconstruction, the brute-force service, the option/command-line model, Start validation, the Beginner wizard, or any other tab.
+
+---
+
+## Task 1: Paths-readiness flag (helper + view-model property)
+
+Adds the pure `PathsNeedAttention` helper (TDD) and exposes it as a computed view-model property that re-raises change notifications when any path changes. Task 2's Paths-tab glyph binds to this property.
+
+**Files:**
+- Test: `ReScene.NET.Tests/ReconstructorFieldGuidanceTests.cs` (create)
+- Modify: `ReScene.NET/ViewModels/Reconstruction/ReconstructorFieldGuidance.cs` (add method after `EvaluateVerificationPath`, before `NeedsSubdirTimestampWarning`)
+- Modify: `ReScene.NET/ViewModels/ReconstructorViewModel.cs` (add notify attributes to the four path properties at lines 130–143; add computed property after `VerifyStatus`/`OnVerificationPathChanged` around line 163)
+
+**Interfaces:**
+- Produces:
+  - `ReconstructorFieldGuidance.PathsNeedAttention(string winRarPath, string releasePath, string verificationPath, string outputPath) : bool` — `internal static`, namespace `ReScene.NET.ViewModels.Reconstruction`.
+  - `ReconstructorViewModel.PathsNeedAttention : bool` — public computed property; raises `PropertyChanged` when `WinRarPath`, `ReleasePath`, `VerificationPath`, or `OutputPath` changes. Task 2 binds the Paths-tab glyph `Visibility` to it.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `ReScene.NET.Tests/ReconstructorFieldGuidanceTests.cs`:
+
+```csharp
+using ReScene.NET.ViewModels.Reconstruction;
+
+namespace ReScene.NET.Tests;
+
+public class ReconstructorFieldGuidanceTests : TempDirTestBase
+{
+    [Fact]
+    public void PathsNeedAttention_AllEmpty_IsTrue()
+    {
+        Assert.True(ReconstructorFieldGuidance.PathsNeedAttention("", "", "", ""));
+    }
+
+    [Fact]
+    public void PathsNeedAttention_OutputEmpty_IsTrue()
+    {
+        string verify = Path.Combine(TempDir, "verify.sfv");
+        File.WriteAllText(verify, "");
+        // WinRAR/Release/Verify all valid, Output empty → still needs attention.
+        Assert.True(ReconstructorFieldGuidance.PathsNeedAttention(TempDir, TempDir, verify, ""));
+    }
+
+    [Fact]
+    public void PathsNeedAttention_NonexistentWinRar_IsTrue()
+    {
+        string verify = Path.Combine(TempDir, "verify.sfv");
+        File.WriteAllText(verify, "");
+        string missing = Path.Combine(TempDir, "does-not-exist");
+        Assert.True(ReconstructorFieldGuidance.PathsNeedAttention(missing, TempDir, verify, TempDir));
+    }
+
+    [Fact]
+    public void PathsNeedAttention_AllValid_IsFalse()
+    {
+        string verify = Path.Combine(TempDir, "verify.sfv");
+        File.WriteAllText(verify, "");
+        // WinRAR + Release = existing dirs, Verify = existing file, Output = non-empty.
+        Assert.False(ReconstructorFieldGuidance.PathsNeedAttention(TempDir, TempDir, verify, TempDir));
+    }
+}
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run:
+```bash
+dotnet test E:/Projects/ReScene.NET/ReScene.NET.Tests/ReScene.NET.Tests.csproj \
+  --filter "FullyQualifiedName~ReconstructorFieldGuidanceTests" \
+  -p:BaseOutputPath=bin2/
+```
+Expected: **build error** — `'ReconstructorFieldGuidance' does not contain a definition for 'PathsNeedAttention'` (CS0117). This is the expected "red".
+
+- [ ] **Step 3: Add the helper**
+
+In `ReScene.NET/ViewModels/Reconstruction/ReconstructorFieldGuidance.cs`, insert this method directly after `EvaluateVerificationPath` (after line 61) and before `NeedsSubdirTimestampWarning`:
+
+```csharp
+    /// <summary>
+    /// Whether the Paths tab still needs attention: any of the four paths required for a
+    /// successful run (WinRAR, Release, Verify, Output) is empty or invalid, so the run could
+    /// not start. Drives the warning glyph on the Paths sub-tab header.
+    /// </summary>
+    public static bool PathsNeedAttention(
+        string winRarPath, string releasePath, string verificationPath, string outputPath)
+    {
+        // The Evaluate* helpers return None for an empty value and Error for an invalid one,
+        // so "None or Error" covers both "empty" and "missing" without re-checking the strings.
+        // A valid value returns Ok/Info and does not trigger the glyph. Output has no existence
+        // check today (it is created at Start), so only its emptiness matters.
+        return EvaluateWinRarPath(winRarPath).State is FieldState.None or FieldState.Error
+            || EvaluateReleasePath(releasePath).State is FieldState.None or FieldState.Error
+            || EvaluateVerificationPath(verificationPath).State is FieldState.None or FieldState.Error
+            || string.IsNullOrWhiteSpace(outputPath);
+    }
+```
+
+(`FieldState` is already in scope via `using ReScene.NET.Models;` at the top of the file.)
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run:
+```bash
+dotnet test E:/Projects/ReScene.NET/ReScene.NET.Tests/ReScene.NET.Tests.csproj \
+  --filter "FullyQualifiedName~ReconstructorFieldGuidanceTests" \
+  -p:BaseOutputPath=bin2/
+```
+Expected: **Passed! - Failed: 0, Passed: 4**.
+
+- [ ] **Step 5: Wire the computed property into the view-model**
+
+In `ReScene.NET/ViewModels/ReconstructorViewModel.cs`, add `[NotifyPropertyChangedFor(nameof(PathsNeedAttention))]` to each of the four path properties. They become:
+
+```csharp
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartCommand))]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
+    public partial string WinRarPath { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartCommand))]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
+    public partial string ReleasePath { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
+    public partial string VerificationPath { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartCommand))]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
+    public partial string OutputPath { get; set; } = string.Empty;
+```
+
+Then add the computed property immediately after the `OnVerificationPathChanged` hook (after line 163, in the "Path status" region):
+
+```csharp
+    /// <summary>
+    /// True while any required path (WinRAR, Release, Verify, Output) is empty or invalid —
+    /// drives the warning glyph on the Paths sub-tab header.
+    /// </summary>
+    public bool PathsNeedAttention =>
+        ReconstructorFieldGuidance.PathsNeedAttention(WinRarPath, ReleasePath, VerificationPath, OutputPath);
+```
+
+(`ReconstructorFieldGuidance` is already in scope via `using ReScene.NET.ViewModels.Reconstruction;` at the top of the file.)
+
+- [ ] **Step 6: Verify the whole solution builds clean (non-incremental)**
+
+Run:
+```bash
+dotnet build E:/Projects/ReScene.NET/ReScene.NET/ReScene.NET.csproj \
+  -p:BaseOutputPath=bin2/ --no-incremental
+```
+Expected: **Build succeeded. 0 Warning(s) 0 Error(s)**.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add docs/superpowers/specs/2026-06-25-rar-reconstructor-subtabs-design.md \
+        docs/superpowers/plans/2026-06-25-rar-reconstructor-subtabs.md \
+        ReScene.NET/ViewModels/Reconstruction/ReconstructorFieldGuidance.cs \
+        ReScene.NET/ViewModels/ReconstructorViewModel.cs \
+        ReScene.NET.Tests/ReconstructorFieldGuidanceTests.cs
+git commit -m "$(cat <<'EOF'
+feat(ui): add Paths-readiness flag for RAR Reconstructor sub-tabs
+
+Pure ReconstructorFieldGuidance.PathsNeedAttention helper (unit-tested) plus a
+computed ReconstructorViewModel.PathsNeedAttention property that re-raises when
+any path changes. Drives the upcoming Paths sub-tab warning glyph.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Task 2: Restructure the advanced view into sub-tabs
+
+Replaces the single long vertical stack with: intro paragraph → persistent action bar → SRR tip → relocated custom-packer banner → settings sub-`TabControl` (Paths/Versions/Compression/Timestamps/Options/Output) → splitter → log panel. The Paths tab header carries the ⚠ glyph from Task 1.
+
+**Files:**
+- Modify (full rewrite): `ReScene.NET/Views/ReconstructorView.xaml`
+- Do **not** modify `ReScene.NET/Views/ReconstructorView.xaml.cs` — it references the named elements `WinRarTextBox`, `ReleaseTextBox`, `VerifyTextBox`, `OutputTextBox` (folder/file drop wiring in `OnLoaded`) and `SystemLogBox`, `Phase1LogBox`, `Phase2LogBox` (log auto-scroll), plus the `OnHyperlinkRequestNavigate` handler. All of these names and the handler are preserved by the new XAML, so the code-behind keeps compiling unchanged.
+
+**Interfaces:**
+- Consumes: `ReconstructorViewModel.PathsNeedAttention` (from Task 1) for the Paths-tab glyph `Visibility`.
+- Consumes (unchanged, all pre-existing): commands `ImportConfigCommand`, `ImportSRRCommand`, `ExportConfigCommand`, `StartCommand`, `BrowseWinRarCommand`, `BrowseReleaseCommand`, `BrowseVerificationCommand`, `BrowseOutputCommand`, `SaveLogCommand`; properties `WinRarPath`/`ReleasePath`/`VerificationPath`/`OutputPath`, `WinRarStatus`/`ReleaseStatus`/`VerifyStatus`, `HasCustomPackerWarning`/`CustomPackerWarning`, all `Version*`/`Switch*`/`File*`/dictionary/timestamp/output toggles, `VolumeSize*`, `AutoScrollLog`, `SystemLog`/`Phase1Log`/`Phase2Log`.
+- Produces: no new public surface.
+
+- [ ] **Step 1: Replace `ReconstructorView.xaml` with the sub-tabbed layout**
+
+Overwrite `ReScene.NET/Views/ReconstructorView.xaml` with exactly this content:
+
+```xml
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
+             xmlns:c="clr-namespace:ReScene.NET.Controls"
+             x:Class="ReScene.NET.Views.ReconstructorView">
+
+    <Grid Margin="{DynamicResource PageMargin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="220" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="200" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Tab description ─────────────────────────────────── -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,6">
+          <TextBlock Text="Reconstruct original RAR archives from an SRR file by brute-forcing WinRAR compression settings. Provide the source files and a WinRAR executable, then configure which RAR versions and switches to try."
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                     TextWrapping="Wrap" />
+          <TextBlock Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                     TextWrapping="Wrap" Margin="0,2,0,0">
+            <Run Text="WinRAR versions needed for reconstruction can be downloaded from:" />
+            <Hyperlink NavigateUri="https://drive.google.com/file/d/1of053kS2Wxk-foHN_ALRu-u6Tcck58yn/view?usp=drive_link"
+                       RequestNavigate="OnHyperlinkRequestNavigate">Extracted files (ready to use)</Hyperlink>
+            <Run Text="or" />
+            <Hyperlink NavigateUri="https://drive.google.com/file/d/1hvgzSY6YH_ZS3cpy7bHcw2zpjiwuP_Xi/view?usp=drive_link"
+                       RequestNavigate="OnHyperlinkRequestNavigate">Original files from RAR FTP</Hyperlink>
+          </TextBlock>
+        </StackPanel>
+
+        <!-- ── Persistent action bar ───────────────────────────── -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,4">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Export Config"
+                        Command="{Binding ExportConfigCommand}"
+                        Style="{StaticResource GhostButton}"
+                        ToolTip="Save the current paths and options to a configuration JSON file for reuse."
+                        Padding="12,4" Margin="0,0,4,0" />
+                <Button Content="Start"
+                        Command="{Binding StartCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Padding="16,4" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Import Config"
+                        Command="{Binding ImportConfigCommand}"
+                        Style="{StaticResource GhostButton}"
+                        ToolTip="Load all paths and options from a previously-exported configuration JSON file."
+                        Padding="12,4" Margin="0,0,4,0" />
+                <Button Content="Import from SRR"
+                        Command="{Binding ImportSRRCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        ToolTip="Import settings from an SRR file. Auto-configures compression, dictionary, versions, timestamps, and Host OS."
+                        Padding="12,4" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- ── Import-from-SRR tip ─────────────────────────────── -->
+        <TextBlock Grid.Row="2"
+                   Text="Tip: click &#x201C;Import from SRR&#x201D; to auto-configure versions, compression, dictionary, timestamps and Host OS from the release's SRR."
+                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" Margin="0,0,0,4" />
+
+        <!-- ── Custom packer warning ───────────────────────────── -->
+        <Border Grid.Row="3"
+                Visibility="{Binding HasCustomPackerWarning, Converter={StaticResource BoolToVisibility}}"
+                Background="#3DE0A030" BorderBrush="#E0A030" BorderThickness="1"
+                CornerRadius="3" Margin="0,0,0,4" Padding="8,5">
+          <TextBlock Text="{Binding CustomPackerWarning}"
+                     Foreground="#FFD080"
+                     FontSize="{DynamicResource FontSizeBody}"
+                     TextWrapping="Wrap" />
+        </Border>
+
+        <!-- ── Settings sub-tabs ───────────────────────────────── -->
+        <TabControl Grid.Row="4" MinHeight="220">
+
+            <!-- Paths (default) -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Paths" VerticalAlignment="Center" />
+                        <TextBlock Text="&#x26A0;" Margin="6,0,0,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentWarning}"
+                                   Visibility="{Binding PathsNeedAttention, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+                </TabItem.Header>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                    <StackPanel>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,2">
+                            <Run Text="WinRAR " FontWeight="SemiBold" />
+                            <Run Text="— Folder containing WinRAR version subfolders used to recompress. Older releases need older WinRAR versions."
+                                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+                        </TextBlock>
+                        <DockPanel Margin="0,0,0,2">
+                            <Button DockPanel.Dock="Right" Content="Browse"
+                                    Command="{Binding BrowseWinRarCommand}"
+                                    Style="{StaticResource GhostButton}"
+                                    Margin="4,0,0,0" MinWidth="75" />
+                            <TextBox x:Name="WinRarTextBox" Text="{Binding WinRarPath}" />
+                        </DockPanel>
+                        <c:FieldStatusLine Status="{Binding WinRarStatus}" Margin="0,1,0,2" />
+
+                        <TextBlock TextWrapping="Wrap" Margin="0,8,0,2">
+                            <Run Text="Release " FontWeight="SemiBold" />
+                            <Run Text="— Folder with the extracted original files to recompress into RAR archives."
+                                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+                        </TextBlock>
+                        <DockPanel Margin="0,0,0,2">
+                            <Button DockPanel.Dock="Right" Content="Browse"
+                                    Command="{Binding BrowseReleaseCommand}"
+                                    Style="{StaticResource GhostButton}"
+                                    Margin="4,0,0,0" MinWidth="75" />
+                            <TextBox x:Name="ReleaseTextBox" Text="{Binding ReleasePath}" />
+                        </DockPanel>
+                        <c:FieldStatusLine Status="{Binding ReleaseStatus}" Margin="0,1,0,2" />
+
+                        <TextBlock TextWrapping="Wrap" Margin="0,8,0,2">
+                            <Run Text="Verify " FontWeight="SemiBold" />
+                            <Run Text="— The .srr file to verify reconstructed archives against."
+                                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+                        </TextBlock>
+                        <DockPanel Margin="0,0,0,2">
+                            <Button DockPanel.Dock="Right" Content="Browse"
+                                    Command="{Binding BrowseVerificationCommand}"
+                                    Style="{StaticResource GhostButton}"
+                                    Margin="4,0,0,0" MinWidth="75" />
+                            <TextBox x:Name="VerifyTextBox" Text="{Binding VerificationPath}" />
+                        </DockPanel>
+                        <c:FieldStatusLine Status="{Binding VerifyStatus}" Margin="0,1,0,2" />
+
+                        <TextBlock TextWrapping="Wrap" Margin="0,8,0,2">
+                            <Run Text="Output " FontWeight="SemiBold" />
+                            <Run Text="— Folder where reconstructed RAR archives are written."
+                                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+                        </TextBlock>
+                        <DockPanel Margin="0,0,0,2">
+                            <Button DockPanel.Dock="Right" Content="Browse"
+                                    Command="{Binding BrowseOutputCommand}"
+                                    Style="{StaticResource GhostButton}"
+                                    Margin="4,0,0,0" MinWidth="75" />
+                            <TextBox x:Name="OutputTextBox" Text="{Binding OutputPath}" />
+                        </DockPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Versions -->
+            <TabItem Header="Versions">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                    <StackPanel>
+                        <TextBlock Text="The RAR version to compress the release files with. Older releases will have been compressed with older versions of WinRAR."
+                                   TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4" />
+                        <CheckBox Content="RAR 2.x (versions 2.00–2.90). Oldest supported format." IsChecked="{Binding Version2}" Margin="0,1" />
+                        <CheckBox Content="RAR 3.x (versions 3.00–3.93). Introduced -ts timestamp options at 3.20+." IsChecked="{Binding Version3}" Margin="0,1" />
+                        <CheckBox Content="RAR 4.x (versions 4.00–4.20). Last major version using RAR4 format by default." IsChecked="{Binding Version4}" Margin="0,1" />
+                        <CheckBox Content="RAR 5.x (versions 5.00–5.90). Introduced RAR5 format. 5.50+ defaults to RAR5." IsChecked="{Binding Version5}" Margin="0,1" />
+                        <CheckBox Content="RAR 6.x (versions 6.00+). Always uses RAR5 format unless -ma4 is specified." IsChecked="{Binding Version6}" Margin="0,1" />
+                        <CheckBox Content="RAR 7.x (versions 7.00+). Uses RAR7 format only — cannot create RAR4/RAR5 archives." IsChecked="{Binding Version7}" Margin="0,1" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Compression -->
+            <TabItem Header="Compression">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                    <StackPanel>
+                        <TextBlock Text="Select the switches to pass on to the RAR process. If a switch is not supported by a RAR version, it will not be supplied as argument."
+                                   TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,4" />
+
+                        <TextBlock Text="Compression Method" FontWeight="SemiBold" Margin="0,0,0,2" />
+                        <CheckBox Content="-m0: Store (no compression). Files are stored as-is." IsChecked="{Binding SwitchM0}" Margin="0,1" />
+                        <CheckBox Content="-m1: Fastest compression. Lowest ratio, fastest speed." IsChecked="{Binding SwitchM1}" Margin="0,1" />
+                        <CheckBox Content="-m2: Fast compression." IsChecked="{Binding SwitchM2}" Margin="0,1" />
+                        <CheckBox Content="-m3: Normal compression (RAR default)." IsChecked="{Binding SwitchM3}" Margin="0,1" />
+                        <CheckBox Content="-m4: Good compression." IsChecked="{Binding SwitchM4}" Margin="0,1" />
+                        <CheckBox Content="-m5: Best compression. Highest ratio, slowest speed." IsChecked="{Binding SwitchM5}" Margin="0,1" />
+
+                        <TextBlock Text="Archive Format" FontWeight="SemiBold" Margin="0,4,0,2" />
+                        <CheckBox Content="-ma4: Force RAR 4.x archive format. Required for RAR 5.50+ to create RAR4 archives." IsChecked="{Binding SwitchMA4}" Margin="0,1" />
+                        <CheckBox Content="-ma5: Force RAR 5.0 archive format. Default for RAR 5.50+." IsChecked="{Binding SwitchMA5}" Margin="0,1" />
+
+                        <TextBlock Text="Dictionary Size" FontWeight="SemiBold" Margin="0,4,0,2" />
+                        <Grid HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- RAR4 & RAR5 compatible -->
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="RAR4 &amp; RAR5 compatible" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+                                <CheckBox Content="md64k - 64 KB" IsChecked="{Binding SwitchMD64K}" Margin="0,1" />
+                                <CheckBox Content="md128k - 128 KB" IsChecked="{Binding SwitchMD128K}" Margin="0,1" />
+                                <CheckBox Content="md256k - 256 KB" IsChecked="{Binding SwitchMD256K}" Margin="0,1" />
+                                <CheckBox Content="md512k - 512 KB" IsChecked="{Binding SwitchMD512K}" Margin="0,1" />
+                                <CheckBox Content="md1024k - 1024 KB (1 MB)" IsChecked="{Binding SwitchMD1024K}" Margin="0,1" />
+                                <CheckBox Content="md2048k - 2048 KB (2 MB)" IsChecked="{Binding SwitchMD2048K}" Margin="0,1" />
+                                <CheckBox Content="md4096k - 4096 KB (4 MB, max RAR4)" IsChecked="{Binding SwitchMD4096K}" Margin="0,1" />
+                            </StackPanel>
+
+                            <!-- RAR5 only -->
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="RAR5 only (8 MB – 1 GB)" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+                                <CheckBox Content="md8m - 8 MB" IsChecked="{Binding SwitchMD8M}" Margin="0,1" />
+                                <CheckBox Content="md16m - 16 MB" IsChecked="{Binding SwitchMD16M}" Margin="0,1" />
+                                <CheckBox Content="md32m - 32 MB" IsChecked="{Binding SwitchMD32M}" Margin="0,1" />
+                                <CheckBox Content="md64m - 64 MB" IsChecked="{Binding SwitchMD64M}" Margin="0,1" />
+                                <CheckBox Content="md128m - 128 MB" IsChecked="{Binding SwitchMD128M}" Margin="0,1" />
+                                <CheckBox Content="md256m - 256 MB" IsChecked="{Binding SwitchMD256M}" Margin="0,1" />
+                                <CheckBox Content="md512m - 512 MB" IsChecked="{Binding SwitchMD512M}" Margin="0,1" />
+                                <CheckBox Content="md1g - 1 GB" IsChecked="{Binding SwitchMD1G}" Margin="0,1" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Timestamps -->
+            <TabItem Header="Timestamps">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                    <Grid HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Modification Time -->
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Modification Time (-tsm)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                            <CheckBox Content="tsm0 - Not saved (3.20+)" IsChecked="{Binding SwitchTSM0}" Margin="0,1" />
+                            <CheckBox Content="tsm1 - 1s precision (DOS)" IsChecked="{Binding SwitchTSM1}" Margin="0,1" />
+                            <CheckBox Content="tsm2 - 0.0065536s precision" IsChecked="{Binding SwitchTSM2}" Margin="0,1" />
+                            <CheckBox Content="tsm3 - 0.0000256s precision" IsChecked="{Binding SwitchTSM3}" Margin="0,1" />
+                            <CheckBox Content="tsm4 - Max NTFS precision" IsChecked="{Binding SwitchTSM4}" Margin="0,1" />
+                        </StackPanel>
+
+                        <!-- Creation Time -->
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="Creation Time (-tsc)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                            <CheckBox Content="tsc0 - Not saved" IsChecked="{Binding SwitchTSC0}" Margin="0,1" />
+                            <CheckBox Content="tsc1 - 1s precision" IsChecked="{Binding SwitchTSC1}" Margin="0,1" />
+                            <CheckBox Content="tsc2 - 0.0065536s precision" IsChecked="{Binding SwitchTSC2}" Margin="0,1" />
+                            <CheckBox Content="tsc3 - 0.0000256s precision" IsChecked="{Binding SwitchTSC3}" Margin="0,1" />
+                            <CheckBox Content="tsc4 - Max NTFS precision" IsChecked="{Binding SwitchTSC4}" Margin="0,1" />
+                        </StackPanel>
+
+                        <!-- Access Time -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Access Time (-tsa)" FontWeight="SemiBold" Margin="0,0,0,2" />
+                            <CheckBox Content="tsa0 - Not saved" IsChecked="{Binding SwitchTSA0}" Margin="0,1" />
+                            <CheckBox Content="tsa1 - 1s precision" IsChecked="{Binding SwitchTSA1}" Margin="0,1" />
+                            <CheckBox Content="tsa2 - 0.0065536s precision" IsChecked="{Binding SwitchTSA2}" Margin="0,1" />
+                            <CheckBox Content="tsa3 - 0.0000256s precision" IsChecked="{Binding SwitchTSA3}" Margin="0,1" />
+                            <CheckBox Content="tsa4 - Max NTFS precision" IsChecked="{Binding SwitchTSA4}" Margin="0,1" />
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Options -->
+            <TabItem Header="Options">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                    <StackPanel>
+                        <CheckBox Content="-ai: Ignore file attributes. Mutually exclusive with A/I attribute testing." IsChecked="{Binding SwitchAI}"
+                                  IsEnabled="{Binding IsSwitchAIEnabled}" Margin="0,1" />
+                        <CheckBox Content="-r: Recurse subdirectories." IsChecked="{Binding SwitchR}" Margin="0,1" />
+                        <CheckBox Content="-ds: Disable name sort. Files are added in filesystem order." IsChecked="{Binding SwitchDS}" Margin="0,1" />
+                        <CheckBox Content="-s-: Disable solid archiving." IsChecked="{Binding SwitchSDash}" Margin="0,1" />
+
+                        <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+                        <CheckBox IsChecked="{Binding SwitchMT}" Margin="0,1">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="-mt: Number of CPU threads to use for compression." VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="From:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBox Text="{Binding SwitchMTStart}" Width="70" Margin="0,0,8,0"
+                                         IsEnabled="{Binding IsMTRangeEnabled}" />
+                                <TextBlock Text="To:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBox Text="{Binding SwitchMTEnd}" Width="70" Margin="0,0,4,0"
+                                         IsEnabled="{Binding IsMTRangeEnabled}" />
+                                <TextBlock Text="(inclusive)" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
+                            </StackPanel>
+                        </CheckBox>
+                        <TextBlock Text="Changing the thread count slightly affects compression ratio. Archives created with different -mt values will not be identical even if all other settings are equal."
+                                   TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+
+                        <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+                        <CheckBox IsChecked="{Binding SwitchV}" Margin="0,1">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="-v: Create multi-volume archives with specified volume size." VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBox Text="{Binding VolumeSize}" Width="100"
+                                         IsEnabled="{Binding IsVolumeOptionsEnabled}" Margin="0,0,4,0" />
+                                <ComboBox ItemsSource="{Binding VolumeSizeUnits}"
+                                          SelectedIndex="{Binding VolumeSizeUnitIndex}"
+                                          Width="80"
+                                          IsEnabled="{Binding IsVolumeOptionsEnabled}" />
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox Content="-vn: Use old-style volume naming (.rar, .r00, .r01) instead of (.part1.rar, .part2.rar)."
+                                  IsChecked="{Binding UseOldVolumeNaming}"
+                                  IsEnabled="{Binding IsVolumeOptionsEnabled}" Margin="0,1" />
+
+                        <Border Height="1" Background="{DynamicResource BorderSeparator}" Margin="0,4" />
+
+                        <TextBlock Text="File Attributes" FontWeight="SemiBold" />
+                        <TextBlock Text="Set the given attribute(s) on the files before archiving. This does not affect directories."
+                                   TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="0,0,0,2" />
+                        <CheckBox Content="A - Set archive file attribute (attrib +A)." IsChecked="{Binding FileA}" IsThreeState="True"
+                                  IsEnabled="{Binding IsFileAttributesEnabled}" Margin="0,1" />
+                        <CheckBox Content="I - Set not content indexed attribute on each file before compressing." IsChecked="{Binding FileI}" IsThreeState="True"
+                                  IsEnabled="{Binding IsFileAttributesEnabled}" Margin="0,1" />
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                <CheckBox IsEnabled="False" IsChecked="False" Padding="0" MinWidth="0" />
+                                <TextBlock Text="Option is never set" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0,0,0" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                <CheckBox IsEnabled="False" IsChecked="True" Padding="0" MinWidth="0" />
+                                <TextBlock Text="Test with and without this option set" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0,0,0" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsEnabled="False" IsChecked="{x:Null}" IsThreeState="True" Padding="0" MinWidth="0" />
+                                <TextBlock Text="Option is always set" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" Margin="4,0,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Output -->
+            <TabItem Header="Output">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4">
+                    <StackPanel>
+                        <CheckBox Content="Delete non-matching RAR files after testing. Saves disk space during brute force."
+                                  IsChecked="{Binding DeleteRARFiles}" Margin="0,1" />
+                        <CheckBox Content="Delete RAR files with duplicate CRC32 values. Only available when not deleting all non-matching files."
+                                  IsChecked="{Binding DeleteDuplicateCRCFiles}"
+                                  IsEnabled="{Binding IsDeleteDuplicateCRCEnabled}" Margin="0,1" />
+                        <CheckBox Content="Stop brute-forcing after finding the first matching RAR file."
+                                  IsChecked="{Binding StopOnFirstMatch}" Margin="0,1" />
+                        <CheckBox Content="When a match is found, let RAR finish creating all volume files instead of only the first volume."
+                                  IsChecked="{Binding CompleteAllVolumes}" Margin="0,1" />
+                        <CheckBox Content="Rename matched output files to the original RAR filenames from the SRR. Requires Stop on first match."
+                                  IsChecked="{Binding RenameToOriginal}"
+                                  IsEnabled="{Binding IsRenameToOriginalEnabled}" Margin="0,1" />
+                        <CheckBox Content="Rename matched output files to the names listed in the verification .sfv. Uses the SRR's original names when one is loaded. Requires Stop on first match."
+                                  IsChecked="{Binding RenameToSfvNames}"
+                                  IsEnabled="{Binding IsRenameToSfvEnabled}" Margin="0,1" />
+                        <CheckBox Content="Patch brute-forced RAR headers to match the original archive (Host OS, attributes, LARGE flag, mtime)."
+                                  IsChecked="{Binding EnableHostOSPatching}" Margin="0,1" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- ── Resizable splitter ───────────────────────────────── -->
+        <GridSplitter Grid.Row="5"
+                  Height="{DynamicResource SplitterHeight}"
+                  HorizontalAlignment="Stretch"
+                  ResizeBehavior="PreviousAndNext" />
+
+        <!-- ── Log tabs (bottom panel) ──────────────────────────── -->
+        <DockPanel Grid.Row="6">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                <Button DockPanel.Dock="Right" Content="Save log..."
+                        Command="{Binding SaveLogCommand}"
+                        Style="{StaticResource GhostButton}"
+                        Padding="8,2" />
+                <CheckBox DockPanel.Dock="Right"
+                          Content="Auto-scroll"
+                          IsChecked="{Binding AutoScrollLog}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,8,0" />
+                <TextBlock Text="Log" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </DockPanel>
+            <TabControl>
+                <TabItem Header="System">
+                    <TextBox x:Name="SystemLogBox"
+                   Text="{Binding SystemLog}"
+                   IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource MonoFontSize}"
+                   Background="{DynamicResource WindowBackground}"
+                   Foreground="{DynamicResource LogTerminalForeground}" />
+                </TabItem>
+                <TabItem Header="Phase 1">
+                    <TextBox x:Name="Phase1LogBox"
+                   Text="{Binding Phase1Log}"
+                   IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource MonoFontSize}"
+                   Background="{DynamicResource WindowBackground}"
+                   Foreground="{DynamicResource LogTerminalForeground}" />
+                </TabItem>
+                <TabItem Header="Phase 2">
+                    <TextBox x:Name="Phase2LogBox"
+                   Text="{Binding Phase2Log}"
+                   IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="{DynamicResource MonoFontFamily}"
+                   FontSize="{DynamicResource MonoFontSize}"
+                   Background="{DynamicResource WindowBackground}"
+                   Foreground="{DynamicResource LogTerminalForeground}" />
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+
+    </Grid>
+
+</UserControl>
+```
+
+- [ ] **Step 2: Verify the solution builds clean (non-incremental)**
+
+Run:
+```bash
+dotnet build E:/Projects/ReScene.NET/ReScene.NET/ReScene.NET.csproj \
+  -p:BaseOutputPath=bin2/ --no-incremental
+```
+Expected: **Build succeeded. 0 Warning(s) 0 Error(s)**. This confirms the XAML compiles, all bindings resolve (`PathsNeedAttention`, every command/toggle), and `AccentWarning` / `BoolToVisibility` / `GhostButton` / `PrimaryButton` / `FieldStatusLine` all resolve. (A missing `x:Name` would surface as a code-behind CS0103 against `WinRarTextBox`/`SystemLogBox`/etc.)
+
+- [ ] **Step 3: Run the full app-test suite to confirm no regression**
+
+Run:
+```bash
+dotnet test E:/Projects/ReScene.NET/ReScene.NET.Tests/ReScene.NET.Tests.csproj \
+  -p:BaseOutputPath=bin2/
+```
+Expected: all tests pass, **Failed: 0** (no behavioural change; only the new readiness tests were added).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add ReScene.NET/Views/ReconstructorView.xaml
+git commit -m "$(cat <<'EOF'
+feat(ui): sub-tab the advanced RAR Reconstructor for small screens
+
+Replace the single long vertical stack with a persistent action bar
+(Import Config / Import from SRR / Export Config / Start) plus a settings
+sub-TabControl: Paths / Versions / Compression / Timestamps / Options / Output.
+The custom-packer warning moves above the tabs so it stays visible, and the
+Paths tab shows a warning glyph while any required path is empty or invalid.
+Each section scrolls within its own tab, freeing height for the log.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Final verification (after all tasks)
+
+- [ ] Clean non-incremental build of `ReScene.NET` with `-p:BaseOutputPath=bin2/`: **0 warnings, 0 errors**.
+- [ ] Full `ReScene.NET.Tests` run with `-p:BaseOutputPath=bin2/`: **0 failures**.
+- [ ] Delete scratch output: `find E:/Projects/ReScene.NET -type d -name bin2 -prune -exec rm -rf {} + 2>/dev/null`.
+- [ ] Hand back to the user for a visual check in the running app: six sub-tabs render with the themed strip; the action bar stays put across tabs; Start auto-disables until WinRAR + Release + Output are set; the custom-packer banner shows above the tabs after importing a custom-packer SRR; the Paths ⚠ glyph appears on load and clears once all four paths are valid; the log panel gets usable height on a short window.
+
+## Notes on cross-cutting concerns
+
+- **DRY/YAGNI:** No new option, converter, or style is introduced; the change reuses existing resources and bindings. The only added logic is the single readiness helper, which centralises the "all paths good?" check rather than duplicating it in XAML.
+- **WPF layout is not snapshot/Playwright-tested** in this repo, so the visual confirmation is manual (final step above). The automated gate is: it compiles with zero warnings and the existing + new unit tests pass.

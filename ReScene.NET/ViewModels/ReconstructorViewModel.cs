@@ -129,17 +129,21 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
     public partial string WinRarPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
     public partial string ReleasePath { get; set; } = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
     public partial string VerificationPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartCommand))]
+    [NotifyPropertyChangedFor(nameof(PathsNeedAttention))]
     public partial string OutputPath { get; set; } = string.Empty;
 
     // ── Path status ──
@@ -161,6 +165,13 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     partial void OnVerificationPathChanged(string value) =>
         VerifyStatus = ReconstructorFieldGuidance.EvaluateVerificationPath(value);
+
+    /// <summary>
+    /// True while any required path (WinRAR, Release, Verify, Output) is empty or invalid —
+    /// drives the warning glyph on the Paths sub-tab header.
+    /// </summary>
+    public bool PathsNeedAttention =>
+        ReconstructorFieldGuidance.PathsNeedAttention(WinRarPath, ReleasePath, VerificationPath, OutputPath);
 
     // ── Progress ──
 

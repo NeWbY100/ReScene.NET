@@ -61,6 +61,24 @@ internal static class ReconstructorFieldGuidance
     }
 
     /// <summary>
+    /// Whether the Paths tab still needs attention: any of the four paths required for a
+    /// successful run (WinRAR, Release, Verify, Output) is empty or invalid, so the run could
+    /// not start. Drives the warning glyph on the Paths sub-tab header.
+    /// </summary>
+    public static bool PathsNeedAttention(
+        string winRarPath, string releasePath, string verificationPath, string outputPath)
+    {
+        // The Evaluate* helpers return None for an empty value and Error for an invalid one,
+        // so "None or Error" covers both "empty" and "missing" without re-checking the strings.
+        // A valid value returns Ok/Info and does not trigger the glyph. Output has no existence
+        // check today (it is created at Start), so only its emptiness matters.
+        return EvaluateWinRarPath(winRarPath).State is FieldState.None or FieldState.Error
+            || EvaluateReleasePath(releasePath).State is FieldState.None or FieldState.Error
+            || EvaluateVerificationPath(verificationPath).State is FieldState.None or FieldState.Error
+            || string.IsNullOrWhiteSpace(outputPath);
+    }
+
+    /// <summary>
     /// Whether Start would show the subdirectory modified-date warning: the release directory has
     /// subdirectories but the imported SRR carried no directory timestamps to restore.
     /// </summary>
