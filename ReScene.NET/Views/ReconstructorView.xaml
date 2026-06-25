@@ -10,9 +10,9 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" MinHeight="220" />
+            <RowDefinition Height="2*" MinHeight="220" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" MinHeight="200" />
+            <RowDefinition Height="1*" MinHeight="140" />
         </Grid.RowDefinitions>
 
         <!-- ── Tab description ─────────────────────────────────── -->
