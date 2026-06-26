@@ -308,6 +308,39 @@ public partial class ReconstructorViewModel : ViewModelBase
         public string FullCommandLine => string.IsNullOrEmpty(VersionDirectory)
             ? Arguments
             : $"\"{Path.Combine(VersionDirectory, "rar.exe")}\" {Arguments}";
+
+        // ── Timing ──
+        // StartedAt is stamped when the row is created (the tracker constructs a row exactly when
+        // its test begins). EndedAt is stamped once, when Status first leaves "Testing".
+
+        /// <summary>When this test started (row construction time).</summary>
+        public DateTime StartedAt { get; } = DateTime.Now;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(EndText))]
+        [NotifyPropertyChangedFor(nameof(DurationText))]
+        public partial DateTime? EndedAt { get; set; }
+
+        /// <summary>Wall-clock start time, e.g. "22:13:28".</summary>
+        public string StartText => StartedAt.ToString("HH:mm:ss");
+
+        /// <summary>Wall-clock end time, or empty while the test is still running.</summary>
+        public string EndText => EndedAt?.ToString("HH:mm:ss") ?? string.Empty;
+
+        /// <summary>Elapsed test time once finished, or empty while running.</summary>
+        public string DurationText => EndedAt is { } end
+            ? ReconstructorFormatting.FormatTimeSpan(end - StartedAt)
+            : string.Empty;
+
+        // Stamp the end time the moment the row leaves "Testing" (Complete / Cancelled / Error all
+        // flow through this setter, set by the tracker). The null guard makes it idempotent.
+        partial void OnStatusChanged(string value)
+        {
+            if (value != "Testing" && EndedAt is null)
+            {
+                EndedAt = DateTime.Now;
+            }
+        }
     }
 
     // ── Logs ──
