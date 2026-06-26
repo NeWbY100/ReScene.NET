@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ReScene.NET.ViewModels"
         Title="Brute Force Progress"
-        Width="750" Height="600"
+        Width="920" Height="600"
         MinWidth="600" MinHeight="450"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
@@ -109,6 +109,9 @@
                 <DataGridTextColumn Header="Version" Binding="{Binding VersionName}" Width="140" />
                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
                 <DataGridTextColumn Header="Result" Binding="{Binding Result}" Width="80" />
+                <DataGridTextColumn Header="Start" Binding="{Binding StartText}" Width="70" />
+                <DataGridTextColumn Header="End" Binding="{Binding EndText}" Width="70" />
+                <DataGridTextColumn Header="Duration" Binding="{Binding DurationText}" Width="70" />
                 <DataGridTextColumn Header="Arguments" Binding="{Binding Arguments}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
