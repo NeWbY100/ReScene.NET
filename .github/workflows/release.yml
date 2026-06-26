@@ -50,8 +50,23 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path publish/* -DestinationPath ReScene.NET-${{ steps.version.outputs.version }}-win-x64.zip
 
+      - name: Check whether ReScene.Lib should be released
+        id: libcheck
+        shell: bash
+        run: |
+          LIB_VERSION=$(sed -n 's@.*<Version>\(.*\)</Version>.*@\1@p' ReScene.Lib/ReScene/ReScene.csproj | head -1)
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          echo "ReScene.Lib csproj version: $LIB_VERSION | tag version: $TAG_VERSION"
+          if [ "$LIB_VERSION" = "$TAG_VERSION" ]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "ReScene.Lib will be released (csproj matches the tag)."
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping ReScene.Lib release (csproj $LIB_VERSION does not match tag $TAG_VERSION)."
+          fi
+
       - name: Tag ReScene.Lib submodule
-        if: env.LIB_PAT != ''
+        if: env.LIB_PAT != '' && steps.libcheck.outputs.release == 'true'
         shell: bash
         env:
           LIB_PAT: ${{ secrets.LIB_PAT }}
@@ -66,7 +81,7 @@ jobs:
           git push origin "$TAG"
 
       - name: Create ReScene.Lib GitHub Release
-        if: env.LIB_PAT != ''
+        if: env.LIB_PAT != '' && steps.libcheck.outputs.release == 'true'
         shell: bash
         env:
           LIB_PAT: ${{ secrets.LIB_PAT }}

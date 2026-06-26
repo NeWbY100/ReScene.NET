@@ -2,6 +2,14 @@
 
 All notable changes to ReScene.NET are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.0] — 2026-06-26
+
+### Added
+
+- **RAR Reconstructor — sub-tabbed advanced view.** The advanced reconstructor is reorganized into sub-tabs (Paths, Versions, Compression, Timestamps, Options, Output) under a persistent action bar (Import Config / Import from SRR / Export Config / Start), so it stays usable on small screens. The configuration area is sized to show the paths without scrolling, and the Paths tab shows a warning marker while a required path is missing.
+- **"Required" markers for missing paths.** Empty required paths — WinRAR, Release, Verify, and Output — are now flagged inline with an amber "Required" hint, in both the advanced RAR Reconstructor and the Beginner reconstruct wizard.
+- **Per-version timing in the Brute Force Progress window.** The progress table now shows Start, End, and Duration for each tested RAR version.
+
 ## [1.5.1] — 2026-06-21
 
 ### Added
