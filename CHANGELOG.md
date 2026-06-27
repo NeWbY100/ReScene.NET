@@ -2,6 +2,13 @@
 
 All notable changes to ReScene.NET are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.2] — 2026-06-28
+
+### Changed
+
+- **Clearer RAR Reconstructor "Output" options.** "Stop after the first match — don't keep testing other settings." and "Recreate the whole release (write every volume)." are reworded so it's obvious which one rebuilds the full set of volumes (the "stop after first match" option only controls how long the search runs).
+- **One rename option instead of two.** The two near-identical "Rename matched output files…" checkboxes are merged into a single "Rename rebuilt archives to the release's original filenames (from the SRR, or the verification .sfv)." It's shown as a sub-item of "Stop after the first match" and is disabled and cleared when that option is off. (Reconstructor configuration files from older versions keep loading; the rename setting resets to the new option's default.)
+
 ## [1.6.1] — 2026-06-27
 
 ### Fixed
