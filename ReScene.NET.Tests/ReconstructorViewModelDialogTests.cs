@@ -261,40 +261,36 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
     }
 
     [Fact]
-    public void UncheckingStopOnFirstMatch_ClearsBothRenameFlags()
+    public void UncheckingStopOnFirstMatch_ClearsRename()
     {
         ReconstructorViewModel vm = CreateVm(out _, out _);
         vm.StopOnFirstMatch = true;
-        vm.RenameToOriginal = true;
-        vm.RenameToSfvNames = true;
+        vm.RenameToReleaseNames = true;
 
         vm.StopOnFirstMatch = false;
 
-        Assert.False(vm.RenameToOriginal);
-        Assert.False(vm.RenameToSfvNames);
+        Assert.False(vm.RenameToReleaseNames);
     }
 
     [Fact]
-    public void StopOnFirstMatchOn_RenameSubItemsAreEnabled()
+    public void StopOnFirstMatch_DrivesRenameEnabled()
     {
         ReconstructorViewModel vm = CreateVm(out _, out _);
         vm.StopOnFirstMatch = true;
-        Assert.True(vm.IsRenameToOriginalEnabled);
-        Assert.True(vm.IsRenameToSfvEnabled);
+        Assert.True(vm.IsRenameEnabled);
 
         vm.StopOnFirstMatch = false;
-        Assert.False(vm.IsRenameToOriginalEnabled);
-        Assert.False(vm.IsRenameToSfvEnabled);
+        Assert.False(vm.IsRenameEnabled);
     }
 
     [Fact]
-    public void UncheckingOneRename_DoesNotChangeStopOnFirstMatch()
+    public void UncheckingRename_DoesNotChangeStopOnFirstMatch()
     {
         ReconstructorViewModel vm = CreateVm(out _, out _);
         vm.StopOnFirstMatch = true;
-        vm.RenameToSfvNames = true;
+        vm.RenameToReleaseNames = true;
 
-        vm.RenameToSfvNames = false;
+        vm.RenameToReleaseNames = false;
 
         Assert.True(vm.StopOnFirstMatch); // unchanged
     }

@@ -95,8 +95,7 @@ public sealed class ReconstructorConfig
     public bool DeleteDuplicateCRCFiles { get; set; } = true;
     public bool StopOnFirstMatch { get; set; } = true;
     public bool CompleteAllVolumes { get; set; }
-    public bool RenameToOriginal { get; set; }
-    public bool RenameToSfvNames { get; set; } = true;
+    public bool RenameToReleaseNames { get; set; } = true;
 
     // Header patching
     public bool EnableHostOSPatching { get; set; } = true;

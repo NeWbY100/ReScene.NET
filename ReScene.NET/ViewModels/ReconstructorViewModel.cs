@@ -479,25 +479,22 @@ public partial class ReconstructorViewModel : ViewModelBase
     [ObservableProperty] public partial bool DeleteDuplicateCRCFiles { get; set; } = true;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsRenameToOriginalEnabled))]
-    [NotifyPropertyChangedFor(nameof(IsRenameToSfvEnabled))]
+    [NotifyPropertyChangedFor(nameof(IsRenameEnabled))]
     public partial bool StopOnFirstMatch { get; set; } = true;
 
     [ObservableProperty] public partial bool CompleteAllVolumes { get; set; }
-    [ObservableProperty] public partial bool RenameToOriginal { get; set; }
-    [ObservableProperty] public partial bool RenameToSfvNames { get; set; } = true;
+    [ObservableProperty] public partial bool RenameToReleaseNames { get; set; } = true;
 
     /// <summary>
-    /// The rename options require Stop-after-first-match, so when it is turned off they are cleared
-    /// (not left checked-but-greyed). They cannot be turned on while it is off — the sub-items are
+    /// The rename option requires Stop-after-first-match, so when it is turned off it is cleared
+    /// (not left checked-but-greyed). It cannot be turned on while it is off — the sub-item is
     /// disabled — so no reverse coupling is needed.
     /// </summary>
     partial void OnStopOnFirstMatchChanged(bool value)
     {
         if (!value)
         {
-            RenameToOriginal = false;
-            RenameToSfvNames = false;
+            RenameToReleaseNames = false;
         }
     }
 
@@ -508,8 +505,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     public bool IsSwitchAIEnabled => FileA == false && FileI == false;
     public bool IsFileAttributesEnabled => !SwitchAI;
     public bool IsDeleteDuplicateCRCEnabled => !DeleteRARFiles;
-    public bool IsRenameToOriginalEnabled => StopOnFirstMatch;
-    public bool IsRenameToSfvEnabled => StopOnFirstMatch;
+    public bool IsRenameEnabled => StopOnFirstMatch;
 
     // Host OS patching
     [ObservableProperty] public partial bool EnableHostOSPatching { get; set; } = true;
@@ -1396,19 +1392,18 @@ public partial class ReconstructorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Picks the names the matched output volumes are renamed to. Either rename option uses the
-    /// SRR's original RAR names when an SRR is imported (they are exact, in volume order); with
-    /// "Rename to SFV file names" checked and no SRR, the RAR volume entries of the verification
-    /// .sfv are used (in SFV order).
+    /// Picks the names the matched output volumes are renamed to. Uses the SRR's original RAR names
+    /// when an SRR is imported (they are exact, in volume order); without an SRR, the RAR volume
+    /// entries of the verification .sfv are used (in SFV order).
     /// </summary>
     private (bool Rename, List<string> Names) ResolveOutputRenameNames()
     {
-        if ((RenameToOriginal || RenameToSfvNames) && _import.OriginalRarFileNames.Count > 0)
+        if (RenameToReleaseNames && _import.OriginalRarFileNames.Count > 0)
         {
             return (true, _import.OriginalRarFileNames);
         }
 
-        if (RenameToSfvNames
+        if (RenameToReleaseNames
             && !string.IsNullOrWhiteSpace(VerificationPath)
             && Path.GetExtension(VerificationPath).Equals(".sfv", StringComparison.OrdinalIgnoreCase)
             && File.Exists(VerificationPath))
@@ -1431,7 +1426,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             }
         }
 
-        return (RenameToOriginal, _import.OriginalRarFileNames);
+        return (RenameToReleaseNames, _import.OriginalRarFileNames);
     }
 
     /// <summary>Captures the current RAR switch toggles for <see cref="RarCommandLineBuilder"/>.</summary>

@@ -87,8 +87,7 @@ internal static class ReconstructorConfigMapper
         DeleteDuplicateCRCFiles = vm.DeleteDuplicateCRCFiles,
         StopOnFirstMatch = vm.StopOnFirstMatch,
         CompleteAllVolumes = vm.CompleteAllVolumes,
-        RenameToOriginal = vm.RenameToOriginal,
-        RenameToSfvNames = vm.RenameToSfvNames,
+        RenameToReleaseNames = vm.RenameToReleaseNames,
 
         EnableHostOSPatching = vm.EnableHostOSPatching,
     };
@@ -169,9 +168,8 @@ internal static class ReconstructorConfigMapper
         vm.DeleteRARFiles = c.DeleteRARFiles;
         vm.DeleteDuplicateCRCFiles = c.DeleteDuplicateCRCFiles;
         vm.CompleteAllVolumes = c.CompleteAllVolumes;
-        vm.RenameToOriginal = c.RenameToOriginal;
-        vm.RenameToSfvNames = c.RenameToSfvNames;
-        // Apply StopOnFirstMatch last: its OnStopOnFirstMatchChanged hook clears the rename flags
+        vm.RenameToReleaseNames = c.RenameToReleaseNames;
+        // Apply StopOnFirstMatch last: its OnStopOnFirstMatchChanged hook clears the rename flag
         // when false, so an inconsistent (rename-on while stop-off) config normalises on import.
         vm.StopOnFirstMatch = c.StopOnFirstMatch;
 

@@ -134,8 +134,8 @@
                  TextWrapping="Wrap" Margin="20,0,0,0" />
 
       <CheckBox Content="Rename to the release's file names"
-                IsChecked="{Binding RenameToSfvNames}"
-                IsEnabled="{Binding IsRenameToSfvEnabled}" Margin="0,10,0,2" />
+                IsChecked="{Binding RenameToReleaseNames}"
+                IsEnabled="{Binding IsRenameEnabled}" Margin="0,10,0,2" />
       <TextBlock Text="Name the rebuilt archives exactly like the original release (taken from the SRR, or the verification .sfv) instead of technical names like '420-m3-md4096k.rar'."
                  Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
                  TextWrapping="Wrap" Margin="20,0,0,0" />

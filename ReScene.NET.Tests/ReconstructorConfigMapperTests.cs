@@ -87,7 +87,7 @@ public sealed class ReconstructorConfigMapperTests
 
         vm.DeleteRARFiles = true; vm.DeleteDuplicateCRCFiles = true;
         vm.StopOnFirstMatch = true; vm.CompleteAllVolumes = true;
-        vm.RenameToOriginal = true; vm.RenameToSfvNames = true;
+        vm.RenameToReleaseNames = true;
 
         vm.EnableHostOSPatching = true;
     }
@@ -131,7 +131,7 @@ public sealed class ReconstructorConfigMapperTests
 
         vm.DeleteRARFiles = false; vm.DeleteDuplicateCRCFiles = false;
         vm.StopOnFirstMatch = false; vm.CompleteAllVolumes = false;
-        vm.RenameToOriginal = false; vm.RenameToSfvNames = false;
+        vm.RenameToReleaseNames = false;
 
         vm.EnableHostOSPatching = false;
     }
@@ -207,7 +207,7 @@ public sealed class ReconstructorConfigMapperTests
         // Output options.
         Assert.True(vm.DeleteRARFiles); Assert.True(vm.DeleteDuplicateCRCFiles);
         Assert.True(vm.StopOnFirstMatch); Assert.True(vm.CompleteAllVolumes);
-        Assert.True(vm.RenameToOriginal); Assert.True(vm.RenameToSfvNames);
+        Assert.True(vm.RenameToReleaseNames);
 
         // Header patching.
         Assert.True(vm.EnableHostOSPatching);
@@ -328,21 +328,19 @@ public sealed class ReconstructorConfigMapperTests
     }
 
     [Fact]
-    public void Apply_InconsistentConfig_NormalisesRenamesOffWhenStopIsOff()
+    public void Apply_InconsistentConfig_NormalisesRenameOffWhenStopIsOff()
     {
         ReconstructorViewModel vm = CreateVm();
         var config = new ReconstructorConfig
         {
             StopOnFirstMatch = false,
-            RenameToOriginal = true,
-            RenameToSfvNames = true,
+            RenameToReleaseNames = true,
         };
 
         ReconstructorConfigMapper.Apply(vm, config);
 
         Assert.False(vm.StopOnFirstMatch);
-        Assert.False(vm.RenameToOriginal);
-        Assert.False(vm.RenameToSfvNames);
+        Assert.False(vm.RenameToReleaseNames);
     }
 
     /// <summary>
