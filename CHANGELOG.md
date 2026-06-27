@@ -2,6 +2,15 @@
 
 All notable changes to ReScene.NET are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.1] — 2026-06-27
+
+### Fixed
+
+- **Release == Output no longer deletes the release files.** The RAR Reconstructor refuses to start when the Output folder is the same as — or nested with — the Release folder (which previously let the pre-run cleanup delete the release's source files, and could wedge the Stop button). The overlap now disables Start and shows a red "Release and Output must be different folders." on both fields, in the advanced view and the Beginner wizard.
+- **The SRR/SRS Creator embeds the running version.** The "created by" application name stored in settings now refreshes to the current ReScene.NET version after an upgrade, instead of keeping the version saved by an older build; a custom name you set is preserved.
+- **The "Verify" field is labelled `.sfv`/`.sha1`** (description, the required-field hint, and the status messages) instead of `.srr` — it never accepted `.srr`.
+- **The WinRAR versions folder set in Settings now applies to the RAR Reconstructor without a restart.**
+
 ## [1.6.0] — 2026-06-26
 
 ### Added
