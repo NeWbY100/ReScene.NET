@@ -121,9 +121,20 @@ public class ReconstructorFieldGuidanceTests : TempDirTestBase
     }
 
     [Fact]
-    public void PathsOverlap_EmptyInput_IsFalse()
+    public void PathsOverlap_EmptyPathA_IsFalse()
     {
         Assert.False(ReconstructorFieldGuidance.PathsOverlap("", TempDir));
+    }
+
+    [Fact]
+    public void PathsOverlap_EmptyPathB_IsFalse()
+    {
         Assert.False(ReconstructorFieldGuidance.PathsOverlap(TempDir, ""));
+    }
+
+    [Fact]
+    public void PathsOverlap_DiffersOnlyByCase_IsTrue()
+    {
+        Assert.True(ReconstructorFieldGuidance.PathsOverlap(TempDir.ToUpperInvariant(), TempDir.ToLowerInvariant()));
     }
 }
