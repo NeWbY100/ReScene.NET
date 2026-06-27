@@ -57,7 +57,7 @@ internal static class ReconstructorFieldGuidance
             return FieldStatus.Error("This .sfv/.sha1 file does not exist.");
         }
 
-        return FieldStatus.Info("Reconstructed archives will be verified against this SRR.");
+        return FieldStatus.Info("Reconstructed archives will be verified against this file.");
     }
 
     /// <summary>
