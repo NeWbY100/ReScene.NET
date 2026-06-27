@@ -80,4 +80,20 @@ internal static class FormatUtilities
             ? $"ReScene.NET v{version[..plus]} ({version[(plus + 1)..]})"
             : $"ReScene.NET v{version}";
     }
+
+    /// <summary>
+    /// Returns the effective default app name: the live <see cref="GetDefaultAppName"/> when the
+    /// stored value is blank or an auto-generated "ReScene.NET v…" string (so it refreshes across
+    /// upgrades), otherwise the user's custom value unchanged.
+    /// </summary>
+    public static string NormalizeAppName(string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored)
+            || stored.StartsWith("ReScene.NET v", StringComparison.Ordinal))
+        {
+            return GetDefaultAppName();
+        }
+
+        return stored;
+    }
 }

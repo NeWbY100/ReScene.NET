@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ReScene.NET.Helpers;
 using ReScene.NET.Models;
 
 namespace ReScene.NET.Services;
@@ -36,6 +37,7 @@ public class AppSettingsService : IAppSettingsService
             settings = new AppSettings();
         }
 
+        settings.DefaultAppName = FormatUtilities.NormalizeAppName(settings.DefaultAppName);
         settings.Mode = ResolveStartupMode(fileExisted, settings.Mode);
         return settings;
     }
