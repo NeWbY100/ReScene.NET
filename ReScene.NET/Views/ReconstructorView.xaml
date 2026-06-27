@@ -345,14 +345,16 @@
                                   IsEnabled="{Binding IsDeleteDuplicateCRCEnabled}" Margin="0,1" />
                         <CheckBox Content="Stop after the first match — don't keep testing other settings."
                                   IsChecked="{Binding StopOnFirstMatch}" Margin="0,1" />
+                        <StackPanel Margin="20,0,0,0">
+                            <CheckBox Content="Rename matched output files to the original RAR filenames from the SRR."
+                                      IsChecked="{Binding RenameToOriginal}"
+                                      IsEnabled="{Binding IsRenameToOriginalEnabled}" Margin="0,1" />
+                            <CheckBox Content="Rename matched output files to the names listed in the verification .sfv. Uses the SRR's original names when one is loaded."
+                                      IsChecked="{Binding RenameToSfvNames}"
+                                      IsEnabled="{Binding IsRenameToSfvEnabled}" Margin="0,1" />
+                        </StackPanel>
                         <CheckBox Content="Recreate the whole release (write every volume)."
                                   IsChecked="{Binding CompleteAllVolumes}" Margin="0,1" />
-                        <CheckBox Content="Rename matched output files to the original RAR filenames from the SRR. Requires Stop on first match."
-                                  IsChecked="{Binding RenameToOriginal}"
-                                  IsEnabled="{Binding IsRenameToOriginalEnabled}" Margin="0,1" />
-                        <CheckBox Content="Rename matched output files to the names listed in the verification .sfv. Uses the SRR's original names when one is loaded. Requires Stop on first match."
-                                  IsChecked="{Binding RenameToSfvNames}"
-                                  IsEnabled="{Binding IsRenameToSfvEnabled}" Margin="0,1" />
                         <CheckBox Content="Patch brute-forced RAR headers to match the original archive (Host OS, attributes, LARGE flag, mtime)."
                                   IsChecked="{Binding EnableHostOSPatching}" Margin="0,1" />
                     </StackPanel>
