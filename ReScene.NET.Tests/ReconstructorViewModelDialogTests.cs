@@ -180,6 +180,41 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
     }
 
     [Fact]
+    public void ReleaseEqualsOutput_TurnsBothStatusesRed_AndClears()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        string shared = NewTempDir();
+
+        vm.ReleasePath = shared;
+        vm.OutputPath = shared; // overlap
+
+        Assert.Equal(FieldState.Error, vm.ReleaseStatus.State);
+        Assert.Equal(FieldState.Error, vm.OutputStatus.State);
+
+        vm.OutputPath = NewTempDir(); // separate folder clears the overlap
+
+        Assert.NotEqual(FieldState.Error, vm.ReleaseStatus.State);
+        Assert.NotEqual(FieldState.Error, vm.OutputStatus.State);
+    }
+
+    [Fact]
+    public void CanStart_FalseWhenReleaseEqualsOutput_TrueWhenSeparate()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        string release = NewTempDir();
+
+        vm.WinRarPath = NewTempDir();
+        vm.ReleasePath = release;
+        vm.OutputPath = release; // overlap
+
+        Assert.False(vm.StartCommand.CanExecute(null));
+
+        vm.OutputPath = NewTempDir(); // separate folder
+
+        Assert.True(vm.StartCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task Start_ReleaseEqualsOutput_BlocksAndDoesNotDelete()
     {
         ReconstructorViewModel vm = CreateVm(out RecordingFileDialogService dialog, out FakeBruteForceService brute);

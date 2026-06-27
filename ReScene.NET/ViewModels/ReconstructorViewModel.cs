@@ -180,14 +180,23 @@ public partial class ReconstructorViewModel : ViewModelBase
     partial void OnWinRarPathChanged(string value) =>
         WinRarStatus = ReconstructorFieldGuidance.EvaluateWinRarPath(value);
 
-    partial void OnReleasePathChanged(string value) =>
-        ReleaseStatus = ReconstructorFieldGuidance.EvaluateReleasePath(value);
+    partial void OnReleasePathChanged(string value) => RefreshReleaseOutputStatuses();
+
+    partial void OnOutputPathChanged(string value) => RefreshReleaseOutputStatuses();
+
+    /// <summary>
+    /// Recomputes the Release and Output statuses together: an overlap between the two folders is a
+    /// relationship, so a change to either must re-evaluate both (turning both red on overlap, or
+    /// clearing both when resolved).
+    /// </summary>
+    private void RefreshReleaseOutputStatuses()
+    {
+        ReleaseStatus = ReconstructorFieldGuidance.EvaluateReleasePath(ReleasePath, OutputPath);
+        OutputStatus = ReconstructorFieldGuidance.EvaluateOutputPath(OutputPath, ReleasePath);
+    }
 
     partial void OnVerificationPathChanged(string value) =>
         VerifyStatus = ReconstructorFieldGuidance.EvaluateVerificationPath(value);
-
-    partial void OnOutputPathChanged(string value) =>
-        OutputStatus = ReconstructorFieldGuidance.EvaluateOutputPath(value);
 
     /// <summary>
     /// Recomputes all four path statuses from the current path values. Called at construction and
@@ -197,9 +206,8 @@ public partial class ReconstructorViewModel : ViewModelBase
     private void RefreshPathStatuses()
     {
         WinRarStatus = ReconstructorFieldGuidance.EvaluateWinRarPath(WinRarPath);
-        ReleaseStatus = ReconstructorFieldGuidance.EvaluateReleasePath(ReleasePath);
         VerifyStatus = ReconstructorFieldGuidance.EvaluateVerificationPath(VerificationPath);
-        OutputStatus = ReconstructorFieldGuidance.EvaluateOutputPath(OutputPath);
+        RefreshReleaseOutputStatuses();
     }
 
     /// <summary>
@@ -891,7 +899,8 @@ public partial class ReconstructorViewModel : ViewModelBase
     private bool CanStart() => !IsRunning
         && !string.IsNullOrWhiteSpace(WinRarPath)
         && !string.IsNullOrWhiteSpace(ReleasePath)
-        && !string.IsNullOrWhiteSpace(OutputPath);
+        && !string.IsNullOrWhiteSpace(OutputPath)
+        && !ReconstructorFieldGuidance.PathsOverlap(ReleasePath, OutputPath);
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private async Task StartAsync()
