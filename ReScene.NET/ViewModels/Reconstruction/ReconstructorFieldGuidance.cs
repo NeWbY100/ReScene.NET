@@ -44,17 +44,17 @@ internal static class ReconstructorFieldGuidance
         return FieldStatus.Ok("Source files selected.");
     }
 
-    /// <summary>Status for the verification (.srr/.sfv/.sha1) file path.</summary>
+    /// <summary>Status for the verification (.sfv/.sha1) file path.</summary>
     public static FieldStatus EvaluateVerificationPath(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return FieldStatus.Warning("Required — choose the .srr/.sfv/.sha1 to verify against.");
+            return FieldStatus.Warning("Required — choose the .sfv or .sha1 to verify against.");
         }
 
         if (!File.Exists(value))
         {
-            return FieldStatus.Error("This .srr file does not exist.");
+            return FieldStatus.Error("This .sfv/.sha1 file does not exist.");
         }
 
         return FieldStatus.Info("Reconstructed archives will be verified against this SRR.");

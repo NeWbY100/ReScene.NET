@@ -120,7 +120,7 @@
 
                         <TextBlock TextWrapping="Wrap" Margin="0,8,0,2">
                             <Run Text="Verify " FontWeight="SemiBold" />
-                            <Run Text="— The .srr file to verify reconstructed archives against."
+                            <Run Text="— The .sfv or .sha1 file to verify reconstructed archives against."
                                  Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}" />
                         </TextBlock>
                         <DockPanel Margin="0,0,0,2">
