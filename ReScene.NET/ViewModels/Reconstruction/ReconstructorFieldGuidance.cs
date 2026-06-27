@@ -44,6 +44,15 @@ internal static class ReconstructorFieldGuidance
         return FieldStatus.Ok("Source files selected.");
     }
 
+    /// <summary>
+    /// Overlap-aware release status: a red error when Release and Output overlap (same folder or one
+    /// nested in the other), otherwise the single-path result.
+    /// </summary>
+    public static FieldStatus EvaluateReleasePath(string releasePath, string outputPath)
+        => PathsOverlap(releasePath, outputPath)
+            ? FieldStatus.Error("Release and Output must be different folders.")
+            : EvaluateReleasePath(releasePath);
+
     /// <summary>Status for the verification (.sfv/.sha1) file path.</summary>
     public static FieldStatus EvaluateVerificationPath(string value)
     {
@@ -75,6 +84,15 @@ internal static class ReconstructorFieldGuidance
     }
 
     /// <summary>
+    /// Overlap-aware output status: a red error when Release and Output overlap (same folder or one
+    /// nested in the other), otherwise the single-path result.
+    /// </summary>
+    public static FieldStatus EvaluateOutputPath(string outputPath, string releasePath)
+        => PathsOverlap(releasePath, outputPath)
+            ? FieldStatus.Error("Release and Output must be different folders.")
+            : EvaluateOutputPath(outputPath);
+
+    /// <summary>
     /// Whether the Paths tab still needs attention: any of the four required paths (WinRAR,
     /// Release, Verify, Output) is empty or invalid, so the run could not start. Drives the
     /// warning glyph on the Paths sub-tab header.
@@ -85,7 +103,8 @@ internal static class ReconstructorFieldGuidance
         return NeedsAttention(EvaluateWinRarPath(winRarPath))
             || NeedsAttention(EvaluateReleasePath(releasePath))
             || NeedsAttention(EvaluateVerificationPath(verificationPath))
-            || NeedsAttention(EvaluateOutputPath(outputPath));
+            || NeedsAttention(EvaluateOutputPath(outputPath))
+            || PathsOverlap(releasePath, outputPath);
     }
 
     /// <summary>A field needs attention unless its value is accepted (Ok) or merely informational (Info).</summary>

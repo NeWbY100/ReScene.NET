@@ -41,10 +41,14 @@ public class ReconstructorFieldGuidanceTests : TempDirTestBase
     [Fact]
     public void PathsNeedAttention_AllValid_IsFalse()
     {
+        string release = Path.Combine(TempDir, "release");
+        string output = Path.Combine(TempDir, "output");
+        Directory.CreateDirectory(release);
+        Directory.CreateDirectory(output);
         string verify = Path.Combine(TempDir, "verify.sfv");
         File.WriteAllText(verify, "");
-        // WinRAR + Release = existing dirs, Verify = existing file, Output = non-empty.
-        Assert.False(ReconstructorFieldGuidance.PathsNeedAttention(TempDir, TempDir, verify, TempDir));
+        // WinRAR + Release = existing dirs, Verify = existing file, Output = separate non-empty dir.
+        Assert.False(ReconstructorFieldGuidance.PathsNeedAttention(TempDir, release, verify, output));
     }
 
     [Fact]
@@ -136,5 +140,57 @@ public class ReconstructorFieldGuidanceTests : TempDirTestBase
     public void PathsOverlap_DiffersOnlyByCase_IsTrue()
     {
         Assert.True(ReconstructorFieldGuidance.PathsOverlap(TempDir.ToUpperInvariant(), TempDir.ToLowerInvariant()));
+    }
+
+    [Fact]
+    public void EvaluateReleasePath_OverlapsOutput_IsError()
+    {
+        FieldStatus s = ReconstructorFieldGuidance.EvaluateReleasePath(TempDir, TempDir);
+        Assert.Equal(FieldState.Error, s.State);
+        Assert.Contains("different folders", s.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EvaluateOutputPath_OverlapsRelease_IsError()
+    {
+        FieldStatus s = ReconstructorFieldGuidance.EvaluateOutputPath(TempDir, TempDir);
+        Assert.Equal(FieldState.Error, s.State);
+        Assert.Contains("different folders", s.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EvaluateReleasePath_NoOverlap_FallsThroughToSinglePath()
+    {
+        string release = Path.Combine(TempDir, "release");
+        string output = Path.Combine(TempDir, "output");
+        Directory.CreateDirectory(release);
+        FieldStatus s = ReconstructorFieldGuidance.EvaluateReleasePath(release, output);
+        Assert.Equal(FieldState.Ok, s.State); // existing release dir -> "Source files selected."
+    }
+
+    [Fact]
+    public void EvaluateOutputPath_NoOverlap_FallsThroughToSinglePath()
+    {
+        string release = Path.Combine(TempDir, "release");
+        string output = Path.Combine(TempDir, "output");
+        FieldStatus s = ReconstructorFieldGuidance.EvaluateOutputPath(output, release);
+        Assert.Equal(FieldState.Ok, s.State); // non-empty output -> "Output folder set."
+    }
+
+    [Fact]
+    public void EvaluateReleasePath_EmptyOutput_NoFalseOverlap()
+    {
+        // Output empty -> not an overlap; release falls through to its single-path result.
+        FieldStatus s = ReconstructorFieldGuidance.EvaluateReleasePath(TempDir, "");
+        Assert.Equal(FieldState.Ok, s.State);
+    }
+
+    [Fact]
+    public void PathsNeedAttention_Overlap_IsTrue()
+    {
+        string verify = Path.Combine(TempDir, "verify.sfv");
+        File.WriteAllText(verify, "");
+        // WinRAR/Release/Verify/Output all otherwise valid, but Release == Output.
+        Assert.True(ReconstructorFieldGuidance.PathsNeedAttention(TempDir, TempDir, verify, TempDir));
     }
 }
