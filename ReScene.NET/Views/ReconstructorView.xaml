@@ -343,9 +343,9 @@
                         <CheckBox Content="Delete RAR files with duplicate CRC32 values. Only available when not deleting all non-matching files."
                                   IsChecked="{Binding DeleteDuplicateCRCFiles}"
                                   IsEnabled="{Binding IsDeleteDuplicateCRCEnabled}" Margin="0,1" />
-                        <CheckBox Content="Stop brute-forcing after finding the first matching RAR file."
+                        <CheckBox Content="Stop after the first match — don't keep testing other settings."
                                   IsChecked="{Binding StopOnFirstMatch}" Margin="0,1" />
-                        <CheckBox Content="When a match is found, let RAR finish creating all volume files instead of only the first volume."
+                        <CheckBox Content="Recreate the whole release (write every volume)."
                                   IsChecked="{Binding CompleteAllVolumes}" Margin="0,1" />
                         <CheckBox Content="Rename matched output files to the original RAR filenames from the SRR. Requires Stop on first match."
                                   IsChecked="{Binding RenameToOriginal}"
