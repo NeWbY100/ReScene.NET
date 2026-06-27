@@ -327,6 +327,24 @@ public sealed class ReconstructorConfigMapperTests
         Assert.Contains("folder/FILE.rar", state.ArchiveFiles);
     }
 
+    [Fact]
+    public void Apply_InconsistentConfig_NormalisesRenamesOffWhenStopIsOff()
+    {
+        ReconstructorViewModel vm = CreateVm();
+        var config = new ReconstructorConfig
+        {
+            StopOnFirstMatch = false,
+            RenameToOriginal = true,
+            RenameToSfvNames = true,
+        };
+
+        ReconstructorConfigMapper.Apply(vm, config);
+
+        Assert.False(vm.StopOnFirstMatch);
+        Assert.False(vm.RenameToOriginal);
+        Assert.False(vm.RenameToSfvNames);
+    }
+
     /// <summary>
     /// Apply faithfully copies the scalar/detected header fields and comment bytes from the DTO,
     /// so a captured snapshot reconstructs the same detected-header context on restore.

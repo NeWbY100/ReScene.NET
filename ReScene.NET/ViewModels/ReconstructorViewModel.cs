@@ -487,6 +487,20 @@ public partial class ReconstructorViewModel : ViewModelBase
     [ObservableProperty] public partial bool RenameToOriginal { get; set; }
     [ObservableProperty] public partial bool RenameToSfvNames { get; set; } = true;
 
+    /// <summary>
+    /// The rename options require Stop-after-first-match, so when it is turned off they are cleared
+    /// (not left checked-but-greyed). They cannot be turned on while it is off — the sub-items are
+    /// disabled — so no reverse coupling is needed.
+    /// </summary>
+    partial void OnStopOnFirstMatchChanged(bool value)
+    {
+        if (!value)
+        {
+            RenameToOriginal = false;
+            RenameToSfvNames = false;
+        }
+    }
+
     // ── Computed enable/disable ──
 
     public bool IsMTRangeEnabled => SwitchMT;

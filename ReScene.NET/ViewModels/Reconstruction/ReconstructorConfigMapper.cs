@@ -168,10 +168,12 @@ internal static class ReconstructorConfigMapper
 
         vm.DeleteRARFiles = c.DeleteRARFiles;
         vm.DeleteDuplicateCRCFiles = c.DeleteDuplicateCRCFiles;
-        vm.StopOnFirstMatch = c.StopOnFirstMatch;
         vm.CompleteAllVolumes = c.CompleteAllVolumes;
         vm.RenameToOriginal = c.RenameToOriginal;
         vm.RenameToSfvNames = c.RenameToSfvNames;
+        // Apply StopOnFirstMatch last: its OnStopOnFirstMatchChanged hook clears the rename flags
+        // when false, so an inconsistent (rename-on while stop-off) config normalises on import.
+        vm.StopOnFirstMatch = c.StopOnFirstMatch;
 
         vm.EnableHostOSPatching = c.EnableHostOSPatching;
     }

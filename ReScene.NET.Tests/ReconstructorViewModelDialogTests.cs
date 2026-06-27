@@ -259,4 +259,43 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
         Assert.Equal(0, brute.RunCalls);          // never started the run
         Assert.True(File.Exists(releaseFile));     // release contents NOT deleted
     }
+
+    [Fact]
+    public void UncheckingStopOnFirstMatch_ClearsBothRenameFlags()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        vm.StopOnFirstMatch = true;
+        vm.RenameToOriginal = true;
+        vm.RenameToSfvNames = true;
+
+        vm.StopOnFirstMatch = false;
+
+        Assert.False(vm.RenameToOriginal);
+        Assert.False(vm.RenameToSfvNames);
+    }
+
+    [Fact]
+    public void StopOnFirstMatchOn_RenameSubItemsAreEnabled()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        vm.StopOnFirstMatch = true;
+        Assert.True(vm.IsRenameToOriginalEnabled);
+        Assert.True(vm.IsRenameToSfvEnabled);
+
+        vm.StopOnFirstMatch = false;
+        Assert.False(vm.IsRenameToOriginalEnabled);
+        Assert.False(vm.IsRenameToSfvEnabled);
+    }
+
+    [Fact]
+    public void UncheckingOneRename_DoesNotChangeStopOnFirstMatch()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        vm.StopOnFirstMatch = true;
+        vm.RenameToSfvNames = true;
+
+        vm.RenameToSfvNames = false;
+
+        Assert.True(vm.StopOnFirstMatch); // unchanged
+    }
 }
