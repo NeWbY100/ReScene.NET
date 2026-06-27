@@ -69,6 +69,22 @@ public partial class ReconstructorViewModel : ViewModelBase
 
         ApplyPathDefaultsFromSettings();
         RefreshPathStatuses();
+
+        if (_settingsService is not null)
+        {
+            _settingsService.Changed += OnSettingsChanged;
+        }
+    }
+
+    /// <summary>
+    /// A settings save (e.g. a new WinRAR versions folder) should reach the Reconstructor without a
+    /// restart. ApplyPathDefaultsFromSettings only fills empty paths, so a path the user typed here
+    /// is never overwritten.
+    /// </summary>
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        ApplyPathDefaultsFromSettings();
+        RefreshPathStatuses();
     }
 
     /// <summary>

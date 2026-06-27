@@ -1,4 +1,5 @@
 using ReScene.Core;
+using ReScene.NET.Models;
 using ReScene.NET.Services;
 using ReScene.NET.ViewModels;
 
@@ -160,6 +161,22 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
         Assert.Single(dialog.Confirms);
         Assert.Equal(0, brute.RunCalls);
         Assert.False(vm.IsRunning);
+    }
+
+    [Fact]
+    public void SettingsChanged_FillsEmptyWinRarPath_WithoutRestart()
+    {
+        var settings = new FakeAppSettingsService(); // default settings: empty paths
+        var brute = new FakeBruteForceService();
+        var dialog = new RecordingFileDialogService();
+        var vm = new ReconstructorViewModel(brute, dialog, settings, new SynchronousUiDispatcher());
+
+        Assert.Equal(string.Empty, vm.WinRarPath); // nothing to fill at construction
+
+        settings.Settings = new AppSettings { ReconstructWinRarPath = @"C:\winrar-versions" };
+        settings.RaiseChanged();
+
+        Assert.Equal(@"C:\winrar-versions", vm.WinRarPath);
     }
 
     [Fact]
