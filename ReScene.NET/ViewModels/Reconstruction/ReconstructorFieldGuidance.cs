@@ -110,4 +110,35 @@ internal static class ReconstructorFieldGuidance
             return false;
         }
     }
+
+    /// <summary>
+    /// True when two folder paths are the same folder, or one is nested inside the other —
+    /// configurations where deleting the output folder's contents would also remove the release.
+    /// Returns false for empty or unparseable paths (the per-path validation handles those).
+    /// </summary>
+    public static bool PathsOverlap(string pathA, string pathB)
+    {
+        if (string.IsNullOrWhiteSpace(pathA) || string.IsNullOrWhiteSpace(pathB))
+        {
+            return false;
+        }
+
+        string a, b;
+        try
+        {
+            a = AppendSeparator(Path.GetFullPath(pathA));
+            b = AppendSeparator(Path.GetFullPath(pathB));
+        }
+        catch (Exception ex) when (ex is ArgumentException or PathTooLongException or NotSupportedException)
+        {
+            return false;
+        }
+
+        return a.Equals(b, StringComparison.OrdinalIgnoreCase)
+            || a.StartsWith(b, StringComparison.OrdinalIgnoreCase)
+            || b.StartsWith(a, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string AppendSeparator(string path) =>
+        path.EndsWith(Path.DirectorySeparatorChar) ? path : path + Path.DirectorySeparatorChar;
 }

@@ -82,4 +82,48 @@ public class ReconstructorFieldGuidanceTests : TempDirTestBase
     {
         Assert.Equal(FieldState.Ok, ReconstructorFieldGuidance.EvaluateOutputPath(TempDir).State);
     }
+
+    [Fact]
+    public void PathsOverlap_SamePath_IsTrue()
+    {
+        Assert.True(ReconstructorFieldGuidance.PathsOverlap(TempDir, TempDir));
+    }
+
+    [Fact]
+    public void PathsOverlap_OutputNestedInRelease_IsTrue()
+    {
+        string output = Path.Combine(TempDir, "output");
+        Assert.True(ReconstructorFieldGuidance.PathsOverlap(TempDir, output));
+    }
+
+    [Fact]
+    public void PathsOverlap_ReleaseNestedInOutput_IsTrue()
+    {
+        string release = Path.Combine(TempDir, "release");
+        Assert.True(ReconstructorFieldGuidance.PathsOverlap(release, TempDir));
+    }
+
+    [Fact]
+    public void PathsOverlap_Siblings_IsFalse()
+    {
+        string a = Path.Combine(TempDir, "release");
+        string b = Path.Combine(TempDir, "output");
+        Assert.False(ReconstructorFieldGuidance.PathsOverlap(a, b));
+    }
+
+    [Fact]
+    public void PathsOverlap_SimilarPrefixButNotNested_IsFalse()
+    {
+        // "rel" must not be considered nested in "release".
+        string a = Path.Combine(TempDir, "rel");
+        string b = Path.Combine(TempDir, "release");
+        Assert.False(ReconstructorFieldGuidance.PathsOverlap(a, b));
+    }
+
+    [Fact]
+    public void PathsOverlap_EmptyInput_IsFalse()
+    {
+        Assert.False(ReconstructorFieldGuidance.PathsOverlap("", TempDir));
+        Assert.False(ReconstructorFieldGuidance.PathsOverlap(TempDir, ""));
+    }
 }

@@ -161,4 +161,26 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
         Assert.Equal(0, brute.RunCalls);
         Assert.False(vm.IsRunning);
     }
+
+    [Fact]
+    public async Task Start_ReleaseEqualsOutput_BlocksAndDoesNotDelete()
+    {
+        ReconstructorViewModel vm = CreateVm(out RecordingFileDialogService dialog, out FakeBruteForceService brute);
+
+        string shared = NewTempDir();
+        string releaseFile = Path.Combine(shared, "movie.mkv");
+        File.WriteAllText(releaseFile, "release contents");
+
+        string winrar = NewTempDir();
+
+        vm.WinRarPath = winrar;
+        vm.ReleasePath = shared;
+        vm.OutputPath = shared; // same folder as release
+
+        await vm.StartCommand.ExecuteAsync(null);
+
+        Assert.Contains(dialog.Errors, e => e.Message.Contains("must be different from the Release folder", StringComparison.Ordinal));
+        Assert.Equal(0, brute.RunCalls);          // never started the run
+        Assert.True(File.Exists(releaseFile));     // release contents NOT deleted
+    }
 }

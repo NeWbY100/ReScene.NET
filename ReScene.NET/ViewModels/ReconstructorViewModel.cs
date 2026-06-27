@@ -917,6 +917,16 @@ public partial class ReconstructorViewModel : ViewModelBase
             return;
         }
 
+        // Output must not be the release folder (or nested with it): the output-not-empty cleanup
+        // below deletes the output folder's contents, which would wipe the release input files.
+        if (ReconstructorFieldGuidance.PathsOverlap(ReleasePath, OutputPath))
+        {
+            Log(LogTarget.System, "Output folder overlaps the release folder.");
+            _fileDialog.ShowError("Validation Error",
+                "The Output folder must be different from the Release folder, and not inside it.");
+            return;
+        }
+
         // ── Subdirectory timestamp warning ──
 
         if (Directory.EnumerateDirectories(ReleasePath).Any() && _import.DirTimestamps.Count == 0)
