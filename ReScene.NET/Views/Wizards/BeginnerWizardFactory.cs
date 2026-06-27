@@ -180,9 +180,7 @@ public static class BeginnerWizardFactory
             {
                 Title = "Files & folders",
                 CanAdvance = () => !vm.IsRunning
-                    && !string.IsNullOrWhiteSpace(vm.WinRarPath)
-                    && !string.IsNullOrWhiteSpace(vm.ReleasePath)
-                    && !string.IsNullOrWhiteSpace(vm.OutputPath)
+                    && vm.PathsReadyToStart
                     && !string.IsNullOrWhiteSpace(vm.VerificationPath),
                 NextLabel = "Start",
                 // Ask Start's confirmation questions here, while this step is still visible,

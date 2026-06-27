@@ -215,6 +215,30 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
     }
 
     [Fact]
+    public void PathsReadyToStart_FalseOnOverlap_TrueWhenSeparate()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        string release = NewTempDir();
+        vm.WinRarPath = NewTempDir();
+        vm.ReleasePath = release;
+        vm.OutputPath = release; // overlap
+        Assert.False(vm.PathsReadyToStart);
+
+        vm.OutputPath = NewTempDir(); // separate
+        Assert.True(vm.PathsReadyToStart);
+    }
+
+    [Fact]
+    public void PathsReadyToStart_FalseWhenAPathMissing()
+    {
+        ReconstructorViewModel vm = CreateVm(out _, out _);
+        vm.WinRarPath = NewTempDir();
+        vm.ReleasePath = NewTempDir();
+        // OutputPath left empty
+        Assert.False(vm.PathsReadyToStart);
+    }
+
+    [Fact]
     public async Task Start_ReleaseEqualsOutput_BlocksAndDoesNotDelete()
     {
         ReconstructorViewModel vm = CreateVm(out RecordingFileDialogService dialog, out FakeBruteForceService brute);

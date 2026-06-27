@@ -896,11 +896,18 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     // ── Start / Stop ──
 
-    private bool CanStart() => !IsRunning
-        && !string.IsNullOrWhiteSpace(WinRarPath)
+    /// <summary>
+    /// Whether the WinRAR, Release, and Output paths are all set and the Release/Output folders do
+    /// not overlap — the path preconditions shared by Start (the command) and the Beginner wizard's
+    /// "Files &amp; folders" step. Centralised so the two callers cannot drift apart.
+    /// </summary>
+    public bool PathsReadyToStart =>
+        !string.IsNullOrWhiteSpace(WinRarPath)
         && !string.IsNullOrWhiteSpace(ReleasePath)
         && !string.IsNullOrWhiteSpace(OutputPath)
         && !ReconstructorFieldGuidance.PathsOverlap(ReleasePath, OutputPath);
+
+    private bool CanStart() => !IsRunning && PathsReadyToStart;
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private async Task StartAsync()
