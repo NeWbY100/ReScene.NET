@@ -17,21 +17,25 @@ jobs:
         with:
           submodules: recursive
 
+      # 8.0.x is required at RUNTIME, not just compile: ReScene.Tests multi-targets
+      # net8.0;net10.0 and executes both legs. Hosted runners often preinstall 8.0, but that
+      # is not a contract. (dotnet-quality: preview was dropped — .NET 10 is GA.)
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       # Avalonia headless tests use the Skia backend, which needs fontconfig on Linux.
       - name: Install Linux native deps
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1
 
-      # Windows: build the FULL solution (all 7 cross-platform projects — the WPF app
+      # Windows: build the FULL solution (all 8 cross-platform projects — the WPF app
       # was retired), then test. An explicit build is required — `dotnet test <solution>`
       # only builds the test projects and their references, so it would NOT catch a
-      # broken Cli / Manager build on its own.
+      # broken Manager build on its own.
       - name: Build (Windows — full solution)
         if: runner.os == 'Windows'
         run: dotnet build ReScene.Manager.slnx -c Release
@@ -42,13 +46,14 @@ jobs:
 
       # Linux/macOS: the solution is now entirely cross-platform (the WPF app is gone).
       # release.yml ships linux/osx builds of the Avalonia app, so its headless test suite
-      # must run here too — alongside the library and App.Core tests. ReScene.Manager pulls
-      # in App.Core; the three test projects cover App.Core + the library + the Avalonia app.
+      # must run here too — alongside the library, App.Core, and CLI tests. ReScene.Manager
+      # pulls in App.Core; the four test projects cover App.Core + the library + the CLI +
+      # the Avalonia app.
       - name: Build + test (non-Windows — cross-platform)
         if: runner.os != 'Windows'
         run: |
-          dotnet build ReScene.Cli/ReScene.Cli.csproj -c Release
           dotnet build ReScene.Manager/ReScene.Manager.csproj -c Release
           dotnet test ReScene.Lib/ReScene.Tests/ReScene.Tests.csproj -c Release
           dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj -c Release
+          dotnet test ReScene.Cli.Tests/ReScene.Cli.Tests.csproj -c Release
           dotnet test ReScene.Manager.Tests/ReScene.Manager.Tests.csproj -c Release
