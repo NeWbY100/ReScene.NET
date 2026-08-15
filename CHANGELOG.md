@@ -11,6 +11,10 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
 
 ### Changed
 
+- Every project now builds under the full .NET analyzer regime
+  (`AnalysisLevel=latest-All` + style enforcement), warning-free — previously only the library
+  and the CLI did, leaving the application core and the Avalonia head unanalyzed. CI installs
+  the .NET 8 runtime so the library's test suite genuinely executes its net8.0 leg.
 - `rescene extract` now delegates to the library's new bulk extraction API instead of its own
   copy loop. Extraction still preserves each stored file's relative path, but an SRR carrying a
   hostile stored name (rooted, `.`/`..` segments, or a name that pre-existing links would

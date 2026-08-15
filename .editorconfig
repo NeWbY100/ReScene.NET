@@ -508,8 +508,10 @@ dotnet_diagnostic.IDE1006.severity = none
 dotnet_diagnostic.CA1030.severity = none
 
 # ── XAML files ───────────────────────────────────────────
+# (*.axaml included — every XAML file in this repo is Avalonia .axaml; the bare
+# *.xaml pattern matched nothing here.)
 
-[*.xaml]
+[*.{xaml,axaml}]
 indent_size = 2
 
 # ── JSON, XML, config files ─────────────────────────────
