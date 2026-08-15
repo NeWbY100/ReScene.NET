@@ -8,7 +8,7 @@ Three units carry most of this codebase's edit risk:
 |---|---|---|
 | `Manager.TryProcessCommandLinesAsync` (`ReScene.Lib/ReScene/Core/Manager.cs:860-1515`) | 656 lines, nesting to depth 7 | One method, 15 exit points, twin near-duplicate verification paths |
 | `CreatorViewModel.cs` | 2,295 lines, 57 private methods | Behavior-heavy: only 20 `[ObservableProperty]` |
-| `ReconstructorViewModel.cs` | 3,091 lines, 67 private methods | Binding-heavy: 127 `[ObservableProperty]`, 13 commands |
+| `ReconstructorViewModel.cs` | 3,091 lines, 67 private methods | Binding-heavy: 122 `[ObservableProperty]`, 14 commands (+5 more properties on its nested row type) |
 
 They are not one problem. The lib method is a *correctness* hazard; `CreatorViewModel` is a
 *volume* problem with clean seams; `ReconstructorViewModel` is roughly half generated-binding
@@ -17,8 +17,12 @@ surface that cannot move at all.
 The lib method's hazard is concrete and documented in its own source. Its assembly and legacy
 per-volume verification blocks (1329-1349 and 1399-1438) are kept in sync by two comments —
 "the gate is EXACTLY the legacy block's own below" (1323) — with no shared helper and no test
-that fails if they drift. ~14 lines are character-for-character identical, including the
-`LogTarget.Phase2` message text. The compiler even forced a naming workaround
+that fails if they drift. Their shared *evaluation core* — the gate expression, the
+`.Select(v => HashCalculator.Calculate(HashType.CRC32, v))` projection, the `Evaluate` call, the
+`CountMismatch` detail ternary, and the `LogTarget.Phase2` message — is textually identical apart
+from one variable name. The blocks around that core differ materially (volume source, patching,
+retention), which is why only the core is unified below. The compiler even forced a naming
+workaround
 (`assemblyExpectedInOrder` vs `expectedInOrder`, CS0136) that the author documented at 1106-1108
 and 1325-1327.
 
@@ -42,9 +46,14 @@ These are framework and language facts, not preferences. They cap how small each
 
 - **`[ObservableProperty]`, `[RelayCommand]`, `[NotifyPropertyChangedFor]`,
   `[NotifyCanExecuteChangedFor]`, and `partial void On<X>Changed` are generated into the class the
-  view binds.** They cannot move to a collaborator. `ReconstructorViewModel` pins 127 properties +
-  13 commands + 10 hooks + 22 notify attributes; `CreatorViewModel` pins 20 + 16 + 3 + 4. A
-  `[RelayCommand(CanExecute = nameof(X))]` additionally pins `X` to the same type.
+  view binds.** They cannot move to a collaborator. `ReconstructorViewModel` itself pins 122
+  properties + 14 commands + 9 hooks + 20 notify attributes, with a further 5 properties, 1 hook
+  and 2 attributes on its nested `VersionEntry` row type; `CreatorViewModel` pins 20 + 16 + 3 + 4.
+  A `[RelayCommand(CanExecute = nameof(X))]` additionally pins `X` to the same type.
+  They may, however, be split across **partial files of the same class** — measured, not assumed:
+  a probe confirmed a `partial void On<X>Changed` in one file fires for a property declared in
+  another, and a `[NotifyCanExecuteChangedFor]` in one file correctly targets a `[RelayCommand]`
+  declared in another. The generators bind against the complete partial type symbol.
 - **A `catch` body cannot be extracted** without `ref` locals (`combinationCounted` is written in
   `try` at 989 and read in `catch` at 1492), and `throw;` must stay lexically inside its `catch` to
   preserve rethrow semantics.
@@ -81,12 +90,18 @@ Applied in this order; each step ships independently green.
    near-identical `BruteForceProgressEventArgs` initializers (951, 962, 1042, 1080, 1497) plus the
    one inside `FireAssemblyErrorRow`. The increment-vs-fire ordering is preserved exactly: 950
    increments *before* firing, 962 fires *before* incrementing, 1040-1042 increments then fires.
-3. **`VerifyVolumeSet(IReadOnlyList<string> volumes, BruteForceOptions, string label)`** — the one
-   unification. Builds `expectedInOrder`, applies the gate, hashes CRC32, evaluates, emits the
-   single log line, returns `AllMatch` (or `true` when the gate is off). Both call sites shrink to
-   ~4 lines. This dissolves the comment-enforced sync hazard *and* the `assemblyExpectedInOrder`
-   naming workaround. Provably equivalent: gate expression, projection, and message text are
-   already character-identical.
+3. **`VerifyVolumeSet(Func<IReadOnlyList<string>> volumesFactory, BruteForceOptions, string label)`**
+   — the one unification. Builds `expectedInOrder`, applies the gate, and **only if the gate is on**
+   invokes `volumesFactory`, hashes CRC32, evaluates, and emits the single log line; returns
+   `AllMatch`, or `true` when the gate is off. Both call sites shrink to ~4 lines. This dissolves
+   the comment-enforced sync hazard *and* the `assemblyExpectedInOrder` naming workaround.
+   **The factory must be lazy, not an eager `IReadOnlyList<string>` parameter.** The legacy block
+   discovers volumes (`FindCreatedRARFile` + `GetAllVolumeFiles`) and re-patches them (1402-1411)
+   *inside* the gate; an eager parameter would force that enumeration, patching, and its I/O
+   failure modes to run even when `CompleteAllVolumes` is false or the CRC map is empty — a
+   behavior change, and a write where there is currently none. With the lazy factory the shared
+   core is equivalent by construction, because the two blocks' cores are already textually
+   identical apart from one variable name.
 4. **`TryLegacyGateAsync`** (1215-1254) → `(bool Matched, string Hash)`.
 5. **`TryFinalizeLegacyWin`** (1396-1459) → `CommittedMatch?`. Synchronous; touches no producer
    state (the producer was joined at 1275).
@@ -97,9 +112,19 @@ Applied in this order; each step ships independently green.
    `return NextCandidate`.
 8. **`CandidateProducer`** — last, because it is the only seam touching the producer-observation
    invariant. A `sealed class : IDisposable` holding `Task<int>?`, `CancellationTokenSource?`, and
-   a mutable `int? CompletedExitCode` (written from three phases: 1037, 1067, 1135), exposing
-   `ObserveQuietlyAsync()` and `JoinForWinAsync()` — the two observation modes documented at
-   661-673 become two named methods. Disposed **only** in the existing `finally` (1510).
+   a mutable `int? CompletedExitCode` (written from three phases: 1037, 1067, 1135). It needs
+   **four** operations, not two — the method observes the task in two further ways beyond the
+   documented pair:
+   - `ObserveQuietlyAsync()` and `JoinForWinAsync()` — the two modes documented at 661-673.
+   - `AwaitLaunchOrSecondVolumeAsync()` — the `Task.WhenAny` + immediate `IsFaulted` rethrow at
+     1012-1027, which must keep surfacing a faulted producer to the generic catch.
+   - `SampleRetryEligibility()` — captures `is { IsCompleted: false }` **before**
+     `AssembleCandidateAsync` runs (1116-1124). Sampling it afterwards is explicitly wrong: it
+     loses the incomplete-snapshot retry, which is the real race the check exists to catch.
+
+   Disposed **only** in the existing `finally` (1510); disposing anywhere else makes the later
+   `Cancel()` inside `ObserveProducerQuietlyAsync` (687, outside its own `try`) throw
+   `ObjectDisposedException`.
 
 **Finalization is deliberately NOT unified.** Nine externally observable differences (volume
 source, patching, retention, finalizer, log/finalize ordering, match-log content, incomplete
@@ -135,23 +160,37 @@ New folder `ReScene.App.Core/ViewModels/Creation/`.
    must keep `AllowCompressed = true, ComputeOSOHashes = false` and must never forward the outer
    `options`.
 4. **`CreatorArtifactStager`** (`internal sealed`, primary ctor) — all of folder-mode staging
-   (1374-1922), ~549 lines, with `StagingInputs(ReleaseRoot, AppName, AutoCreateSrs,
-   CreateVobsubSrr, Samples, SubtitleSfvs)`. Sources arrive as `IReadOnlyList<string>` snapshots,
-   not the live collections. `releaseRoot` becomes a **non-nullable parameter**, removing the four
+   (1374-1922), ~549 lines. **Snapshot timing must stay phase-local.** Today samples are
+   snapshotted when sample generation begins (1527), subtitles only *after* all sample generation
+   completes (1696), and `CreateVobsubSRR` is read after sample generation (1411). Building one
+   up-front `StagingInputs` carrying both snapshots and both toggles would change behavior if
+   those public collections or properties change across an await. So the stager takes the live
+   `ExtraSampleFiles`/`ExtraSubtitleSfvFiles` and reads each toggle at its current phase boundary,
+   exactly where the VM does now; only the immutable `ReleaseRoot`/`AppName` are passed up front.
+   `releaseRoot` becomes a **non-nullable parameter**, removing the four
    `_releaseRoot!` null-forgiving reads (1540, 1557, 1722, 1774) — the one place this refactor
    strictly improves safety. The five-step ordering in `StageFolderArtifactsAsync` (1385-1419) and
    the strict two-pass structure of `GenerateSubtitleArtifactsAsync` (1696-1780) are byte-exact
    parity requirements and move unchanged. Keeps its concrete coupling to
    `ReleaseScanner.ResolveDedupKey`/`ApplyProofBeforeSfvReorder` (static, not on `IReleaseScanner`)
    — do not hide it behind the interface.
-5. **`CreatorFieldGuidance`** (`internal static`) — `UpdateInputStatus`, `UpdateActionHint` as pure
-   `FieldStatus`-returning functions (`ReconstructorFieldGuidance` precedent). The auto-output-path
-   arbitration stays: it round-trips through `OnOutputPathChanged:358`, a generated hook.
+5. **`CreatorFieldGuidance`** (`internal static`) — two pure functions: one returning the
+   `FieldStatus` for `UpdateInputStatus`, one returning the **string** `ActionHint`
+   (`UpdateActionHint` computes text, not a `FieldStatus`). `ReconstructorFieldGuidance` precedent.
+   The auto-output-path arbitration stays: it round-trips through `OnOutputPathChanged:358`, a
+   generated hook.
 6. **`FolderScanController`** (drag seam, in scope) — the scan lifecycle (1020-1370), ~351 lines.
-   Takes the VM's `ObservableCollection`s by reference plus six setter delegates
-   (`setIsScanning`, `setInputStatus`, `setOutputStatus`, `trySetAutoOutputPath`,
-   `notifyCanExecuteChanged`, `notifyFolderModeChanged`) and `appendLog`, per the
-   `ReconstructionProgressTracker` template. `_isFolderMode`/`_isMusicOnlyFolder`/
+   Takes the VM's `ObservableCollection`s by reference plus **eight** setter delegates —
+   `setIsScanning`, `setInputStatus`, `setOutputStatus`, `trySetAutoOutputPath`,
+   `notifyCanExecuteChanged`, `notifyFolderModeChanged`, plus `clearSelections` (
+   `ClearFolderScanResults:1072` also clears `SelectedStoredFile`, `SelectedExtraSample` and
+   `SelectedExtraSubtitle`) and `updateActionHint` (every scan outcome calls it, **including
+   successful completion** at 1300) — and `appendLog`, per the `ReconstructionProgressTracker`
+   template. It must additionally expose explicit `Reset()` and `ExitFolderMode()` operations:
+   `Reset:237` and `OnInputPathChanged:313` both live *outside* the extracted 1020-1370 range yet
+   mutate the generation counter, the CTS, the mode flags, the release root and the collections, so
+   once those fields move inside, both callers need a controller API rather than field access.
+   `_isFolderMode`/`_isMusicOnlyFolder`/
    `_folderScanInvalid`/`_releaseRoot` move in and are re-exposed as read-only properties the VM
    forwards, because `CanCreateSRR:726-731` and `CreateSRRAsync:775-797` read them. **All four
    manual `CreateSRRCommand.NotifyCanExecuteChanged()` calls (1107, 1204, 1233, 1301) must keep
@@ -189,8 +228,15 @@ New collaborators in the existing `ViewModels/Reconstruction/` folder.
    `OutputHasReconstructionArtifacts`, `ClearReservedSubtrees`, ~55 lines. The VM keeps thin
    forwarders: `BeginnerWizardFactory.cs:211,218` and `ReconstructorOutputCleanupTests` call them.
 3. **`ReconstructorStartValidator`** (`internal static`, `Inputs` record + `Result` struct) — the
-   validation gauntlet (1481-1697), ~215 lines. Returns the `VerificationSnapshot` rather than
-   assigning `_verificationSnapshot`. The documented plan-before-mutate ordering is a safety
+   validation gauntlet (1481-1697), ~215 lines. **The snapshot must still be assigned at the parse
+   point (1625), not only on an accepted result.** Today `_verificationSnapshot` is written
+   immediately after parsing, *before* the later rejections for missing imported files, declined
+   output cleanup, or cleanup failure — so a rejected run leaves the newly parsed snapshot in
+   place, not the previous run's. Returning it only on success would silently change that, and
+   deferring the write past an awaited confirmation would change its observable timing. The
+   validator therefore takes an `Action<VerificationSnapshot> onParsed` callback; "retain snapshots
+   only from accepted starts" would be a separate behavior fix, not part of this refactor.
+   The documented plan-before-mutate ordering is a safety
    property, not tidiness: every reject decision runs **before** the destructive
    `ClearReservedSubtrees()` (#3, #1, #17), and the verification file is parsed **before** output
    cleanup because cleanup may delete it (#14). The two one-shot `Suppress…Confirm` flags are
@@ -199,18 +245,27 @@ New collaborators in the existing `ViewModels/Reconstruction/` folder.
    engine handlers (2506-2627), ~120 lines, no semantic change. The `Invoke`-vs-`Post` mix is
    load-bearing and unchanged: `OnProgress` uses `Invoke`, the copy/verify handlers and the log
    flush use `Post`, `OnElapsedTimerTick` marshals not at all.
-   `ManyLogEvents_CoalesceIntoAtMostOneDispatch` asserts an exact `PostCount`.
-5. **`ReconstructionRunner`** (`internal sealed`) — `ExecuteReconstructionAsync`,
-   `RunArchiveSetsAsync`, `RunSingleSetAsync`, `SetOutcome`, `LoadEmbeddedSfvBytes`,
-   `RelocateVerifiedOutput`, `CleanupWorkRoot`, `ReportSetSummary`, ~380 moved lines. Bound-state
-   writes go back through an `IRunSink` (`SetPhase`, `SetMessage`, `SetPercent`,
-   `SetBusy(running, copying, verifying)`, `SetSucceeded`) the VM implements. The `finally`'s
-   guarded clears stay ordered: `IsRunning = false` first, then the guarded `IsCopying`/
-   `IsVerifying` clears — the head's `ModalProgressWindowController` generation tracking depends on
-   it, and without them a cancelled mid-copy run strands a modal with no close path. The
-   `if (!IsRunning) return;` staleness gates (2512, 2556) must read the **live** flag, never a
-   captured snapshot. `_progress.CompleteActiveVersion` stays paired with its own `outcomes.Add` at
-   all four sites (#23).
+   `ManyLogEvents_CoalesceIntoAtMostOneDispatch` bounds the dispatch count (`<= 2` for 300 events),
+   so converting a `Post` into an `Invoke` — or losing the coalescing flag — fails it.
+5. **`ReconstructionRunner`** (`internal sealed`) — `RunArchiveSetsAsync`, `RunSingleSetAsync`,
+   `SetOutcome`, `LoadEmbeddedSfvBytes`, `RelocateVerifiedOutput`, `CleanupWorkRoot`,
+   `ReportSetSummary`, ~380 moved lines. Bound-state writes go back through an `IRunSink`
+   (`SetPhase`, `SetMessage`, `SetPercent`, `SetElapsed`, `SetStageLabel`, `SetBusy`,
+   `SetSucceeded`) the VM implements.
+   **`ExecuteReconstructionAsync`'s outer `try`/`finally` wrapper stays on the VM** rather than
+   moving with the loop. Its `finally` does three things a collaborator cannot own: it writes
+   `ElapsedText` *before* clearing `IsRunning` (1781), and it disposes and nulls `_cts` (1803),
+   which `Stop` (2341) reads. `_setStageLabel` likewise stays a VM field — `RunSingleSetAsync`
+   writes it (1992) while the VM-resident progress handler reads it live from the engine's callback
+   thread (2683) — so the runner sets it through the sink rather than owning it.
+   The `finally`'s guarded clears stay ordered: `IsRunning = false` first, then the guarded
+   `IsCopying`/`IsVerifying` clears. The reason is the **queued progress handlers**, not the head:
+   `ModalProgressWindowController` is constructed per busy flag and only ever sees its own
+   `IsCopying`/`IsVerifying`, never `IsRunning`. Clearing `IsRunning` first is what makes the
+   `if (!IsRunning) return;` staleness gates (2512, 2556) reject a late queued `Post` that would
+   otherwise re-open a closed dialog — so those gates must read the **live** flag, never a captured
+   snapshot. `_progress.CompleteActiveVersion` stays paired with its own `outcomes.Add` at all four
+   sites (#23).
 6. **`VersionTreeCoordinator`** (drag seam, in scope) — scan + reconcile (583-795), ~190 lines,
    bridged to the six `VersionN` bools by `Func<HashSet<int>> readMajors` /
    `Action<HashSet<int>> writeMajors`. `OnWinRARPathChanged` must keep clearing
@@ -223,11 +278,12 @@ New collaborators in the existing `ViewModels/Reconstruction/` folder.
    expanded diff record; the ~170 lines of `SwitchMD… = true` assignment tables stay on the VM
    behind one mechanical `Apply(diff)` switchboard. Log-line content and order are asserted
    (2876-2881) and move unchanged.
-8. **`ReconstructorViewModel.Bindings.cs`** — a `partial` file holding the pinned surface: the 127
+8. **`ReconstructorViewModel.Bindings.cs`** — a `partial` file holding the pinned surface: the 122
    `[ObservableProperty]` declarations, the toggle regions (797-963) with their `On<X>Changed`
    hooks, and the nested `VersionEntry` bound row. This is filing, not decomposition, and is
    labelled as such; it is the only mechanism that reduces the primary file below its ~800-line
-   generated-surface floor.
+   generated-surface floor. Feasibility is measured, not assumed (see Constraints): hooks and
+   `[NotifyCanExecuteChangedFor]` targets resolve across partial files in both directions.
 
 ## Sequencing
 
@@ -243,14 +299,26 @@ Missing characterization tests are written **before** the extraction they guard,
 own commits:
 
 - **Legacy CAV verification** (lib) — a legacy-path run with `CompleteAllVolumes` and a non-empty
-  `ExpectedVolumeCrcs`, which today no test can construct. Required before step 1.3.
-- **`_verificationSnapshot` handoff** (Reconstructor) — parse at 1625 → read at 2022. Required
-  before step 3.3.
+  `ExpectedVolumeCrcs`. No test constructs this today, but it needs no harness change: `Hashes` and
+  `ExpectedVolumeCrcs` are public mutable collections on `BruteForceOptions`, and
+  `host.Options(fixture: null, …)` leaves `SRRFilePath` null so `_useAssembly` stays false (431).
+  Required before step 1.3.
+- **`_verificationSnapshot` handoff** (Reconstructor) — must cover **both** the successful parse →
+  read at 2022 *and* a run rejected after parsing, which today still retains the newly parsed
+  snapshot. Required before step 3.3.
 - **`SetRARVersionsFromSRR` and `ApplyVolumeSize`** (Reconstructor) — no direct test exists.
   Required before step 3.7.
 - **`_suppressGroupSync`** (Reconstructor) — only `ManualLeafToggle_SyncsMajorBooleans` touches it.
   Required before step 3.6.
+- **Busy-flag clear order** (Reconstructor) — no test asserts that `IsRunning` clears before
+  `IsCopying`/`IsVerifying`, nor that a late queued progress event is rejected by the staleness
+  gate. Required before step 3.5.
 - **Legacy duplicate-hash retention arm** (lib, 1244-1249) — exercised on the assembly side only.
+- **Phase-local snapshot timing** (Creator) — that subtitles are snapshotted only after all sample
+  generation completes, and `CreateVobsubSRR` is read at that same boundary. Required before
+  step 2.4.
+- **Selection clearing and action-hint updates on every scan outcome** (Creator), plus
+  `Reset`/input-change forwarding into the controller. Required before step 2.6.
 - **Cross-instance isolation** (Creator) — nothing tests that the two `CreatorViewModel` instances
   coexist. Required before step 2.6.
 
@@ -272,9 +340,10 @@ commits with their own tests, so each behavior change is visible in isolation:
 
 ## Testing
 
-Every step is behavior-preserving and must leave all four suites green on both TFMs — currently
-4,399 tests (1,559 × net8.0/net10.0 lib, 732 App.Core, 530 headless UI, 19 CLI) — with zero build
-warnings under the `latest-All` analyzer regime now on all eight projects.
+Every step is behavior-preserving and must leave all four suites green — currently 4,399 test
+results: the lib's 1,559 tests run on **both** net8.0 and net10.0 (3,118 results), and App.Core
+(732), headless UI (530) and CLI (19) run on net10.0 only. Zero build warnings under the
+`latest-All` analyzer regime now on all eight projects.
 
 - **Per step**: run the guarding suite named above for that seam, then the full solution before
   committing. No step lands red or with a new warning.
