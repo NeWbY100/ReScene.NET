@@ -3,12 +3,15 @@ using ReScene.SRR;
 namespace ReScene.Cli.Commands;
 
 /// <summary>
-/// Extracts stored files from an SRR to a directory.
+/// Extracts stored files from an SRR to a directory, preserving each entry's relative
+/// directory structure. Delegates to <see cref="SRRFile.ExtractStoredFiles"/>, whose
+/// validate-before-write contract refuses an SRR carrying a hostile stored name (rooted, or
+/// containing "." / ".." segments) outright — the command fails with nothing written —
+/// instead of silently rewriting the name the way this command's original hand-rolled copy
+/// loop did.
 /// </summary>
 public static class ExtractCommand
 {
-    private const int CopyBufferSize = 64 * 1024;
-
     /// <summary>
     /// Runs the extract command.
     /// </summary>
@@ -51,34 +54,12 @@ public static class ExtractCommand
         {
             Directory.CreateDirectory(outDir);
             var srr = SRRFile.Load(srrPath);
+            _ = srr.ExtractStoredFiles(srrPath, outDir);
 
-            using FileStream input = File.OpenRead(srrPath);
-            byte[] buffer = new byte[CopyBufferSize];
-
+            // ExtractStoredFiles is all-or-throw, so reaching this line means every stored
+            // file was written.
             foreach (SRRStoredFileBlock stored in srr.StoredFiles)
             {
-                string outPath = ResolveSafeOutputPath(outDir, stored.FileName);
-                Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
-
-                input.Position = stored.DataOffset;
-
-                using FileStream output = new(outPath, FileMode.Create, FileAccess.Write);
-
-                long remaining = stored.FileLength;
-                while (remaining > 0)
-                {
-                    int toRead = (int)Math.Min(buffer.Length, remaining);
-                    int read = input.Read(buffer, 0, toRead);
-
-                    if (read <= 0)
-                    {
-                        break;
-                    }
-
-                    output.Write(buffer, 0, read);
-                    remaining -= read;
-                }
-
                 Console.WriteLine($"Extracted {stored.FileName} ({stored.FileLength:N0} bytes)");
             }
 
@@ -89,29 +70,5 @@ public static class ExtractCommand
             Console.Error.WriteLine($"Error: {ex.Message}");
             return 2;
         }
-    }
-
-    private static string ResolveSafeOutputPath(string outDir, string storedName)
-    {
-        string normalized = storedName.Replace('\\', '/');
-        string[] parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        List<string> safeParts = [];
-        foreach (string part in parts)
-        {
-            if (part == ".." || Path.IsPathRooted(part))
-            {
-                continue;
-            }
-
-            safeParts.Add(part);
-        }
-
-        if (safeParts.Count == 0)
-        {
-            safeParts.Add("file.bin");
-        }
-
-        return Path.Combine([outDir, .. safeParts]);
     }
 }

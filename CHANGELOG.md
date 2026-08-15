@@ -4,7 +4,24 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- The CLI now has its own test suite (`ReScene.Cli.Tests`, 19 tests) covering all four verbs,
+  their exit codes, and extraction safety; it runs in CI on every platform.
+
+### Changed
+
+- `rescene extract` now delegates to the library's new bulk extraction API instead of its own
+  copy loop. Extraction still preserves each stored file's relative path, but an SRR carrying a
+  hostile stored name (rooted, `.`/`..` segments, or a name that pre-existing links would
+  redirect outside the output directory) is now refused outright with exit code 2 and nothing
+  written — previously such names were silently rewritten and extraction continued. Truncated
+  stored data is likewise refused up front instead of producing silently short files.
+
 ### Fixed
+
+- Repeated in-process `create` invocations no longer accumulate `Console.CancelKeyPress`
+  handlers holding disposed cancellation sources.
 
 - Rapidly stopping and restarting an operation could leave its progress dialog missing — and in
   the worst interleaving, cancel the restarted operation outright. Both progress-window

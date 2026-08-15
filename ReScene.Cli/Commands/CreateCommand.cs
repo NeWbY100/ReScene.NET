@@ -49,12 +49,13 @@ public static class CreateCommand
         }
 
         using var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, e) =>
+        ConsoleCancelEventHandler onCancel = (_, e) =>
         {
             e.Cancel = true;
             Console.Error.WriteLine("Cancelling...");
             cts.Cancel();
         };
+        Console.CancelKeyPress += onCancel;
 
         try
         {
@@ -82,6 +83,13 @@ public static class CreateCommand
         {
             Console.Error.WriteLine($"Error: {ex.Message}");
             return 2;
+        }
+        finally
+        {
+            // Console.CancelKeyPress is process-global: in-process callers (the test suite
+            // drives Main directly) would otherwise accumulate handlers holding disposed
+            // token sources, and a later real Ctrl+C would fault in a dead handler.
+            Console.CancelKeyPress -= onCancel;
         }
     }
 }

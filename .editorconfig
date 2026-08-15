@@ -482,6 +482,17 @@ dotnet_diagnostic.IDE0160.severity = warning
 # IDE0161: Use file-scoped namespace
 dotnet_diagnostic.IDE0161.severity = warning
 
+# ── Test projects ────────────────────────────────────────
+# xUnit house conventions the general rules would fight:
+# CA1707: underscore-separated test names (Method_Scenario_Expectation) are the established
+#         convention across all four suites.
+# IDE1006: the same underscore names trip the method-naming rule, and async Task test methods
+#          deliberately carry no Async suffix — a test name is a sentence, not an API.
+
+[*.Tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+
 # ── XAML files ───────────────────────────────────────────
 
 [*.xaml]
