@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using ReScene.Core;
 using ReScene.App.Core.Helpers;
+using ReScene.Core;
 
 namespace ReScene.App.Core.ViewModels.Reconstruction;
 

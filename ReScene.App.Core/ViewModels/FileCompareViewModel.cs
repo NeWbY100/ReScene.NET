@@ -1,15 +1,14 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReScene.App.Core.Helpers;
 using ReScene.App.Core.Services;
+using ReScene.App.Core.ViewModels.Comparison;
 using ReScene.Core.Comparison;
 using ReScene.Hex;
-using ReScene.App.Core.ViewModels.Comparison;
 using ReScene.RAR;
 using ReScene.SRR;
 using ReScene.SRS;
-
-using ReScene.App.Core.Helpers;
 namespace ReScene.App.Core.ViewModels;
 
 /// <summary>

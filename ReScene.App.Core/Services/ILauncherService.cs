@@ -4,8 +4,8 @@ namespace ReScene.App.Core.Services;
 public interface ILauncherService
 {
     /// <summary>Opens <paramref name="url"/> in the OS default browser/handler.</summary>
-    void OpenUrl(string url);
+    public void OpenUrl(string url);
 
     /// <summary>Opens the folder (or the file's containing folder) at <paramref name="path"/> in the OS file manager.</summary>
-    void RevealPath(string path);
+    public void RevealPath(string path);
 }

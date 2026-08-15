@@ -1,12 +1,11 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ReScene.App.Core.Services;
+using ReScene.App.Core.Helpers;
 using ReScene.App.Core.Models;
+using ReScene.App.Core.Services;
 using ReScene.SRR;
 using ReScene.SRS;
-
-using ReScene.App.Core.Helpers;
 namespace ReScene.App.Core.ViewModels;
 
 /// <summary>
@@ -1021,7 +1020,7 @@ public partial class CreatorViewModel : OperationViewModelBase
     /// <summary>
     /// Leaves folder mode when InputPath changes to a file/blank/nonexistent path: resets the
     /// folder-only state so a stale detected-set list or a music-only gate can't linger into file
-    /// mode. The in-flight scan (if any) was already cancelled by <see cref="OnInputPathChanged"/>;
+    /// mode. The in-flight scan (if any) was already cancelled by <see cref="OnInputPathChanged(string)"/>;
     /// since its completion will be discarded by the generation check in
     /// <see cref="ApplyFolderScanResult"/>, <see cref="IsScanning"/> must be cleared here
     /// synchronously — nothing else will do it.
@@ -1894,7 +1893,7 @@ public partial class CreatorViewModel : OperationViewModelBase
     /// globally (both callers), matching the RECOVERY_BLOCKS_REMOVED precedent: a shipped-behavior
     /// change applied everywhere the shared code path runs, not just the new folder-mode surface.
     /// </summary>
-    private static List<StoredFileEntry>? BuildNestedSubtitleStoredFiles(string sfvPath, string sfvName) => null;
+    private static List<StoredFileEntry>? BuildNestedSubtitleStoredFiles() => null;
 
     /// <summary>
     /// Root-relative logical name for a folder-mode generated artifact's SOURCE, falling back to
@@ -2052,7 +2051,7 @@ public partial class CreatorViewModel : OperationViewModelBase
         try
         {
             SRRCreationResult result = await _sRRService.CreateFromSFVAsync(
-                srrPath, sfvPath, BuildNestedSubtitleStoredFiles(sfvPath, sfvName), nestedOptions, ct);
+                srrPath, sfvPath, BuildNestedSubtitleStoredFiles(), nestedOptions, ct);
             if (result.Success)
             {
                 Log($"  Nested SRR created: {Path.GetFileName(srrPath)} ({result.SRRFileSize:N0} bytes)");

@@ -14,5 +14,5 @@ public interface IReleaseScanner
     /// <see cref="ReleaseScanResult.RootError"/>. <paramref name="ct"/> is honored promptly and
     /// throws <see cref="OperationCanceledException"/> like any other cancellable operation.
     /// </summary>
-    ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default);
+    public ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default);
 }

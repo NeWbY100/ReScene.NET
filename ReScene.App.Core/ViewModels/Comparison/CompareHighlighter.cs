@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
+using ReScene.App.Core.Services;
 using ReScene.Core.Comparison;
 using ReScene.RAR;
-
-using ReScene.App.Core.Services;
 namespace ReScene.App.Core.ViewModels.Comparison;
 
 /// <summary>

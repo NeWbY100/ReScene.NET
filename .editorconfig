@@ -226,6 +226,16 @@ dotnet_diagnostic.CA1852.severity = none
 # CA1034: Nested types should not be visible (ViewModel inner classes are intentional)
 dotnet_diagnostic.CA1034.severity = none
 
+# CA1054: launcher URLs are opaque strings handed to the OS shell (ILauncherService.OpenUrl);
+# round-tripping them through System.Uri adds parse failure modes without any consumer benefit.
+dotnet_diagnostic.CA1054.severity = none
+
+# CA1032/CA1064: internal-by-design exceptions (e.g. RARCommandLineMatrixTooLargeException) are
+# typed control-flow within this app's own assemblies — the standard constructor set and public
+# exposure are API ceremony for consumers that do not exist.
+dotnet_diagnostic.CA1032.severity = none
+dotnet_diagnostic.CA1064.severity = none
+
 # CA1711: Identifiers should not have incorrect suffix (EventArgs naming is correct)
 dotnet_diagnostic.CA1711.severity = none
 

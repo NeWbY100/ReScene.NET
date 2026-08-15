@@ -10,5 +10,5 @@ public interface IUiTimerFactory
     /// Creates a stopped timer that raises <paramref name="onTick"/> on the UI thread every
     /// <paramref name="interval"/> once started.
     /// </summary>
-    IUiTimer Create(TimeSpan interval, Action onTick);
+    public IUiTimer Create(TimeSpan interval, Action onTick);
 }

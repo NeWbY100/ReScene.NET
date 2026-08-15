@@ -7,8 +7,8 @@ namespace ReScene.App.Core.Services;
 public interface IUiTimer
 {
     /// <summary>Starts (or restarts) the timer.</summary>
-    void Start();
+    public void Start();
 
     /// <summary>Stops the timer. Safe to call when already stopped.</summary>
-    void Stop();
+    public void Stop();
 }

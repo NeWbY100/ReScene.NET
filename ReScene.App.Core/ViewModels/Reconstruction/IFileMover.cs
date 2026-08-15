@@ -11,5 +11,5 @@ internal interface IFileMover
     /// Moves <paramref name="source"/> to <paramref name="destination"/>, never overwriting an
     /// existing destination (the relocation pre-flights every destination as free first).
     /// </summary>
-    void Move(string source, string destination);
+    public void Move(string source, string destination);
 }

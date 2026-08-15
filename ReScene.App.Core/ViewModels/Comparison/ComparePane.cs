@@ -1,6 +1,5 @@
-using ReScene.RAR;
-
 using ReScene.App.Core.Services;
+using ReScene.RAR;
 namespace ReScene.App.Core.ViewModels.Comparison;
 
 /// <summary>

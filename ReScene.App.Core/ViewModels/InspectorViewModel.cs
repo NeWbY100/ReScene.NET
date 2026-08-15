@@ -2,17 +2,16 @@ using System.Collections.ObjectModel;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using EBMLElement = ReScene.Core.Comparison.EBMLElement;
-using MKVFileData = ReScene.Core.Comparison.MKVFileData;
-using ReScene.Hex;
+using ReScene.App.Core.Helpers;
 using ReScene.App.Core.Models;
 using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels.Inspection;
+using ReScene.Hex;
 using ReScene.RAR;
 using ReScene.SRR;
 using ReScene.SRS;
-
-using ReScene.App.Core.Helpers;
+using EBMLElement = ReScene.Core.Comparison.EBMLElement;
+using MKVFileData = ReScene.Core.Comparison.MKVFileData;
 namespace ReScene.App.Core.ViewModels;
 
 public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditingService srrEditingService, ISRRVerifyService verifyService, IPropertyExportService propertyExportService, IImagePreviewService imagePreviewService, IAppSettingsService? settingsService = null) : ViewModelBase, IDisposable

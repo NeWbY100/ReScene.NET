@@ -1,5 +1,5 @@
-using ReScene.Core.Comparison;
 using ReScene.App.Core.Helpers;
+using ReScene.Core.Comparison;
 using ReScene.RAR;
 using ReScene.SRR;
 using ReScene.SRS;

@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ReScene.Hex;
 using ReScene.App.Core.Helpers;
 using ReScene.App.Core.Services;
+using ReScene.Hex;
 namespace ReScene.App.Core.ViewModels;
 
 /// <summary>

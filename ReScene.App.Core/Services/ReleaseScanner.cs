@@ -800,7 +800,7 @@ public sealed partial class ReleaseScanner : IReleaseScanner
     /// store_rls_root. Basename starting with "00"/"01" (subsumes "001") stores
     /// unconditionally; otherwise a size strictly greater than 100000 bytes AND a similar known-good
     /// name AND NOT a fixed-resolution cover stores; every other outcome is a skip + warning (both
-    /// the size<=100000 and the size-ok-but-rejected branches share the same message format).
+    /// the size&lt;=100000 and the size-ok-but-rejected branches share the same message format).
     /// </summary>
     private static bool StoreRlsRoot(string proofPath, string releaseName, List<string> knownGoodStems, List<string> warnings)
     {

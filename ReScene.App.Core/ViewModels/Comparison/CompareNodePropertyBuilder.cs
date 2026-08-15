@@ -1,7 +1,7 @@
 using System.Text;
-using ReScene.Core.Comparison;
 using ReScene.App.Core.Helpers;
 using ReScene.App.Core.Models;
+using ReScene.Core.Comparison;
 using ReScene.RAR;
 using ReScene.SRR;
 using ReScene.SRS;

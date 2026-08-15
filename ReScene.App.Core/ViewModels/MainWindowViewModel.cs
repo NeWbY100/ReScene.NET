@@ -3,10 +3,9 @@ using System.Diagnostics;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ReScene.App.Core.Services;
-using ReScene.App.Core.Models;
-
 using ReScene.App.Core.Helpers;
+using ReScene.App.Core.Models;
+using ReScene.App.Core.Services;
 namespace ReScene.App.Core.ViewModels;
 
 /// <summary>
