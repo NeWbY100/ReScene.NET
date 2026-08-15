@@ -8,6 +8,12 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <RootNamespace>ReScene.Manager</RootNamespace>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-All</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- IDE0005 (unused usings) only runs on build when XML doc generation is on; CS1591
+         (missing doc comments) is already silenced repo-wide in .editorconfig. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.18" />

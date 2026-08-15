@@ -29,6 +29,12 @@ namespace ReScene.Manager.Behaviors;
 /// already measured in the chrome row rather than donated out of this one.
 /// </para>
 /// </param>
+/// <param name="RowIndex">The Grid row index this entry governs.</param>
+/// <param name="NormalHeight">The row's expanded-mode height in DIPs.</param>
+/// <param name="CompactMinHeight">The row's minimum height in compact mode.</param>
+/// <param name="HelpOpenMinHeight">The row's compact minimum while the Help disclosure is open
+/// (Help donation — see <see cref="CompactHeightBehavior"/>).</param>
+/// <param name="Mode">How the row participates in compact mode.</param>
 internal sealed record CompactRowSize(
     int RowIndex,
     double NormalHeight,

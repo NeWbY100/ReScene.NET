@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -6,7 +7,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using System.ComponentModel;
 using ReScene.App.Core;
 using ReScene.App.Core.Models;
 using ReScene.App.Core.Services;

@@ -7,7 +7,7 @@ namespace ReScene.Manager.Views;
 /// The SRS Restorer tab, ported from the WPF <c>ReScene.NET.Views.SampleRestorerView</c>. Bound to a
 /// <see cref="ReScene.App.Core.ViewModels.SampleRestorerViewModel"/> (supplied by the shell via
 /// <c>DataContext="{Binding SampleRestorer}"</c>): an SRR-file row, a Media Directory row, an Output
-/// Directory row, an editable <see cref="DataGrid"/> of the SRR's embedded SRS entries (a
+/// Directory row, an editable <c>DataGrid</c> of the SRR's embedded SRS entries (a
 /// <c>DataGridCheckBoxColumn</c> toggling which samples to restore, plus an editable Media File
 /// column for entries the automatic match missed), a Restore All/Cancel action row with progress, and
 /// a log. Path TextBox file/folder drop is declarative via

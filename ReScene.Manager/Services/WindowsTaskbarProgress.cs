@@ -2,6 +2,7 @@ using System.Runtime.Versioning;
 using Avalonia.Controls;
 using Avalonia.Platform;
 using ReScene.App.Core.Services;
+using ReScene.App.Core.ViewModels;
 using ReScene.Manager.Interop;
 
 namespace ReScene.Manager.Services;

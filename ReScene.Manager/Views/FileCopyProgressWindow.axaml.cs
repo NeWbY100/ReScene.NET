@@ -9,7 +9,7 @@ namespace ReScene.Manager.Views;
 /// <summary>
 /// Modal file-copy progress dialog opened by <see cref="BruteForceProgressWindow"/> while the RAR
 /// reconstructor copies a matched release's files, ported from the WPF
-/// <c>ReScene.NET.Views.FileCopyProgressWindow</c>. Its <see cref="Window.DataContext"/> is the same
+/// <c>ReScene.NET.Views.FileCopyProgressWindow</c>. Its <see cref="Avalonia.StyledElement.DataContext"/> is the same
 /// <c>ReconstructorViewModel</c> the owning window uses, so every binding here reads that VM's
 /// <c>Copy*</c> progress properties directly. Opened/closed by a
 /// <see cref="Helpers.ModalProgressWindowController{TWindow}"/> keyed off <c>IsCopying</c>; on

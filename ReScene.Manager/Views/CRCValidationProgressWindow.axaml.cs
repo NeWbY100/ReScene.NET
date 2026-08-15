@@ -9,7 +9,7 @@ namespace ReScene.Manager.Views;
 /// <summary>
 /// Modal CRC-validation progress dialog opened by <see cref="BruteForceProgressWindow"/> while the RAR
 /// reconstructor verifies the copied files against the release, ported from the WPF
-/// <c>ReScene.NET.Views.CRCValidationProgressWindow</c>. Its <see cref="Window.DataContext"/> is the
+/// <c>ReScene.NET.Views.CRCValidationProgressWindow</c>. Its <see cref="Avalonia.StyledElement.DataContext"/> is the
 /// same <c>ReconstructorViewModel</c> the owning window uses, so every binding here reads that VM's
 /// <c>Verify*</c> progress properties directly. Opened/closed by a
 /// <see cref="Helpers.ModalProgressWindowController{TWindow}"/> keyed off <c>IsVerifying</c>; on

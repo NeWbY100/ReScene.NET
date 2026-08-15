@@ -59,7 +59,7 @@ public partial class App : Application
             // freshly-built window. Resolved lazily when a dialog is requested.
             Window Owner() =>
                 desktop.Windows.FirstOrDefault(w => w.IsActive)
-                ?? desktop.MainWindow as Window
+                ?? desktop.MainWindow
                 ?? window;
 
             var tempDir = new TempDirectoryService();

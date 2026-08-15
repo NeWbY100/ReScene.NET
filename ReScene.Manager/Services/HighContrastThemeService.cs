@@ -52,7 +52,8 @@ public sealed class HighContrastThemeService : IDisposable
     /// </summary>
     public void Start()
     {
-        if (_settings is null) { return; }
+        if (_settings is null)
+        { return; }
 
         Apply(_settings.GetColorValues().ContrastPreference);
         _settings.ColorValuesChanged += OnColorValuesChanged;
@@ -66,7 +67,8 @@ public sealed class HighContrastThemeService : IDisposable
     public void Apply(ColorContrastPreference preference)
     {
         bool wanted = preference == ColorContrastPreference.High;
-        if (wanted == IsHighContrastApplied) { return; }
+        if (wanted == IsHighContrastApplied)
+        { return; }
 
         if (wanted)
         {
@@ -82,7 +84,8 @@ public sealed class HighContrastThemeService : IDisposable
 
     public void Dispose()
     {
-        if (_settings is not null) { _settings.ColorValuesChanged -= OnColorValuesChanged; }
+        if (_settings is not null)
+        { _settings.ColorValuesChanged -= OnColorValuesChanged; }
         _application.Resources.MergedDictionaries.Remove(_overrides);
     }
 }

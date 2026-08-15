@@ -11,11 +11,11 @@ namespace ReScene.Manager.Converters;
 /// </summary>
 public sealed class IndentToMarginConverter : IValueConverter
 {
-    private static readonly Thickness Indented = new(20, 0, 0, 0);
-    private static readonly Thickness Normal = new(2, 0, 0, 0);
+    private static readonly Thickness _indented = new(20, 0, 0, 0);
+    private static readonly Thickness _normal = new(2, 0, 0, 0);
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is true ? Indented : Normal;
+        value is true ? _indented : _normal;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

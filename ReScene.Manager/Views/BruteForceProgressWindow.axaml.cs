@@ -13,7 +13,7 @@ namespace ReScene.Manager.Views;
 /// <summary>
 /// Modal brute-force progress dialog opened by the RAR Reconstructor (a later port task) while it
 /// tests WinRAR versions against a release, ported from the WPF
-/// <c>ReScene.NET.Views.BruteForceProgressWindow</c>. Its <see cref="Window.DataContext"/> is the same
+/// <c>ReScene.NET.Views.BruteForceProgressWindow</c>. Its <see cref="Avalonia.StyledElement.DataContext"/> is the same
 /// <see cref="ReconstructorViewModel"/> the owning tab uses, so every binding here reads that VM's
 /// progress/version-grid state directly. Also opens/closes the nested
 /// <see cref="FileCopyProgressWindow"/> and <see cref="CRCValidationProgressWindow"/> modals in step

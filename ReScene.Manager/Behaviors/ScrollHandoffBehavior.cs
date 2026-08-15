@@ -7,7 +7,7 @@ using Avalonia.VisualTree;
 namespace ReScene.Manager.Behaviors;
 
 /// <summary>
-/// Chains keyboard/focus navigation in an inner <see cref="DataGrid"/> — whose own scrolling is
+/// Chains keyboard/focus navigation in an inner <c>DataGrid</c> — whose own scrolling is
 /// entirely self-contained virtualization, oblivious to any ancestor — out to the nearest ANCESTOR
 /// <see cref="ScrollViewer"/> once the current row moves outside the outer's own viewport (a
 /// small-window config band scrolls its DataGrid host, so a user gesture that
@@ -22,18 +22,18 @@ namespace ReScene.Manager.Behaviors;
 /// handling either; it only moves the grid's OWN internal virtualized offset
 /// (<c>ScrollSlotIntoView</c>) to keep the new current row within ITS OWN viewport. This behavior
 /// calls <c>BringIntoView()</c> itself on the newly-current row (found via the public
-/// <see cref="DataGrid.CurrentCellChanged"/> event and <see cref="DataGrid.SelectedIndex"/>),
+/// <c>DataGrid.CurrentCellChanged</c> event and <c>DataGrid.SelectedIndex</c>),
 /// which is genuinely necessary — nothing else in the framework ever performs it for this control.
-/// It keys off <see cref="DataGrid.CurrentCellChanged"/> at the ROW level, not the individual cell:
-/// <see cref="DataGridRow"/> exposes no public per-column cell lookup, and a row's bounds are a
+/// It keys off <c>DataGrid.CurrentCellChanged</c> at the ROW level, not the individual cell:
+/// <c>DataGridRow</c> exposes no public per-column cell lookup, and a row's bounds are a
 /// strict superset of every cell within it, so bringing the row fully into view is sufficient to
-/// satisfy "the current cell ends fully visible" without depending on <see cref="DataGridCell"/>
+/// satisfy "the current cell ends fully visible" without depending on <c>DataGridCell</c>
 /// internals that are not part of the public API.
 /// <para>
 /// NO WHEEL MECHANISM (removed): an earlier version of this behavior also chained
 /// <c>PointerWheelChanged</c> at the grid's own
 /// scroll extent. It was removed, not merely left undocumented, for two independent reasons.
-/// First, redundancy: <see cref="DataGrid"/>'s own <c>OnPointerWheelChanged</c> class handler
+/// First, redundancy: <c>DataGrid</c>'s own <c>OnPointerWheelChanged</c> class handler
 /// already leaves the event unhandled whenever it cannot consume the gesture internally (it
 /// computes <c>UpdateScroll(...)</c>, and when that reports no movement, sets
 /// <c>e.Handled = e.Handled || !ScrollViewer.GetIsScrollChainingEnabled(this)</c>), and
@@ -44,11 +44,11 @@ namespace ReScene.Manager.Behaviors;
 /// dedicated wheel tests plus the real, production-wired view's own handoff test still passed
 /// unchanged. Second, and decisively: the removed handler's own claimed "insurance against a
 /// future style disabling chaining" was ineffective even in that hypothetical case. Avalonia's
-/// routed-event pipeline runs CLASS handlers (how <see cref="DataGrid"/>'s own override is wired)
-/// before INSTANCE handlers added via <see cref="Interactive.AddHandler"/> for the same
+/// routed-event pipeline runs CLASS handlers (how <c>DataGrid</c>'s own override is wired)
+/// before INSTANCE handlers added via <c>Interactive.AddHandler</c> for the same
 /// element/phase; the removed handler was a plain (non-handledEventsToo) instance handler, which
 /// is skipped entirely once <c>e.Handled</c> is already <c>true</c>. If chaining were ever
-/// disabled, <see cref="DataGrid"/>'s own class handler would set <c>e.Handled = true</c> BEFORE
+/// disabled, <c>DataGrid</c>'s own class handler would set <c>e.Handled = true</c> BEFORE
 /// the removed handler could run — so it could never have fired in precisely the scenario it was
 /// meant to guard against. There is no configuration, current or hypothetical, in which the wheel
 /// path did anything a plain <c>IsScrollChainingEnabled="True"</c> default does not already do; if

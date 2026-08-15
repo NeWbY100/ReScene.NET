@@ -7,7 +7,7 @@ namespace ReScene.Manager.Views.Wizards;
 
 /// <summary>
 /// The pop-up shell that hosts a Beginner wizard, ported from the WPF
-/// <c>ReScene.NET.Views.Wizards.WizardWindow</c>. Its <see cref="Window.DataContext"/> is the
+/// <c>ReScene.NET.Views.Wizards.WizardWindow</c>. Its <see cref="Avalonia.StyledElement.DataContext"/> is the
 /// navigation <see cref="WizardViewModel"/> (header + Back/Next footer); the injected body
 /// <see cref="Control"/> is placed in <c>BodyHost</c> with its own DataContext set to the wizard's
 /// <see cref="WizardViewModel.Content"/> (the task VM the step panels bind to). The WPF

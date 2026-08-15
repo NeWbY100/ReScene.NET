@@ -28,12 +28,7 @@ namespace ReScene.Manager.Controls;
 /// verified by capturing every one of them before and after this rebase, not assumed.
 /// </para>
 /// </summary>
-public class HelpDisclosureAutomationPeer : ControlAutomationPeer
+public class HelpDisclosureAutomationPeer(HelpDisclosure owner) : ControlAutomationPeer(owner)
 {
-    public HelpDisclosureAutomationPeer(HelpDisclosure owner)
-        : base(owner)
-    {
-    }
-
     protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Group;
 }

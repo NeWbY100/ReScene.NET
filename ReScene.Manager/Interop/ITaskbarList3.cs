@@ -30,21 +30,21 @@ namespace ReScene.Manager.Interop;
 internal interface ITaskbarList3
 {
     // ── ITaskbarList (5 methods) ──────────────────────────────────────
-    void HrInit();
+    public void HrInit();
 
-    void AddTab(nint hwnd);
+    public void AddTab(nint hwnd);
 
-    void DeleteTab(nint hwnd);
+    public void DeleteTab(nint hwnd);
 
-    void ActivateTab(nint hwnd);
+    public void ActivateTab(nint hwnd);
 
-    void SetActiveAlt(nint hwnd);
+    public void SetActiveAlt(nint hwnd);
 
     // ── ITaskbarList2 (1 method) ──────────────────────────────────────
-    void MarkFullscreenWindow(nint hwnd, [MarshalAs(UnmanagedType.Bool)] bool fFullscreen);
+    public void MarkFullscreenWindow(nint hwnd, [MarshalAs(UnmanagedType.Bool)] bool fFullscreen);
 
     // ── ITaskbarList3 (only the two we call) ──────────────────────────
-    void SetProgressValue(nint hwnd, ulong ullCompleted, ulong ullTotal);
+    public void SetProgressValue(nint hwnd, ulong ullCompleted, ulong ullTotal);
 
-    void SetProgressState(nint hwnd, TaskbarProgressFlags tbpFlags);
+    public void SetProgressState(nint hwnd, TaskbarProgressFlags tbpFlags);
 }
