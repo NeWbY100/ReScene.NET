@@ -102,10 +102,10 @@ public partial class CreatorViewModel : OperationViewModelBase
     // ── Folder mode: a directory InputPath triggers a background release scan whose
     // results replace StoredFiles/ExtraSampleFiles/ExtraSubtitleSfvFiles and populate DetectedSets.
     // Mirrors InspectorViewModel's generation-guard house pattern: every InputPath change bumps
-    // _scanGeneration and cancels _scanCts, so a scan whose generation is no longer current is
-    // discarded on the UI thread even if it had already finished before the cancellation was seen.
-    private int _scanGeneration;
-    private CancellationTokenSource? _scanCts;
+    // the scan generation and cancels the in-flight source, so a scan whose generation is no longer
+    // current is discarded on the UI thread even if it had already finished before the cancellation
+    // was seen. FolderScanSession owns that discipline.
+    private readonly FolderScanSession _scan = new();
     private bool _isFolderMode;
     private bool _isMusicOnlyFolder;
 
@@ -245,8 +245,8 @@ public partial class CreatorViewModel : OperationViewModelBase
         // Folder mode: cancel any in-flight scan and clear the folder-only state up front so it
         // can't linger between wizard runs (its stale completion is also independently discarded
         // by the generation check below, but a reset shouldn't wait on that).
-        _scanGeneration++;
-        CancelInFlightScan();
+        _scan.BumpGeneration();
+        _scan.CancelInFlight();
         _isFolderMode = false;
         OnPropertyChanged(nameof(IsFolderMode));
         _isMusicOnlyFolder = false;
@@ -317,8 +317,8 @@ public partial class CreatorViewModel : OperationViewModelBase
         // folder scan: bump the generation and cancel+dispose the CTS so a stale completion (even
         // one that finished the work before observing cancellation) is discarded by the generation
         // check in ApplyFolderScanResult, never overwriting newer state.
-        _scanGeneration++;
-        CancelInFlightScan();
+        _scan.BumpGeneration();
+        _scan.CancelInFlight();
 
         if (Directory.Exists(value))
         {
@@ -1037,39 +1037,6 @@ public partial class CreatorViewModel : OperationViewModelBase
         ClearFolderScanResults();
     }
 
-    /// <summary>
-    /// Cancels and disposes any in-flight folder scan's CTS synchronously, right here on the
-    /// calling thread, and clears the field before returning. Called only from UI-thread-invoked
-    /// code (a property-changed hook or <see cref="Reset"/>) — paired with
-    /// <see cref="RunFolderScanAsync"/>'s own cleanup, which ONLY ever touches a CTS from inside its
-    /// <see cref="_uiDispatcher"/>.Post callback and never if this method already claimed it. Together
-    /// these ensure Cancel()/Dispose() on one CancellationTokenSource instance never run
-    /// concurrently (forbidden — throws ObjectDisposedException) and a live newer CTS can never be
-    /// null'd out by an older scan's cleanup.
-    /// </summary>
-    private void CancelInFlightScan()
-    {
-        if (_scanCts is not { } cts)
-        {
-            return;
-        }
-
-        _scanCts = null;
-        try
-        {
-            cts.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by an earlier call — nothing left to do (defensive; the ownership
-            // rule above should make this unreachable in practice).
-        }
-        finally
-        {
-            cts.Dispose();
-        }
-    }
-
     private void ClearFolderScanResults()
     {
         DetectedSets.Clear();
@@ -1117,21 +1084,12 @@ public partial class CreatorViewModel : OperationViewModelBase
         // status line, so a screen reader isn't double-announced.
         InputStatus = FieldStatus.Info("Scanning release folder…");
 
-        // Captured now (after OnInputPathChanged already bumped it for this input change) so the
-        // posted continuation below can tell whether it's still the current input.
-        int generation = _scanGeneration;
-        var cts = new CancellationTokenSource();
+        // Begin() installs the new source and hands back the token captured as a VALUE, while the
+        // source is certainly not yet disposed — the background delegate below must read `token`
+        // and never `cts.Token` again (see FolderScanSession.Begin's remarks, and the
+        // RapidInputSwitching_WithoutAwaiting_NeverThrows test).
+        (int generation, CancellationTokenSource cts, CancellationToken token) = _scan.Begin();
 
-        // Captured as a value ONCE, right here, while `cts` is certainly not yet disposed — the
-        // background delegate below reads `token`, never `cts.Token` again. `CancellationTokenSource
-        // .Token`'s GETTER throws ObjectDisposedException once the source is disposed, but a
-        // CancellationToken struct already obtained beforehand stays safe to poll
-        // (IsCancellationRequested/ThrowIfCancellationRequested) even after that. Re-reading
-        // `cts.Token` lazily inside the Task.Run delegate — evaluated whenever the thread pool
-        // actually gets to it — could otherwise race a later CancelInFlightScan() disposing this
-        // exact `cts` first (see the RapidInputSwitching_WithoutAwaiting_NeverThrows test).
-        CancellationToken token = cts.Token;
-        _scanCts = cts;
         LastFolderScan = RunFolderScanAsync(releaseRoot, generation, cts, token);
     }
 
@@ -1144,34 +1102,29 @@ public partial class CreatorViewModel : OperationViewModelBase
 
             _uiDispatcher.Post(() =>
             {
-                // Every _scanCts read/write below happens inside this Post callback — which, like
+                // Every scan-session read/write below happens inside this Post callback — which, like
                 // every other UI-thread-invoked entry point (a property-changed hook, Reset), is
                 // serialized onto the UI thread — never on the background thread that ran the
-                // scan. That's what keeps this identity check race-free against CancelInFlightScan:
+                // scan. That's what keeps TryComplete's identity check race-free against a cancel:
                 // the two either run one-at-a-time on the same thread, or (in a real app) are
                 // serialized by the dispatcher itself.
                 //
-                // generation/_scanCts are kept in lockstep by CancelInFlightScan (both change
-                // together, synchronously, whenever a scan is superseded), so checking either alone
-                // would do; checking both is belt-and-suspenders. If superseded, the newer input
-                // change already cancelled, disposed, and null'd out `cts` itself — there is nothing
-                // left for us to clean up, and touching it again here would double-dispose (harmless)
-                // or resurrect a reference someone else already tore down (not harmless with a naive
-                // reordering) — so this is a hard bail, not just a "don't apply the result" check.
-                if (generation != _scanGeneration || !ReferenceEquals(_scanCts, cts))
+                // TryComplete performs the identity check AND the cleanup as one operation. A false
+                // return means superseded: the newer input change already cancelled, disposed and
+                // cleared `cts` itself, so this is a hard bail, not just a "don't apply the result"
+                // check — touching it again would resurrect a reference someone else tore down.
+                if (!_scan.TryComplete(generation, cts))
                 {
                     return;
                 }
 
-                _scanCts = null;
-                cts.Dispose();
                 ApplyFolderScanResult(releaseRoot, result);
             });
         }
         catch (OperationCanceledException)
         {
             // Superseded — the newer input change already cancelled, disposed, and null'd out `cts`
-            // itself (see CancelInFlightScan); there's nothing left for us to do here.
+            // itself (see FolderScanSession.CancelInFlight); there's nothing left for us to do here.
         }
         catch (Exception ex)
         {
@@ -1181,21 +1134,18 @@ public partial class CreatorViewModel : OperationViewModelBase
             // RAR-parser fault escapes here. Without this catch the background Task faults, the
             // success Post never runs, and IsScanning + InputStatus stay stranded on the busy
             // "Scanning release folder…" state (Create disabled, the live region stuck announcing
-            // busy) until the user re-inputs. Post the SAME generation/_scanCts-gated UI-thread
-            // continuation the success completion uses — every _scanCts read/write stays on the UI
+            // busy) until the user re-inputs. Post the SAME session-gated UI-thread
+            // continuation the success completion uses — every session read/write stays on the UI
             // thread, preserving the CTS-lifecycle invariants — then fail closed EXACTLY like
             // ApplyFolderScanResult's root-enumeration (IsRootError) branch: clear IsScanning, gate
             // Create, and surface the failure, so a faulted scan can never leave an empty/header-only
             // SRR buildable. Cancellation stays silent (handled above).
             _uiDispatcher.Post(() =>
             {
-                if (generation != _scanGeneration || !ReferenceEquals(_scanCts, cts))
+                if (!_scan.TryComplete(generation, cts))
                 {
                     return;
                 }
-
-                _scanCts = null;
-                cts.Dispose();
 
                 IsScanning = false;
                 _isMusicOnlyFolder = false;
