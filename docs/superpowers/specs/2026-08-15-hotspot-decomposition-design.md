@@ -19,10 +19,11 @@ per-volume verification blocks (1329-1349 and 1399-1438) are kept in sync by two
 "the gate is EXACTLY the legacy block's own below" (1323) — with no shared helper and no test
 that fails if they drift. Their shared *evaluation core* — the gate expression, the
 `.Select(v => HashCalculator.Calculate(HashType.CRC32, v))` projection, the `Evaluate` call, the
-`CountMismatch` detail ternary, and the `LogTarget.Phase2` message — is textually identical apart
-from one variable name. The blocks around that core differ materially (volume source, patching,
-retention), which is why only the core is unified below. The compiler even forced a naming
-workaround
+`CountMismatch` detail ternary, and the `LogTarget.Phase2` message — is **semantically identical
+after abstracting the volume source and alpha-renaming locals** (`assembledCrcs`/`producedCrcs`,
+`assemblyExpectedInOrder`/`expectedInOrder`). The blocks around that core differ materially
+(volume source, patching, retention), which is why only the core is unified below. The compiler
+even forced a naming workaround
 (`assemblyExpectedInOrder` vs `expectedInOrder`, CS0136) that the author documented at 1106-1108
 and 1325-1327.
 
@@ -99,9 +100,9 @@ Applied in this order; each step ships independently green.
    discovers volumes (`FindCreatedRARFile` + `GetAllVolumeFiles`) and re-patches them (1402-1411)
    *inside* the gate; an eager parameter would force that enumeration, patching, and its I/O
    failure modes to run even when `CompleteAllVolumes` is false or the CRC map is empty — a
-   behavior change, and a write where there is currently none. With the lazy factory the shared
-   core is equivalent by construction, because the two blocks' cores are already textually
-   identical apart from one variable name.
+   behavior change, and a write where there is currently none. With the volume source abstracted
+   behind that factory, the remaining shared core differs between the two blocks only by local
+   names, so the unification is a mechanical alpha-rename rather than a behavioral judgement.
 4. **`TryLegacyGateAsync`** (1215-1254) → `(bool Matched, string Hash)`.
 5. **`TryFinalizeLegacyWin`** (1396-1459) → `CommittedMatch?`. Synchronous; touches no producer
    state (the producer was joined at 1275).
@@ -139,7 +140,9 @@ through step 2.
 
 New folder `ReScene.App.Core/ViewModels/Creation/`.
 
-1. **`CreatorArtifactNaming`** (`internal static`) — the 12 already-`private static` pure helpers:
+1. **`CreatorArtifactNaming`** (`internal static`) — the 12 already-`private static` helpers, all of
+   which take everything they need as parameters (note `DiscoverRARVolumes` and
+   `IsRarBackedVobSample` read the filesystem, so the set is parameter-driven, not side-effect-free):
    `RootRelativeName`, `FolderRelativeName`, `FolderRelativeStem`, `GeneratedStoredName`,
    `IsFilesystemRoot`, `IsRootError`, `DiscoverRARVolumes`, `IsUnderProofDirectory`,
    `HasMatchingSfv`, `FindSampleArtifactSpliceIndex`, `FindSubtitleArtifactSpliceIndex`,
@@ -166,17 +169,21 @@ New folder `ReScene.App.Core/ViewModels/Creation/`.
    up-front `StagingInputs` carrying both snapshots and both toggles would change behavior if
    those public collections or properties change across an await. So the stager takes the live
    `ExtraSampleFiles`/`ExtraSubtitleSfvFiles` and reads each toggle at its current phase boundary,
-   exactly where the VM does now; only the immutable `ReleaseRoot`/`AppName` are passed up front.
-   `releaseRoot` becomes a **non-nullable parameter**, removing the four
+   exactly where the VM does now. The release root is likewise re-read at each phase point today
+   (1540, 1722 — across awaits, while `InputPath` stays user-editable during a run), so it arrives
+   as a live `Func<string> releaseRoot` accessor rather than a captured string; snapshotting the
+   root would be a separate behavior fix. The accessor's **non-nullable** return removes the four
    `_releaseRoot!` null-forgiving reads (1540, 1557, 1722, 1774) — the one place this refactor
    strictly improves safety. The five-step ordering in `StageFolderArtifactsAsync` (1385-1419) and
    the strict two-pass structure of `GenerateSubtitleArtifactsAsync` (1696-1780) are byte-exact
    parity requirements and move unchanged. Keeps its concrete coupling to
    `ReleaseScanner.ResolveDedupKey`/`ApplyProofBeforeSfvReorder` (static, not on `IReleaseScanner`)
    — do not hide it behind the interface.
-5. **`CreatorFieldGuidance`** (`internal static`) — two pure functions: one returning the
-   `FieldStatus` for `UpdateInputStatus`, one returning the **string** `ActionHint`
-   (`UpdateActionHint` computes text, not a `FieldStatus`). `ReconstructorFieldGuidance` precedent.
+5. **`CreatorFieldGuidance`** (`internal static`) — two functions: one returning the `FieldStatus`
+   for `UpdateInputStatus`, one returning the **string** `ActionHint` (`UpdateActionHint` computes
+   text, not a `FieldStatus`). Neither is side-effect-free — `UpdateInputStatus` calls
+   `File.Exists` and `CountReleaseArchives` — so they take their inputs as parameters and keep
+   reading the filesystem exactly where they do now. `ReconstructorFieldGuidance` precedent.
    The auto-output-path arbitration stays: it round-trips through `OnOutputPathChanged:358`, a
    generated hook.
 6. **`FolderScanController`** (drag seam, in scope) — the scan lifecycle (1020-1370), ~351 lines.
@@ -353,6 +360,7 @@ results: the lib's 1,559 tests run on **both** net8.0 and net10.0 (3,118 results
 - **Codex reviews every diff before commit**, as in the preceding fix series; its findings are
   verified against the code rather than applied on faith.
 - **Ordering-sensitive behavior is asserted, not assumed**: progress-event order and count, log
-  line order and content, busy-flag transition order, and artifact splice order all have existing
-  assertions that must keep passing unchanged. Where an invariant currently has only a comment, the
-  extraction adds the missing test rather than trusting the comment.
+  line order and content, and artifact splice order already have assertions that must keep passing
+  unchanged. Busy-flag transition order does **not** — it will have one before step 3.5, per
+  Sequencing. Where an invariant currently has only a comment, the extraction adds the missing test
+  rather than trusting the comment.
