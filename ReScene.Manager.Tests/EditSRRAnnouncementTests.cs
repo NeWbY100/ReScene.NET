@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using ReScene.App.Core.Models;
 using ReScene.App.Core.ViewModels;
 using ReScene.App.Core.ViewModels.Wizards;
 using ReScene.Manager.Views.Wizards;

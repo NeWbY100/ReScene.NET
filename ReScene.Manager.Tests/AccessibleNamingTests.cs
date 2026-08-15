@@ -506,15 +506,18 @@ public class AccessibleNamingTests
         BeginnerShellViewModel shell = BeginnerShellTestFactory.Create();
 
         Window creator = Host(new CreatorView { DataContext = shell.CreateSRRWizard });
-        try { Assert.Equal(PathName, PeerName(ByCommand(creator, shell.CreateSRRWizard.BrowseOutputCommand))); }
+        try
+        { Assert.Equal(PathName, PeerName(ByCommand(creator, shell.CreateSRRWizard.BrowseOutputCommand))); }
         finally { creator.Close(); }
 
         Window srsCreator = Host(new SRSCreatorView { DataContext = shell.SRSCreator });
-        try { Assert.Equal(PathName, PeerName(ByCommand(srsCreator, shell.SRSCreator.BrowseOutputCommand))); }
+        try
+        { Assert.Equal(PathName, PeerName(ByCommand(srsCreator, shell.SRSCreator.BrowseOutputCommand))); }
         finally { srsCreator.Close(); }
 
         Window rebuilder = Host(new SRSReconstructorView { DataContext = shell.Restore.SingleRebuilder });
-        try { Assert.Equal(PathName, PeerName(ByCommand(rebuilder, shell.Restore.SingleRebuilder!.BrowseOutputCommand))); }
+        try
+        { Assert.Equal(PathName, PeerName(ByCommand(rebuilder, shell.Restore.SingleRebuilder!.BrowseOutputCommand))); }
         finally { rebuilder.Close(); }
 
         Window reconstructor = Host(new ReconstructorView { DataContext = shell.Reconstructor });

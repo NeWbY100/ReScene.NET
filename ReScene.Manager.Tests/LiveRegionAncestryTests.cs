@@ -91,8 +91,10 @@ public class LiveRegionAncestryTests
                     liveRegions++;
                     foreach (Visual ancestor in live.GetVisualAncestors())
                     {
-                        if (ReferenceEquals(ancestor, window)) { break; }
-                        if (!ancestor.IsSet(Visual.IsVisibleProperty)) { continue; }
+                        if (ReferenceEquals(ancestor, window))
+                        { break; }
+                        if (!ancestor.IsSet(Visual.IsVisibleProperty))
+                        { continue; }
 
                         violations.Add(
                             $"{type.Name}: a live region ({Describe(live)}) sits under {Describe(ancestor)}, whose " +

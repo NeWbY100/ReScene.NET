@@ -154,8 +154,8 @@ public class ReconstructorCompactTests
         {
             double before = CompactHeightBehavior.GetEffectiveThreshold(root);
 
-            var vm = (ReconstructorViewModel)((ReconstructorView)window.GetVisualDescendants()
-                .OfType<ReconstructorView>().Single()).DataContext!;
+            var vm = (ReconstructorViewModel)window.GetVisualDescendants()
+                .OfType<ReconstructorView>().Single().DataContext!;
             vm.CustomPackerWarning = string.Join(" ", Enumerable.Repeat(
                 "Custom packer detected; the reconstruction may not be byte-identical.", 12));
             Dispatcher.UIThread.RunJobs();
@@ -372,7 +372,7 @@ public class ReconstructorCompactTests
                 "forward capture should have left root's scope onto an external control, not ended via a stable loop within root");
             Assert.True(ReferenceEquals(expectedForwardExternalBoundary, forwardCapture.FirstExternalTarget),
                 $"forward capture's terminal external target should be {CompactViewRig.Describe(expectedForwardExternalBoundary)}, " +
-                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget!)} — same description does not mean same control instance.");
+                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget)} — same description does not mean same control instance.");
 
             // Scope split: scope A is everything up to and including the Paths TabItem header;
             // scope B is everything after (the Paths sub-tab's own content). The split index comes
@@ -416,8 +416,10 @@ public class ReconstructorCompactTests
             // UNION: the exact reference union of both scopes' reverse-visited controls must equal
             // the forward walk's full inventory — any control in NEITHER reverse scope fails here.
             var unionOfReverseScopes = new HashSet<Control>(ReferenceEqualityComparer.Instance);
-            foreach (Control c in scopeAReverse.Order) { unionOfReverseScopes.Add(c); }
-            foreach (Control c in scopeBReverse.Order) { unionOfReverseScopes.Add(c); }
+            foreach (Control c in scopeAReverse.Order)
+            { unionOfReverseScopes.Add(c); }
+            foreach (Control c in scopeBReverse.Order)
+            { unionOfReverseScopes.Add(c); }
             var forwardInventory = new HashSet<Control>(forwardOrder, ReferenceEqualityComparer.Instance);
             Assert.True(unionOfReverseScopes.SetEquals(forwardInventory),
                 $"the union of scope A's ({scopeAReverse.Order.Count}) and scope B's " +
@@ -1006,7 +1008,7 @@ public class ReconstructorCompactTests
 
             // No dead window: once the two transitions have settled, focus stays put rather than
             // being cleared and left cleared by whichever of them ran last.
-            Assert.All(focusTrail.Skip(2), f => Assert.NotNull(f));
+            Assert.All(focusTrail.Skip(2), Assert.NotNull);
         }
         finally { window.Close(); }
     }
@@ -1081,7 +1083,7 @@ public class ReconstructorCompactTests
             ScrollViewer body = helpDisclosure.GetVisualDescendants().OfType<ScrollViewer>().Single();
             Assert.Equal(38, body.MaxHeight);
 
-            Button lastLink = window.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("link")).Last();
+            Button lastLink = window.GetVisualDescendants().OfType<Button>().Last(b => b.Classes.Contains("link"));
             CompactViewRig.AssertReachableByKeyboard(window, lastLink);
         }
         finally { window.Close(); }
@@ -1155,7 +1157,8 @@ public class ReconstructorCompactTests
     {
         ReconstructorViewModel vm = CreateVm();
         var view = new ReconstructorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
+
+        (Window window, _) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
@@ -1189,7 +1192,8 @@ public class ReconstructorCompactTests
     {
         ReconstructorViewModel vm = CreateVm();
         var view = new ReconstructorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
+
+        (Window window, _) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
@@ -1252,14 +1256,14 @@ public class ReconstructorCompactTests
         Point center = new(splitter.Bounds.Width / 2, splitter.Bounds.Height / 2);
         Point? centerInWindow = splitter.TranslatePoint(center, window);
         Assert.True(centerInWindow is not null, "test precondition: the splitter's own centre must translate into window coordinates");
-        Color focusColor = SamplePixelColor(window, centerInWindow!.Value);
+        Color focusColor = SamplePixelColor(window, centerInWindow.Value);
 
         Point? aboveInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, -3), window);
         Point? belowInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, splitter.Bounds.Height + 3), window);
         Assert.True(aboveInWindow is not null && belowInWindow is not null, "test precondition: both neighbouring points must translate into window coordinates");
 
-        Color abovePane = SamplePixelColor(window, aboveInWindow!.Value);
-        Color belowPane = SamplePixelColor(window, belowInWindow!.Value);
+        Color abovePane = SamplePixelColor(window, aboveInWindow.Value);
+        Color belowPane = SamplePixelColor(window, belowInWindow.Value);
 
         return (ContrastRatio(focusColor, abovePane), ContrastRatio(focusColor, belowPane));
     }

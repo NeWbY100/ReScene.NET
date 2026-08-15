@@ -18,7 +18,7 @@ namespace ReScene.Manager.Tests;
 /// Proves the semantic style classes in <c>Resources/Styles.axaml</c> (merged into
 /// <c>App.axaml</c> after <c>FluentTheme</c>) actually resolve — not just that the file parses.
 /// Each case renders a control carrying one class into a headless <see cref="Window"/>, pumps
-/// layout via <see cref="Dispatcher.UIThread.RunJobs"/>, and asserts a representative property
+/// layout via <c>Dispatcher.UIThread.RunJobs</c>, and asserts a representative property
 /// took the token-driven value the class sets, plus zero Avalonia binding errors overall.
 /// Expected colors are hardcoded from <c>Resources/Tokens.axaml</c> (same convention as
 /// <see cref="FieldStatusLineTests"/>) rather than re-resolved via <c>FindResource</c>, so a test
@@ -274,7 +274,7 @@ public class StylesTests
             compactExpanderPeer.PropertyChanged += (_, e) => containerEvents.Add(e.NewValue);
             togglePeer.PropertyChanged += (_, e) => toggleEvents.Add(e.NewValue);
 
-            toggleProvider!.Toggle();
+            toggleProvider.Toggle();
             Dispatcher.UIThread.RunJobs();
             Assert.True(expander.IsExpanded);
             Assert.True(toggle.IsChecked, "the toggle reports the state it just set");

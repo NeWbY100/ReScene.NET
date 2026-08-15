@@ -135,7 +135,7 @@ public class SettingsWindowTests
             .Single(b => ReferenceEquals(b.Command, command));
 
         Assert.Equal("Browse...", button.Content as string);
-        string name = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(button).GetName()!;
+        string name = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(button).GetName();
         Assert.Equal(expectedName, name);
         Assert.Contains("Browse", name, StringComparison.Ordinal);
     }

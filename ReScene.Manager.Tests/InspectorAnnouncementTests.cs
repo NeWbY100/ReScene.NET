@@ -83,7 +83,7 @@ public class InspectorAnnouncementTests
                 Assert.True(line.IsEffectivelyVisible, "the live line must be realized BEFORE its text arrives");
             }
 
-            var row = (DockPanel)warning.GetVisualAncestors().OfType<DockPanel>().First();
+            var row = warning.GetVisualAncestors().OfType<DockPanel>().First();
             TextBlock caption = row.Children.OfType<TextBlock>().Single(t => t.Text == "File");
             double idleRowHeight = row.Bounds.Height;
             Assert.Equal(caption.Bounds.Height, idleRowHeight, precision: 1);

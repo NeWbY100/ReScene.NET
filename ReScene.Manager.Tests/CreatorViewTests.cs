@@ -14,7 +14,7 @@ namespace ReScene.Manager.Tests;
 
 /// <summary>
 /// Headless render tests for the ported <see cref="CreatorView"/> (SRR Creator tab — the first view
-/// to host an Avalonia <see cref="DataGrid"/>). The central gate is <b>zero binding errors</b> (via
+/// to host an Avalonia <c>DataGrid</c>). The central gate is <b>zero binding errors</b> (via
 /// <see cref="BindingErrorSink"/>), plus: the Stored Files grid is present with its two columns and
 /// reflects the VM's <c>StoredFiles</c> collection (seeded rows appear), and the key inputs are
 /// two-way bound (the Input TextBox mirrors the VM; toggling an option CheckBox writes back to it).

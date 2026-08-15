@@ -158,7 +158,7 @@ public class CreateSRRWizardBodyBindingTests
 
         Button folder = FolderBrowseButton(window);
         Assert.Equal("Browse folder for release input", AutomationProperties.GetName(folder));
-        Assert.Contains("Browse folder", AutomationProperties.GetName(folder)!, StringComparison.Ordinal);
+        Assert.Contains("Browse folder", AutomationProperties.GetName(folder), StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
@@ -206,8 +206,8 @@ public class CreateSRRWizardBodyBindingTests
         Window window = Show(vm);
 
         TextBlock header = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "WizInputHeader");
-        Assert.Contains("folder", header.Text!, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(".rar", header.Text!, StringComparison.Ordinal);
+        Assert.Contains("folder", header.Text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(".rar", header.Text, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]

@@ -20,7 +20,7 @@ namespace ReScene.Manager.Tests;
 /// <see cref="WizardViewModel.CurrentStepIndex"/> via <c>$parent[Window]</c> + the
 /// <c>IndexEqualsConverter</c>. The central gate is <b>zero binding errors</b> (via
 /// <see cref="BindingErrorSink"/>); the tests also confirm the panels toggle with the index and that
-/// the stored-files step hosts the expected two-column <see cref="DataGrid"/>. The creation pipeline
+/// the stored-files step hosts the expected two-column <c>DataGrid</c>. The creation pipeline
 /// and file dialogs are inert fakes — only the view wiring is exercised.
 /// </summary>
 public class CreateSRRWizardBodyTests

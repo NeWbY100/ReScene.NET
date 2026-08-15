@@ -14,7 +14,7 @@ namespace ReScene.Manager.Tests;
 
 /// <summary>
 /// Headless render tests for the ported <see cref="SampleRestorerView"/> (SRS Restorer tab — the
-/// app's one genuinely editable <see cref="DataGrid"/>: a <c>DataGridCheckBoxColumn</c> plus an
+/// app's one genuinely editable <c>DataGrid</c>: a <c>DataGridCheckBoxColumn</c> plus an
 /// editable Media File text column). The central gate is <b>zero binding errors</b> (via
 /// <see cref="BindingErrorSink"/>), plus: the grid has its 5 explicit columns and reflects seeded
 /// <c>SRSEntries</c> rows, the checkbox column round-trips a real click back to the entry's

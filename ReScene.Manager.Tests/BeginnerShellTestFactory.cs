@@ -3,6 +3,7 @@ using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
 using ReScene.Core;
 using ReScene.Manager.Services;
+using ReScene.Manager.Views.Wizards;
 using ReScene.SRR;
 using ReScene.SRS;
 

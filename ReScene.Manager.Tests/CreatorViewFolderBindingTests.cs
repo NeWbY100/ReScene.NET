@@ -141,7 +141,7 @@ public class CreatorViewFolderBindingTests
         Button folder = FolderBrowseButton(window);
         Assert.Equal("Browse folder for release input", AutomationProperties.GetName(folder));
         // Label-in-Name (WCAG 2.5.3): the accessible name contains the visible "Browse folder".
-        Assert.Contains("Browse folder", AutomationProperties.GetName(folder)!, StringComparison.Ordinal);
+        Assert.Contains("Browse folder", AutomationProperties.GetName(folder), StringComparison.Ordinal);
     }
 
     [AvaloniaFact]

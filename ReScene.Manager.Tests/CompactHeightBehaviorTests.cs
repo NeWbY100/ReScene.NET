@@ -691,11 +691,11 @@ public class CompactHeightBehaviorTests
                 "a failed restore left focus cleared: the trail was [" +
                 string.Join(", ", focusTrail.Select(c => c is null ? "<none>" : c.GetType().Name)) + "]");
             Assert.True(ReferenceEquals(landed, restoreTarget),
-                $"focus should have settled on the wired RestoreFocusTarget, not {landed!.GetType().Name}");
+                $"focus should have settled on the wired RestoreFocusTarget, not {landed.GetType().Name}");
 
             // No dead window: once both transitions have settled, focus stays put rather than
             // being cleared and left cleared by whichever of them ran last.
-            Assert.All(focusTrail.Skip(2), f => Assert.NotNull(f));
+            Assert.All(focusTrail.Skip(2), Assert.NotNull);
         }
         finally { window.Close(); }
     }
@@ -912,7 +912,7 @@ public class CompactHeightBehaviorTests
     /// established forces the just-attached expander's body collapsed (condition 5) exactly as a
     /// real compact-entry transition would — and if something inside that about-to-collapse body
     /// is currently focused, that focus must go through the SAME staged capture/recover
-    /// transaction <see cref="Evaluate"/> uses for real transitions, not a bare apply that
+    /// transaction <c>Evaluate</c> uses for real transitions, not a bare apply that
     /// strands it. Here the expander/body/focused button all exist and are wired up BEFORE
     /// SetHelpExpander is ever called (simulating a body that was independently expanded and
     /// focused, then only later handed to the behavior) — the compact entry's own fallback
@@ -1103,7 +1103,11 @@ public class CompactHeightBehaviorTests
         {
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2, Height = 60 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             root.Children.Add(scroller);
             Dispatcher.UIThread.RunJobs();
@@ -1211,7 +1215,7 @@ public class CompactHeightBehaviorTests
             Assert.True(collapsing.IsFocused);
 
             w.Height = Threshold - 1;   // -> compact; collapsing hides AND focus moves to `elsewhere`
-                                          // synchronously, before the deferred recovery job is posted
+                                        // synchronously, before the deferred recovery job is posted
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(elsewhere.IsFocused,
@@ -1255,7 +1259,7 @@ public class CompactHeightBehaviorTests
                 if (!root.Classes.Contains("compactHeight"))
                 {
                     b.Focus();   // "user"/some code moves focus to the ALREADY-clipped B,
-                                  // synchronously, within the same transition that captured A
+                                 // synchronously, within the same transition that captured A
                 }
             };
             Dispatcher.UIThread.RunJobs();
@@ -1265,7 +1269,7 @@ public class CompactHeightBehaviorTests
             Assert.True(a.IsFocused);
 
             w.Height = Threshold + 40;   // -> restore; captures A; the handler above moves
-                                          // focus to the obscured B before the deferred job runs
+                                         // focus to the obscured B before the deferred job runs
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(restoreTarget.IsFocused,
@@ -1315,7 +1319,7 @@ public class CompactHeightBehaviorTests
             Assert.True(captured.IsFocused);
 
             w.Height = Threshold - 1;   // no HelpExpander set: resolved target is null, so the
-                                          // fallback chain (if it ran) would try otherFallbackTarget first
+                                        // fallback chain (if it ran) would try otherFallbackTarget first
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(validElsewhere.IsFocused,
@@ -1385,10 +1389,10 @@ public class CompactHeightBehaviorTests
             target.Focus();
             inner.Offset = default;                 // inner unscrolled: shows inner-rendered [0,100]
             outer.Offset = new Vector(0, 110);       // outer's raw window becomes inner-rendered
-                                                      // [110,210] — independently overlaps target's
-                                                      // [95,115] at [110,115], disjoint from inner's
-                                                      // own overlap at [95,100] (a 100..110 gap
-                                                      // separates the two independent overlaps)
+                                                     // [110,210] — independently overlaps target's
+                                                     // [95,115] at [110,115], disjoint from inner's
+                                                     // own overlap at [95,100] (a 100..110 gap
+                                                     // separates the two independent overlaps)
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, inner.Offset.Y);
             Assert.Equal(110, outer.Offset.Y);
@@ -1479,7 +1483,7 @@ public class CompactHeightBehaviorTests
             Assert.True(scroller.IsFocused);
 
             w.Height = Threshold + 40;   // -> restore: scroller becomes unfocusable (compact-only);
-                                          // RestoreFocusTarget resolves to a DETACHED control
+                                         // RestoreFocusTarget resolves to a DETACHED control
             Dispatcher.UIThread.RunJobs();
 
             Assert.False(unfocusableDescendant.IsFocused);
@@ -1587,7 +1591,11 @@ public class CompactHeightBehaviorTests
 
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2, Height = 60 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
 
             root.Children.Add(fallbackTarget);
@@ -1884,7 +1892,11 @@ public class CompactHeightBehaviorTests
             var restoreTarget = new Button { Content = "restoreTarget", [Grid.RowProperty] = 1 };
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2, Height = 60 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             root.Children.Add(restoreTarget);
             root.Children.Add(scroller);
@@ -1920,7 +1932,7 @@ public class CompactHeightBehaviorTests
     /// mode transition. A view-level investigation reproduced the gap in production
     /// (CreatorView): crossing the threshold IS a transition, so the staged recovery correctly
     /// fired ONCE and scrolled the focused splitter back into its band's viewport — but every
-    /// SUBSEQUENT shrink step (not a transition, so <see cref="Evaluate"/>'s
+    /// SUBSEQUENT shrink step (not a transition, so <c>Evaluate</c>'s
     /// <c>if (!isTransition &amp;&amp; state.Established) return;</c> skipped the entire staged
     /// sequence) shrank that same viewport around a FROZEN scroll offset until the still-focused
     /// splitter was clipped away again, with nothing left to notice.
@@ -1929,7 +1941,7 @@ public class CompactHeightBehaviorTests
     /// the shipped view; this one proves the shared mechanism every converted view depends on).
     /// The sequence deliberately covers both legs of the spec's DELIBERATE ASYMMETRY rider:
     /// the first step shrinks by MORE than the target's own height (leaving it ENTIRELY outside
-    /// the viewport — the WCAG 2.4.11 AA line <see cref="IsObscured"/> encodes) and the steps
+    /// the viewport — the WCAG 2.4.11 AA line <c>IsObscured</c> encodes) and the steps
     /// after the transition shrink by LESS than it (leaving it merely PARTIALLY clipped, which
     /// is NOT "obscured" by that definition and is covered directly by
     /// <see cref="ContinuedShrink_PartialClipOnly_IsScrolledFullyBackIntoView_FocusNeverMoves"/>).
@@ -1947,7 +1959,11 @@ public class CompactHeightBehaviorTests
             // the production shape. A fixed-height scroller could never reproduce this at all.
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             root.Children.Add(scroller);
             Dispatcher.UIThread.RunJobs();
@@ -1985,7 +2001,7 @@ public class CompactHeightBehaviorTests
     /// first (entirely-obscured) step already failed — so on unfixed code that test proves nothing
     /// about this half. Here the ONLY shrink is deliberately SMALLER than the target's own height,
     /// and the resulting state is proven — not assumed — to be one the behavior's own
-    /// <see cref="IsObscured"/> calls NOT obscured (it still intersects the viewport), by
+    /// <c>IsObscured</c> calls NOT obscured (it still intersects the viewport), by
     /// reproducing exactly that geometry through the scroll offset first and asking the private
     /// predicate directly. A fix that only handled entire obscurement would therefore leave this
     /// state untouched, with a focused control hanging past its viewport for the rest of the drag.
@@ -2001,7 +2017,11 @@ public class CompactHeightBehaviorTests
         {
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             var fallbackCandidate = new Button { Content = "fallback", [Grid.RowProperty] = 1 };
             root.Children.Add(fallbackCandidate);
@@ -2111,7 +2131,11 @@ public class CompactHeightBehaviorTests
         {
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             root.Children.Add(scroller);
             Dispatcher.UIThread.RunJobs();
@@ -2245,10 +2269,10 @@ public class CompactHeightBehaviorTests
     /// <summary>
     /// The shared-budget POLICY was implemented only as far as the
     /// wrapper's own leg. A pass that reached the obscured leg called
-    /// <see cref="RelocateFocusIfNeeded"/>, which starts its own counter at zero — so a pass could
+    /// <c>RelocateFocusIfNeeded</c>, which starts its own counter at zero — so a pass could
     /// spend wrapper budget PLUS a whole fresh allowance, more than the 8 requests the policy
     /// promises. Now the resize pass threads its remaining budget straight into the staged
-    /// recovery, while <see cref="RelocateFocusIfNeeded"/> — the TRANSITION path's entry point —
+    /// recovery, while <c>RelocateFocusIfNeeded</c> — the TRANSITION path's entry point —
     /// still opens a fresh allowance of its own, so
     /// <see cref="FakedProgressForever_StopsAtTheCap_AndRelocates"/> keeps pinning that contract
     /// unchanged.
@@ -2338,7 +2362,7 @@ public class CompactHeightBehaviorTests
     /// <summary>
     /// A correction to the reasoning above: an earlier version
     /// returned straight out of the obscured leg, arguing that
-    /// <see cref="RelocateFocusIfNeeded"/> already hands over internally and a second loop would
+    /// <c>RelocateFocusIfNeeded</c> already hands over internally and a second loop would
     /// only duplicate it. That was wrong, and this is the case that proves it: the two hand over
     /// against DIFFERENT bars. The inner resolver yields to a newer focus it judges USABLE, and
     /// usable is the AA line — focusable, enabled, not ENTIRELY hidden — which a merely PARTIALLY
@@ -2566,7 +2590,7 @@ public class CompactHeightBehaviorTests
 
     /// <summary>
     /// The generation half of the fix above: a real transition landing during the leg's own
-    /// synchronous <c>BringIntoView</c> must abandon it, exactly as <see cref="IsSuperseded"/>
+    /// synchronous <c>BringIntoView</c> must abandon it, exactly as <c>IsSuperseded</c>
     /// rejects a stale deferred job. Same faked-progress rig as above, so an earlier version of
     /// this leg spun to the cap while superseded and the fixed one issues exactly ONE request.
     /// <para>
@@ -2613,7 +2637,7 @@ public class CompactHeightBehaviorTests
     /// NOTHING focused, that is not the pass's business. Empty focus means the user (or a close, or
     /// a detach) cleared it; reviving the element that happened to be focused when the pass was
     /// SCHEDULED is focus theft, and the fallback chain's root terminal can leave a phantom Tab
-    /// stop behind. An earlier version inherited <see cref="ResolveRecoveryTarget"/>'s "nothing focused means
+    /// stop behind. An earlier version inherited <c>ResolveRecoveryTarget</c>'s "nothing focused means
     /// recover the capture" rule — correct for a TRANSITION, which cleared focus itself by hiding
     /// the element, and wrong for a resize, which did no such thing.
     /// <para>
@@ -2633,7 +2657,11 @@ public class CompactHeightBehaviorTests
         {
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             root.Children.Add(scroller);
             Dispatcher.UIThread.RunJobs();
@@ -2671,7 +2699,7 @@ public class CompactHeightBehaviorTests
     /// ALREADY outside when the pass was scheduled (so nothing is ever posted); this covers focus
     /// that was legitimately IN-ROOT at scheduling and left before the pass ran. A guard rather
     /// than a gap test — an earlier version already declined this case, via a different route
-    /// (<see cref="ResolveRecoveryTarget"/>'s own out-of-scope null) than the live-holder rule that
+    /// (<c>ResolveRecoveryTarget</c>'s own out-of-scope null) than the live-holder rule that
     /// replaced it — so it is here to keep BOTH routes honest, and it passes both before and
     /// after this change rather than pinning a specific fix.
     /// </summary>
@@ -2686,7 +2714,11 @@ public class CompactHeightBehaviorTests
 
             var scroller = new ScrollViewer { [Grid.RowProperty] = 2 };
             var stack = new StackPanel();
-            for (int i = 0; i < 10; i++) stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            for (int i = 0; i < 10; i++)
+            {
+                stack.Children.Add(new Button { Content = $"b{i}", Height = 30 });
+            }
+
             scroller.Content = stack;
             root.Children.Add(scroller);
 

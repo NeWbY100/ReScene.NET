@@ -306,7 +306,7 @@ public class SRSCreatorCompactTests
     /// never the walk's own output) and checking BOTH the forward walk and the reverse walk
     /// against THAT SAME list (forward as-is; reverse as its independent reversal) — proven to
     /// genuinely discriminate by
-    /// <see cref="AssertSameControlSequence_SwappedIdenticallyDescribedBrowsePositions_FailsNamingTheMismatch"/>
+    /// <see cref="AssertSameControlSequence_IdenticallyDescribedControls_AreDistinguishedByReference"/>
     /// below.
     /// <para>
     /// Also adopts the now-hardened <see cref="CompactViewRig"/> idioms directly: a forward walk
@@ -363,7 +363,7 @@ public class SRSCreatorCompactTests
                 "forward capture should have left root's scope onto an external control, not ended via a stable loop within root");
             Assert.True(ReferenceEquals(expectedExternalBoundary, forwardCapture.FirstExternalTarget),
                 $"forward capture's terminal external target should be {CompactViewRig.Describe(expectedExternalBoundary)}, " +
-                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget!)} — same description does not mean same control instance.");
+                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget)} — same description does not mean same control instance.");
 
             // REVERSE: anchored at the forward walk's own LAST stop (the unambiguous boundary),
             // never a presumed starting point. Checked against the INDEPENDENT order's own

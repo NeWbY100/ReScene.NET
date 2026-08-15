@@ -292,7 +292,7 @@ public class SRSReconstructorCompactTests
     /// view has THREE identically-described "Browse" buttons (SRS/Media/Output); if any two
     /// were genuinely swapped in the tree, a description-only fixture (or a forward-derived
     /// reverse expectation) could not tell — proven directly by
-    /// <see cref="AssertSameControlSequence_SwappedIdenticallyDescribedBrowsePositions_FailsNamingTheMismatch"/>
+    /// <see cref="AssertSameControlSequence_IdenticallyDescribedControls_AreDistinguishedByReference"/>
     /// below. Unlike SRSCreatorView's own equivalent, every TextBox here already carries a
     /// distinct x:Name (SRSFileTextBox/MediaFileTextBox/OutputTextBox) — no Width-based
     /// disambiguation hack needed.
@@ -348,7 +348,7 @@ public class SRSReconstructorCompactTests
                 "forward capture should have left root's scope onto an external control, not ended via a stable loop within root");
             Assert.True(ReferenceEquals(expectedExternalBoundary, forwardCapture.FirstExternalTarget),
                 $"forward capture's terminal external target should be {CompactViewRig.Describe(expectedExternalBoundary)}, " +
-                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget!)} — same description does not mean same control instance.");
+                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget)} — same description does not mean same control instance.");
 
             // REVERSE: anchored at the forward walk's own LAST stop (the unambiguous boundary),
             // never a presumed starting point. Checked against the INDEPENDENT order's own

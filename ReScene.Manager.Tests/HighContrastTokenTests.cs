@@ -176,7 +176,8 @@ public class HighContrastTokenTests
                 scanned++;
                 int n = LiteralColourAttribute.Matches(File.ReadAllText(file))
                     .Count(m => m.Groups["value"].Value != "Transparent");
-                if (n > 0) { counts[Path.GetFileName(file)] = n; }
+                if (n > 0)
+                { counts[Path.GetFileName(file)] = n; }
             }
         }
 
@@ -206,7 +207,8 @@ public class HighContrastTokenTests
         var failures = new List<string>();
         foreach ((string key, Color colour) in hc)
         {
-            if (IsSurface(key) || colour.A < 255) { continue; }
+            if (IsSurface(key) || colour.A < 255)
+            { continue; }
 
             double required = IsText(key) ? 4.5 : 3.0;
             double ratio = ContrastRatio(colour, background);
@@ -355,7 +357,8 @@ public class HighContrastTokenTests
         var all = new Dictionary<string, Color>(StringComparer.Ordinal);
         foreach (string file in TokenFiles)
         {
-            foreach ((string key, Color colour) in ReadBrushes(file)) { all[key] = colour; }
+            foreach ((string key, Color colour) in ReadBrushes(file))
+            { all[key] = colour; }
         }
 
         return all;
@@ -382,7 +385,8 @@ public class HighContrastTokenTests
         while (dir is not null)
         {
             string candidate = Path.Combine(dir.FullName, "ReScene.Manager", "Resources");
-            if (File.Exists(Path.Combine(candidate, "Tokens.axaml"))) { return candidate; }
+            if (File.Exists(Path.Combine(candidate, "Tokens.axaml")))
+            { return candidate; }
             dir = dir.Parent;
         }
 

@@ -415,6 +415,7 @@ public class CreatorCompactTests
     /// helper's own job is the narrower claim "once inside the form, is the target reachable by
     /// each of the three routes". Anchoring explicitly keeps that claim honest whatever the walk's
     /// entry point happens to be, and keeps the three routes comparable with each other.
+    /// </para>
     /// <para>
     /// It used to be load-bearing for a worse reason: this view's Input row carried unscoped
     /// TabIndex pins, so a blind Tab press from an unfocused window landed there and then cycled
@@ -500,7 +501,7 @@ public class CreatorCompactTests
                 "forward capture should have left root's scope onto an external control, not ended via a stable loop within root");
             Assert.True(ReferenceEquals(expectedExternalBoundary, forwardCapture.FirstExternalTarget),
                 $"forward capture's terminal external target should be {CompactViewRig.Describe(expectedExternalBoundary)}, " +
-                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget!)} — same description does not mean same control instance.");
+                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget)} — same description does not mean same control instance.");
 
             // REVERSE: anchored at the forward walk's own LAST stop (the unambiguous boundary,
             // proven by the FORWARD exit above), never a presumed starting point. Checked against
@@ -1775,8 +1776,8 @@ public class CreatorCompactTests
                 Point? newBottom = newSplitter.TranslatePoint(new Point(0, newSplitter.Bounds.Height), newRoot);
                 Assert.True(oldBottom is not null && newBottom is not null);
 
-                int oldCropHeight = (int)Math.Ceiling(oldBottom!.Value.Y);
-                int newCropHeight = (int)Math.Ceiling(newBottom!.Value.Y);
+                int oldCropHeight = (int)Math.Ceiling(oldBottom.Value.Y);
+                int newCropHeight = (int)Math.Ceiling(newBottom.Value.Y);
                 Assert.Equal(oldCropHeight, newCropHeight);
 
                 int width = (int)Math.Ceiling(oldRoot.Bounds.Width);
@@ -2386,7 +2387,8 @@ public class CreatorCompactTests
             vm.StoredFiles.Add(Item($@"C:\release\file{i:D2}.nfo", $"file{i:D2}.nfo"));
         }
         var view = new CreatorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, innerHeight);
+
+        (Window window, _) = CompactViewRig.HostAt(view, innerHeight);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
@@ -2431,14 +2433,14 @@ public class CreatorCompactTests
         Point center = new(splitter.Bounds.Width / 2, splitter.Bounds.Height / 2);
         Point? centerInWindow = splitter.TranslatePoint(center, window);
         Assert.True(centerInWindow is not null, "test precondition: the splitter's own center must translate into window coordinates");
-        Color focusColor = SamplePixelColor(window, centerInWindow!.Value);
+        Color focusColor = SamplePixelColor(window, centerInWindow.Value);
 
         Point? aboveInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, -3), window);
         Point? belowInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, splitter.Bounds.Height + 3), window);
         Assert.True(aboveInWindow is not null && belowInWindow is not null, "test precondition: both neighboring points must translate into window coordinates");
 
-        Color abovePane = SamplePixelColor(window, aboveInWindow!.Value);
-        Color belowPane = SamplePixelColor(window, belowInWindow!.Value);
+        Color abovePane = SamplePixelColor(window, aboveInWindow.Value);
+        Color belowPane = SamplePixelColor(window, belowInWindow.Value);
 
         return (ContrastRatio(focusColor, abovePane), ContrastRatio(focusColor, belowPane));
     }
@@ -2479,7 +2481,8 @@ public class CreatorCompactTests
             vm.StoredFiles.Add(Item($@"C:\release\file{i:D2}.nfo", $"file{i:D2}.nfo"));
         }
         var view = new CreatorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, ExpandedInner);
+
+        (Window window, _) = CompactViewRig.HostAt(view, ExpandedInner);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
@@ -2699,7 +2702,8 @@ public class CreatorCompactTests
             vm.StoredFiles.Add(Item($@"C:\release\file{i:D2}.nfo", $"file{i:D2}.nfo"));
         }
         var view = new CreatorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, innerHeight);
+
+        (Window window, _) = CompactViewRig.HostAt(view, innerHeight);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
@@ -2721,7 +2725,7 @@ public class CreatorCompactTests
                 Assert.True(centerInWindow is not null);
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 Dispatcher.UIThread.RunJobs();
-                Color unfocusedColor = SamplePixelColor(window, centerInWindow!.Value);
+                Color unfocusedColor = SamplePixelColor(window, centerInWindow.Value);
 
                 splitter.Focus();
                 Dispatcher.UIThread.RunJobs();
@@ -2770,7 +2774,8 @@ public class CreatorCompactTests
             vm.StoredFiles.Add(Item($@"C:\release\file{i:D2}.nfo", $"file{i:D2}.nfo"));
         }
         var view = new CreatorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, ExpandedInner);
+
+        (Window window, _) = CompactViewRig.HostAt(view, ExpandedInner);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
@@ -2835,7 +2840,8 @@ public class CreatorCompactTests
             vm.StoredFiles.Add(Item($@"C:\release\file{i:D2}.nfo", $"file{i:D2}.nfo"));
         }
         var view = new CreatorView { DataContext = vm };
-        (Window window, Grid root) = CompactViewRig.HostAt(view, ExpandedInner);
+
+        (Window window, _) = CompactViewRig.HostAt(view, ExpandedInner);
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();

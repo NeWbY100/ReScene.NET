@@ -22,10 +22,10 @@ public class UiThreadExceptionHandlerTests
         bool handled = handler.Handle(new InvalidOperationException("boom"));
 
         Assert.True(handled);
-        (string Title, string Message) call = Assert.Single(calls);
-        Assert.Equal("Unexpected error", call.Title);
-        Assert.Contains("boom", call.Message, StringComparison.Ordinal);
-        Assert.Contains("try to continue", call.Message, StringComparison.Ordinal);
+        (string Title, string Message) = Assert.Single(calls);
+        Assert.Equal("Unexpected error", Title);
+        Assert.Contains("boom", Message, StringComparison.Ordinal);
+        Assert.Contains("try to continue", Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -87,8 +87,8 @@ public class UiThreadExceptionHandlerTests
             Dispatcher.UIThread.UnhandledException -= Subscription;
         }
 
-        (string Title, string Message) error = Assert.Single(errors);
-        Assert.Equal("Unexpected error", error.Title);
-        Assert.Contains("kaboom", error.Message, StringComparison.Ordinal);
+        (string Title, string Message) = Assert.Single(errors);
+        Assert.Equal("Unexpected error", Title);
+        Assert.Contains("kaboom", Message, StringComparison.Ordinal);
     }
 }

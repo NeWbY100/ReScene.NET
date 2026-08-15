@@ -41,7 +41,8 @@ public class ProgressWindowControllerTests
     static ProgressWindowControllerTests() =>
         Window.WindowOpenedEvent.AddClassHandler<Window>((w, _) =>
         {
-            if (!Tracked.Contains(w)) { Tracked.Add(w); }
+            if (!Tracked.Contains(w))
+            { Tracked.Add(w); }
         });
 
     private static int Live<TWindow>() where TWindow : Window =>
@@ -211,8 +212,10 @@ public class ProgressWindowControllerTests
 
             Action interceptor = () =>
             {
-                if (_hold) { _closedIsPending = true; }
-                else { _originalClosedHandler(); }
+                if (_hold)
+                { _closedIsPending = true; }
+                else
+                { _originalClosedHandler(); }
             };
             ClosedProperty.SetValue(impl, interceptor);
         }

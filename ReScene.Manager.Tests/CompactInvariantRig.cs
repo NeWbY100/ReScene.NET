@@ -117,13 +117,20 @@ internal static class CompactInvariantRig
         for (int i = 0; i < innerRoot.RowDefinitions.Count; i++)
         {
             RowDefinition row = innerRoot.RowDefinitions[i];
-            if (AuthoredExpandedMinimum(rows, i) is { } authored) { total += authored; continue; }
-            if (row.Height.IsAbsolute) { total += row.Height.Value; continue; }
-            if (row.Height.IsStar) { total += row.MinHeight; continue; }
+            if (AuthoredExpandedMinimum(rows, i) is { } authored)
+            { total += authored; continue; }
+            if (row.Height.IsAbsolute)
+            { total += row.Height.Value; continue; }
+            if (row.Height.IsStar)
+            { total += row.MinHeight; continue; }
             double rowDesired = 0;
             foreach (Control child in innerRoot.Children.OfType<Control>())
             {
-                if (Grid.GetRow(child) != i) continue;
+                if (Grid.GetRow(child) != i)
+                {
+                    continue;
+                }
+
                 rowDesired = Math.Max(rowDesired,
                     child.DesiredSize.Height + child.Margin.Top + child.Margin.Bottom);
             }
@@ -134,10 +141,17 @@ internal static class CompactInvariantRig
 
     private static double? AuthoredExpandedMinimum(IReadOnlyList<CompactRowSize>? rows, int rowIndex)
     {
-        if (rows is null) return null;
+        if (rows is null)
+        {
+            return null;
+        }
+
         foreach (CompactRowSize row in rows)
         {
-            if (row.RowIndex == rowIndex && !double.IsNaN(row.ExpandedMinHeight)) return row.ExpandedMinHeight;
+            if (row.RowIndex == rowIndex && !double.IsNaN(row.ExpandedMinHeight))
+            {
+                return row.ExpandedMinHeight;
+            }
         }
         return null;
     }
@@ -153,12 +167,18 @@ internal static class CompactInvariantRig
         innerRoot.Arrange(new Rect(0, 0, InnerWidth, height));
         foreach (Control child in innerRoot.Children.OfType<Control>())
         {
-            if (!child.IsVisible) continue;
+            if (!child.IsVisible)
+            {
+                continue;
+            }
+
             double bottom = child.Bounds.Y + child.Bounds.Height;
             if (bottom > height + 0.5)
+            {
                 throw new Xunit.Sdk.XunitException(
                     (context is null ? string.Empty : context + ": ") +
                     $"{child.GetType().Name} bottom {bottom:F1} exceeds {height}");
+            }
         }
     }
 
@@ -229,8 +249,15 @@ internal static class CompactInvariantRig
         double switchPoint = ProbeSwitchPoint(buildWorstCase);
 
         List<double> heights = [];
-        for (double h = switchPoint - 36; h <= switchPoint + 36; h += 6) heights.Add(h);
-        for (double h = switchPoint + 96; h <= switchPoint + 396; h += 60) heights.Add(h);
+        for (double h = switchPoint - 36; h <= switchPoint + 36; h += 6)
+        {
+            heights.Add(h);
+        }
+
+        for (double h = switchPoint + 96; h <= switchPoint + 396; h += 60)
+        {
+            heights.Add(h);
+        }
 
         bool sawCompact = false;
         bool sawExpanded = false;

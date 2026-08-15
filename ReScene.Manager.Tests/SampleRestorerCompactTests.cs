@@ -32,7 +32,7 @@ namespace ReScene.Manager.Tests;
 /// today's DockPanel — the headline defect (section 5 below).
 /// <para>
 /// The one structural feature no other converted view has: a genuinely-editable, VIRTUALIZED
-/// <see cref="DataGrid"/> (SRSEntriesGrid) inside the config band's own ScrollViewer. Two
+/// <c>DataGrid</c> (SRSEntriesGrid) inside the config band's own ScrollViewer. Two
 /// consequences threaded through this file, both confirmed empirically (see
 /// <c>ScrollHandoffBehaviorTests</c>'s own remarks for the decompiled evidence):
 /// <list type="bullet">
@@ -479,7 +479,7 @@ public class SampleRestorerCompactTests
                 "forward capture should have left root's scope onto an external control, not ended via a stable loop within root");
             Assert.True(ReferenceEquals(expectedExternalBoundary, forwardCapture.FirstExternalTarget),
                 $"forward capture's terminal external target should be {CompactViewRig.Describe(expectedExternalBoundary)}, " +
-                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget!)} — same description does not mean same control instance.");
+                $"not {CompactViewRig.Describe(forwardCapture.FirstExternalTarget)} — same description does not mean same control instance.");
 
             // REVERSE: anchored at the forward walk's own LAST stop, checked against the
             // INDEPENDENT order's own reversal — NOT forwardOrder.Reverse() — so a genuine
@@ -505,7 +505,7 @@ public class SampleRestorerCompactTests
     /// <para>
     /// FINDING (corrects an assumption from the isolated <c>ScrollHandoffBehaviorTests</c> rig,
     /// where focus started already inside a realized cell, skipping past this): the
-    /// <see cref="DataGrid"/> CONTROL ITSELF is Focusable AND IsTabStop (the framework default for
+    /// <c>DataGrid</c> CONTROL ITSELF is Focusable AND IsTabStop (the framework default for
     /// any plain Control, unlike <c>DataGridCell</c> which is Focusable but NOT a tab stop) — Tab
     /// arriving from the PRECEDING external control (OutputDirTextBox) lands on the grid itself
     /// FIRST, confirmed empirically (a real Tab walk against this view), before a SECOND Tab

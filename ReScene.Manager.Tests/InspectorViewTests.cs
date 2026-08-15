@@ -15,7 +15,7 @@ namespace ReScene.Manager.Tests;
 /// <summary>
 /// Headless render tests for the ported <see cref="InspectorView"/> (Inspector tab — the app's richest
 /// single-file view: a structure <see cref="TreeView"/> with a rich context menu, a properties
-/// <see cref="DataGrid"/> with indent/warning cell converters, a verify-result panel, and a Hex/Text
+/// <c>DataGrid</c> with indent/warning cell converters, a verify-result panel, and a Hex/Text
 /// <see cref="TabControl"/> hosting the embedded <see cref="HexView"/> plus a live hex-search bar). The
 /// central gate is <b>zero binding errors</b> (via <see cref="BindingErrorSink"/>), on both an empty
 /// view and one seeded with properties/tree nodes. The editing/verify/export/image-preview services and
@@ -110,7 +110,7 @@ public class InspectorViewTests
             Assert.Equal("Browse", browse.Content as string);
             Assert.Equal("Browse for file to inspect",
                 Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(browse).GetName());
-            Assert.Contains("Browse", Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(browse).GetName()!, StringComparison.Ordinal);
+            Assert.Contains("Browse", Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(browse).GetName(), StringComparison.Ordinal);
         }
         finally { window.Close(); }
     }

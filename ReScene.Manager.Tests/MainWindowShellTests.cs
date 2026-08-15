@@ -22,7 +22,7 @@ namespace ReScene.Manager.Tests;
 /// </summary>
 /// <remarks>
 /// Shares the "AppDataConfig" collection with the other classes that mutate
-/// <see cref="AppDataConfig.FolderName"/> / <see cref="AppInfo.DisplayName"/>, so none run
+/// <see cref="AppDataConfig.FolderName"/> / <c>AppInfo.DisplayName</c>, so none run
 /// concurrently. Each test points <see cref="AppDataConfig.FolderName"/> at a unique temp folder so
 /// the real settings/recent-files services never touch the machine's <c>%LOCALAPPDATA%</c>.
 /// </remarks>

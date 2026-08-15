@@ -60,7 +60,10 @@ public class WindowFontSizeParityTests
                 Dispatcher.UIThread.RunJobs();
                 double expected = ExpectedWindowFontSizes.GetValueOrDefault(type, DefaultExpected);
                 if (window.FontSize != expected)
+                {
                     failures.Add($"{type.Name}: FontSize {window.FontSize}, expected {expected}.");
+                }
+
                 window.Close();
                 Dispatcher.UIThread.RunJobs();
             }
@@ -123,7 +126,10 @@ public class WindowFontSizeParityTests
             Dispatcher.UIThread.RunJobs();
             DataGrid? grid = progress.GetVisualDescendants().OfType<DataGrid>().FirstOrDefault();
             if (grid is not null)
+            {
                 Assert.Equal(13, grid.FontSize);
+            }
+
             progress.Close();
         }
         finally

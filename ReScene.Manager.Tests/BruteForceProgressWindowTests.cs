@@ -15,7 +15,7 @@ namespace ReScene.Manager.Tests;
 /// Headless render tests for the ported <see cref="BruteForceProgressWindow"/>. The window's central
 /// gate is <b>zero binding errors</b> (via <see cref="BindingErrorSink"/>) with a
 /// <see cref="ReconstructorViewModel"/> DataContext, plus: the phase/progress/stats text bind, the
-/// version-attempt <see cref="DataGrid"/> renders its 8 columns and seeded rows with a Copy
+/// version-attempt <c>DataGrid</c> renders its 8 columns and seeded rows with a Copy
 /// context menu, the Open-Folder button's visibility tracks <c>LastRunSucceeded</c>, and the
 /// Stop/Close button flips state (content/style/enabled) when <c>IsRunning</c> goes false. Live
 /// clipboard copy, live auto-scroll, and the Stop command actually cancelling a run need a real

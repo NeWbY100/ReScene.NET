@@ -57,8 +57,10 @@ public class WizardTabOrderTests
         List<Control> order = [start];
         for (int i = 0; i < MaxSteps; i++)
         {
-            if (CompactViewRig.StepFocus(window, forward: true) is not { } focused) { break; }
-            if (order.Any(c => ReferenceEquals(c, focused))) { break; }
+            if (CompactViewRig.StepFocus(window, forward: true) is not { } focused)
+            { break; }
+            if (order.Any(c => ReferenceEquals(c, focused)))
+            { break; }
             order.Add(focused);
         }
 
@@ -108,7 +110,7 @@ public class WizardTabOrderTests
                 Control? fieldOnOldStep = body.GetVisualDescendants().OfType<Control>()
                     .FirstOrDefault(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled);
                 Assert.True(fieldOnOldStep is not null, $"step {step - 1}: expected a focusable field to work in");
-                fieldOnOldStep!.Focus();
+                fieldOnOldStep.Focus();
                 Dispatcher.UIThread.RunJobs();
 
                 // Advance. The control that had focus belongs to the previous step and is now hidden,
@@ -118,9 +120,9 @@ public class WizardTabOrderTests
 
                 Control? landed = CompactViewRig.StepFocus(window, forward: true);
                 Assert.True(landed is not null, $"step {step}: Tab after advancing lost focus entirely");
-                Assert.True(body.IsVisualAncestorOf(landed!),
-                    $"step {step}: Tab after advancing landed on {CompactViewRig.Describe(landed!)}, which is in the " +
-                    $"{(footer.IsVisualAncestorOf(landed!) ? "navigation footer" : "window chrome")} rather than the step's " +
+                Assert.True(body.IsVisualAncestorOf(landed),
+                    $"step {step}: Tab after advancing landed on {CompactViewRig.Describe(landed)}, which is in the " +
+                    $"{(footer.IsVisualAncestorOf(landed) ? "navigation footer" : "window chrome")} rather than the step's " +
                     "own fields — the user has to tab past the navigation before reaching what they came for.");
             }
         }
@@ -140,7 +142,7 @@ public class WizardTabOrderTests
     [AvaloniaFact]
     public void ColdStart_FirstTabLandsInTheBody_NotTheFooter()
     {
-        (WizardWindow window, WizardViewModel wizard, CreatorViewModel vm) = ShowCreateSrrWizard();
+        (WizardWindow window, _, _) = ShowCreateSrrWizard();
         try
         {
             ContentControl body = BodyHost(window);
@@ -148,10 +150,10 @@ public class WizardTabOrderTests
 
             Control? landed = CompactViewRig.StepFocus(window, forward: true);
             Assert.True(landed is not null, "cold-start Tab moved focus nowhere");
-            Assert.True(body.IsVisualAncestorOf(landed!),
-                $"cold-start Tab landed on {CompactViewRig.Describe(landed!)}, outside the wizard body");
+            Assert.True(body.IsVisualAncestorOf(landed),
+                $"cold-start Tab landed on {CompactViewRig.Describe(landed)}, outside the wizard body");
             Assert.Equal("Release .sfv, first .rar, or folder",
-                Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(landed!).GetName());
+                Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(landed).GetName());
         }
         finally { window.Close(); }
     }
@@ -220,7 +222,7 @@ public class WizardTabOrderTests
             ContentControl body = BodyHost(window);
             DockPanel footer = Footer(window);
 
-            var host = (Grid)window.GetVisualDescendants().OfType<Grid>()
+            var host = window.GetVisualDescendants().OfType<Grid>()
                 .First(g => g.Children.Contains(body));
 
             int bodyAt = host.Children.IndexOf(body);
@@ -232,8 +234,8 @@ public class WizardTabOrderTests
 
             Assert.True(Grid.GetRow(body) < Grid.GetRow(footer), "the footer must still RENDER below the body");
 
-            double bodyBottom = ((Visual)body).TranslatePoint(new Point(0, body.Bounds.Height), window)!.Value.Y;
-            double footerTop = ((Visual)footer).TranslatePoint(new Point(0, 0), window)!.Value.Y;
+            double bodyBottom = body.TranslatePoint(new Point(0, body.Bounds.Height), window)!.Value.Y;
+            double footerTop = footer.TranslatePoint(new Point(0, 0), window)!.Value.Y;
             Assert.True(footerTop >= bodyBottom - 0.5,
                 $"the footer renders at y={footerTop:F1}, overlapping or above the body which ends at y={bodyBottom:F1}");
         }
@@ -257,7 +259,7 @@ public class WizardTabOrderTests
     [AvaloniaFact]
     public void PickerRows_TabInVisualOrder_DespiteReversedMarkupOrder()
     {
-        (WizardWindow window, WizardViewModel wizard, CreatorViewModel vm) = ShowCreateSrrWizard();
+        (WizardWindow window, WizardViewModel wizard, _) = ShowCreateSrrWizard();
         try
         {
             AssertRow(window, wizard, step: 0,

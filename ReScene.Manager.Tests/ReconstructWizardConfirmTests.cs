@@ -28,7 +28,9 @@ public sealed class ReconstructWizardConfirmTests : IDisposable
     {
         foreach (string d in _temps)
         {
-            try { Directory.Delete(d, recursive: true); } catch { /* best effort */ }
+            try
+            { Directory.Delete(d, recursive: true); }
+            catch { /* best effort */ }
         }
     }
 

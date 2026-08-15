@@ -22,7 +22,7 @@ namespace ReScene.Manager.Tests;
 /// <summary>
 /// Headless render tests for the ported <see cref="FileCompareView"/> (Compare tab — the app's most
 /// complex view: two symmetric panels, each a structure <see cref="TreeView"/> + a properties
-/// <see cref="DataGrid"/> + an embedded <see cref="HexView"/>). The central gate is <b>zero binding
+/// <c>DataGrid</c> + an embedded <see cref="HexView"/>). The central gate is <b>zero binding
 /// errors</b> (via <see cref="BindingErrorSink"/>): both empty and with seeded properties/tree nodes
 /// (including diff/indent rows) so the diff/indent converter bindings realize. The compare pipeline,
 /// file dialogs and hex-diff computer are inert fakes — only the view wiring is exercised; a live
@@ -102,8 +102,8 @@ public class FileCompareViewTests
             Assert.Equal("Browse", left.Content as string);
             Assert.Equal("Browse", right.Content as string);
 
-            string leftName = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(left).GetName()!;
-            string rightName = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(right).GetName()!;
+            string leftName = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(left).GetName();
+            string rightName = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(right).GetName();
 
             Assert.Equal("Browse for left file", leftName);
             Assert.Equal("Browse for right file", rightName);

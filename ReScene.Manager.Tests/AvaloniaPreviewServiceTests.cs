@@ -85,8 +85,8 @@ public class AvaloniaPreviewServiceTests
 
         Assert.Equal(1, loader.StreamLoadCount);
         Assert.NotNull(dialog.LastError);
-        Assert.Equal("Could not display image", dialog.LastError!.Value.Title);
-        Assert.Contains("broken.png", dialog.LastError!.Value.Message, StringComparison.Ordinal);
+        Assert.Equal("Could not display image", dialog.LastError.Value.Title);
+        Assert.Contains("broken.png", dialog.LastError.Value.Message, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]

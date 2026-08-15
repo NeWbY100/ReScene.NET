@@ -90,7 +90,8 @@ public class TextContrastAuditTests
         foreach (Type type in InstantiableControls())
         {
             Control control;
-            try { control = (Control)Activator.CreateInstance(type)!; }
+            try
+            { control = (Control)Activator.CreateInstance(type)!; }
             catch { continue; }
 
             Window window = control as Window ?? new Window { Width = 1200, Height = 900, Content = control };
@@ -100,9 +101,12 @@ public class TextContrastAuditTests
             {
                 foreach (Visual visual in window.GetVisualDescendants())
                 {
-                    if (ForegroundOf(visual) is not { } fg || !tokens.TryGetValue(fg, out string? fgName)) { continue; }
-                    if (NearestBackground(visual) is not var (bgToken, bgRendered) || bgToken is null) { continue; }
-                    if (!tokens.TryGetValue(bgToken, out string? bgName)) { continue; }
+                    if (ForegroundOf(visual) is not { } fg || !tokens.TryGetValue(fg, out string? fgName))
+                    { continue; }
+                    if (NearestBackground(visual) is not var (bgToken, bgRendered) || bgToken is null)
+                    { continue; }
+                    if (!tokens.TryGetValue(bgToken, out string? bgName))
+                    { continue; }
 
                     pairs[(fgName, bgName, IsLargeText(visual))] = ContrastRatio(ColourOf(fg), bgRendered);
                 }
@@ -168,7 +172,8 @@ public class TextContrastAuditTests
                 _ => null,
             };
 
-            if (brush is not { Color.A: > 0 }) { continue; }
+            if (brush is not { Color.A: > 0 })
+            { continue; }
 
             if (!started)
             {
@@ -181,7 +186,8 @@ public class TextContrastAuditTests
                 accumulated = Composite(accumulated, brush.Color);
             }
 
-            if (accumulated.A == 255) { return (token!, accumulated); }
+            if (accumulated.A == 255)
+            { return (token!, accumulated); }
         }
 
         // Nothing opaque behind it: the window itself paints last, so treat the accumulation as final.
@@ -261,7 +267,8 @@ public class TextContrastAuditTests
         while (dir is not null)
         {
             string candidate = Path.Combine(dir.FullName, "ReScene.Manager", "Resources");
-            if (File.Exists(Path.Combine(candidate, "Tokens.axaml"))) { return candidate; }
+            if (File.Exists(Path.Combine(candidate, "Tokens.axaml")))
+            { return candidate; }
             dir = dir.Parent;
         }
 

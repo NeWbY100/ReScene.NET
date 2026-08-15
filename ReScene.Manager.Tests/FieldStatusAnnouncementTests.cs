@@ -42,7 +42,8 @@ public class FieldStatusAnnouncementTests
     private static int CountPeerDescendants(AutomationPeer peer)
     {
         int n = 0;
-        foreach (AutomationPeer child in peer.GetChildren()) { n += 1 + CountPeerDescendants(child); }
+        foreach (AutomationPeer child in peer.GetChildren())
+        { n += 1 + CountPeerDescendants(child); }
         return n;
     }
 

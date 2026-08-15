@@ -174,7 +174,8 @@ public class BrowseButtonCensusTests
         var settings = new SettingsWindow { DataContext = new SettingsViewModel(new AppSettingsService(), new AvaloniaFileDialogService(static () => null)) };
         settings.Show();
         Dispatcher.UIThread.RunJobs();
-        try { yield return ("SettingsWindow", BrowseButtonsIn(settings)); }
+        try
+        { yield return ("SettingsWindow", BrowseButtonsIn(settings)); }
         finally { settings.Close(); }
     }
 
@@ -183,7 +184,8 @@ public class BrowseButtonCensusTests
         var window = new Window { Width = 1200, Height = 900, Content = view };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        try { return (surface, BrowseButtonsIn(window)); }
+        try
+        { return (surface, BrowseButtonsIn(window)); }
         finally { window.Close(); }
     }
 
@@ -206,7 +208,8 @@ public class BrowseButtonCensusTests
         var window = new Window { Width = 1200, Height = 900, DataContext = wizard, Content = body };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        try { return (surface, BrowseButtonsIn(window, wizard, steps)); }
+        try
+        { return (surface, BrowseButtonsIn(window, wizard, steps)); }
         finally { window.Close(); }
     }
 

@@ -58,7 +58,7 @@ public class MainWindowBoundsCaptureTests
         window.Close();
 
         Assert.NotNull(state.Saved);
-        Assert.True(state.Saved!.IsMaximized);
+        Assert.True(state.Saved.IsMaximized);
         Assert.Equal(1000, state.Saved.Width);
         Assert.Equal(650, state.Saved.Height);
     }
@@ -83,7 +83,7 @@ public class MainWindowBoundsCaptureTests
         window.Close();
 
         Assert.NotNull(state.Saved);
-        Assert.True(state.Saved!.IsMaximized);
+        Assert.True(state.Saved.IsMaximized);
         // The persisted "normal" bounds are the pre-maximize size, NOT the 1920 x 1080 maximize
         // geometry — a synchronous capture would have wrongly recorded the latter.
         Assert.Equal(1100, state.Saved.Width);

@@ -179,7 +179,7 @@ public class IsVisibleCensusTests
             string text = File.ReadAllText(path);
             string name = Path.GetFileName(path);
 
-            liveLineFiles[name] = Regex.Matches(text, @"AutomationProperties\.LiveSetting=""").Count;
+            liveLineFiles[name] = Regex.Count(text, @"AutomationProperties\.LiveSetting=""");
             foreach (Match m in IsVisibleBinding.Matches(text))
             {
                 // Bindings wrap across lines in this codebase, so the raw capture carries the
@@ -235,7 +235,8 @@ public class IsVisibleCensusTests
         while (dir is not null)
         {
             string candidate = Path.Combine(dir.FullName, "ReScene.Manager");
-            if (Directory.Exists(Path.Combine(candidate, "Views"))) { return candidate; }
+            if (Directory.Exists(Path.Combine(candidate, "Views")))
+            { return candidate; }
             dir = dir.Parent;
         }
 

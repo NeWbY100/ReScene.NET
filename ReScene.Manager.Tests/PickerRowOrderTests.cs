@@ -107,11 +107,16 @@ public class PickerRowOrderTests
                 int skipped = 0;
                 foreach (RowCheck row in rows)
                 {
-                    if (row.Walked) { walked++; } else { skipped++; }
-                    if (row.Failure is { } why) { failures.Add($"{surface}: {why}"); }
+                    if (row.Walked)
+                    { walked++; }
+                    else
+                    { skipped++; }
+                    if (row.Failure is { } why)
+                    { failures.Add($"{surface}: {why}"); }
                 }
 
-                if (skipped > 0) { unwalked.Add($"{surface} ({skipped} of {rows.Count})"); }
+                if (skipped > 0)
+                { unwalked.Add($"{surface} ({skipped} of {rows.Count})"); }
             }
 
             Assert.True(failures.Count == 0,
@@ -141,7 +146,8 @@ public class PickerRowOrderTests
         {
             AppDataConfig.FolderName = originalFolder;
             string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), temp);
-            if (Directory.Exists(dir)) { Directory.Delete(dir, recursive: true); }
+            if (Directory.Exists(dir))
+            { Directory.Delete(dir, recursive: true); }
         }
     }
 
@@ -187,7 +193,7 @@ public class PickerRowOrderTests
 
         List<Control> visual = [.. row.Children.OfType<Control>()
             .Where(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled)
-            .OrderBy(c => ((Visual)c).TranslatePoint(new Point(0, 0), window)?.X ?? 0)];
+            .OrderBy(c => c.TranslatePoint(new Point(0, 0), window)?.X ?? 0)];
 
         // A row whose panel is hidden has no focusable children, so a Tab walk cannot exercise it at
         // all. An earlier version of this census silently returned "no failure" for exactly that
@@ -197,7 +203,8 @@ public class PickerRowOrderTests
         // The census now DRIVES that gating (see CollectRows) so all thirty-seven rows are walked,
         // and the caller asserts that count. Reaching here means only the markup could be checked,
         // which the caller reports as the weaker evidence it is.
-        if (visual.Count < 2) { return new RowCheck(null, Walked: false); }
+        if (visual.Count < 2)
+        { return new RowCheck(null, Walked: false); }
 
         visual[0].Focus();
         Dispatcher.UIThread.RunJobs();
@@ -254,7 +261,8 @@ public class PickerRowOrderTests
         };
         settings.Show();
         Dispatcher.UIThread.RunJobs();
-        try { yield return ("SettingsWindow", Sweep(settings, null, 1)); }
+        try
+        { yield return ("SettingsWindow", Sweep(settings, null, 1)); }
         finally { settings.Close(); }
     }
 
@@ -263,7 +271,8 @@ public class PickerRowOrderTests
         var window = new Window { Width = 1200, Height = 900, Content = view };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        try { return (surface, Sweep(window, null, 1)); }
+        try
+        { return (surface, Sweep(window, null, 1)); }
         finally { window.Close(); }
     }
 
@@ -275,7 +284,8 @@ public class PickerRowOrderTests
         var window = new WizardWindow(wizard, body);
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        try { return (surface, Sweep(window, wizard, steps, states)); }
+        try
+        { return (surface, Sweep(window, wizard, steps, states)); }
         finally { window.Close(); }
     }
 
@@ -302,15 +312,18 @@ public class PickerRowOrderTests
             foreach (DockPanel panel in window.GetVisualDescendants().OfType<DockPanel>().ToList())
             {
                 List<Control> kids = [.. panel.Children.OfType<Control>()];
-                if (!kids.OfType<TextBox>().Any()) { continue; }
-                if (!kids.OfType<Button>().Any(b => b.Content is string s && s.StartsWith("Browse", StringComparison.Ordinal))) { continue; }
+                if (!kids.OfType<TextBox>().Any())
+                { continue; }
+                if (!kids.OfType<Button>().Any(b => b.Content is string s && s.StartsWith("Browse", StringComparison.Ordinal)))
+                { continue; }
 
                 // A row is checked once, but the FIRST encounter is not necessarily the one that can
                 // prove anything: a hidden panel keeps its children in the visual tree, so step 0
                 // already discovers the rows belonging to later steps. Keeping that first result
                 // would freeze all of them at the weaker structural tier — which is what happened,
                 // measured: 30 of 37. Re-check until a walkable encounter is found, then stop.
-                if (results.TryGetValue(panel, out RowCheck prior) && prior.Walked) { continue; }
+                if (results.TryGetValue(panel, out RowCheck prior) && prior.Walked)
+                { continue; }
 
                 results[panel] = CheckRow(window, panel);
             }
@@ -323,7 +336,8 @@ public class PickerRowOrderTests
 
             for (int step = 0; step < Math.Max(1, steps); step++)
             {
-                if (wizard is not null) { wizard.CurrentStepIndex = step; Dispatcher.UIThread.RunJobs(); }
+                if (wizard is not null)
+                { wizard.CurrentStepIndex = step; Dispatcher.UIThread.RunJobs(); }
 
                 foreach (TabControl tabs in window.GetVisualDescendants().OfType<TabControl>().ToList())
                 {
