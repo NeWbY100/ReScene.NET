@@ -503,6 +503,10 @@ dotnet_diagnostic.IDE0161.severity = warning
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.IDE1006.severity = none
 
+# CA1030: test doubles' RaiseX helpers (e.g. FakeAppSettingsService.RaiseChanged) exist to
+# trigger the double's own event from the test — turning them into events inverts their purpose.
+dotnet_diagnostic.CA1030.severity = none
+
 # ── XAML files ───────────────────────────────────────────
 
 [*.xaml]

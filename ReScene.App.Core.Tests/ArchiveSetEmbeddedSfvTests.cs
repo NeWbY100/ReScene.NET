@@ -33,7 +33,7 @@ public class ArchiveSetEmbeddedSfvTests
             // Resolve THIS set's embedded SFV using the exact predicate the fix uses.
             byte[]? embedded = srr.ReadStoredFile(FixturePath, name => ReconstructorViewModel.EmbeddedSfvMatchesSet(name, set));
             Assert.NotNull(embedded);
-            Assert.NotEmpty(embedded!);
+            Assert.NotEmpty(embedded);
 
             // No user verification snapshot — the embedded SFV alone must cover every volume in the set.
             Dictionary<string, string> crcs = ArchiveSetPlanner.BuildExpectedVolumeCrcs(set, embedded, snapshot: null);

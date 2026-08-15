@@ -1,5 +1,5 @@
-using ReScene.Core;
 using ReScene.App.Core.ViewModels.Reconstruction;
+using ReScene.Core;
 
 namespace ReScene.App.Core.Tests;
 

@@ -1,8 +1,8 @@
-using ReScene.App.Core.Services;
-using ReScene.Core;
 using ReScene.App.Core.Models;
+using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
 using ReScene.App.Core.ViewModels.Reconstruction;
+using ReScene.Core;
 using ReScene.SRR;
 
 namespace ReScene.App.Core.Tests;
@@ -56,38 +56,76 @@ public sealed class ReconstructorConfigMapperTests
         vm.VerificationPath = "VER-PATH";
         vm.OutputPath = "OUT-PATH";
 
-        vm.Version2 = true; vm.Version3 = true; vm.Version4 = true;
-        vm.Version5 = true; vm.Version6 = true; vm.Version7 = true;
+        vm.Version2 = true;
+        vm.Version3 = true;
+        vm.Version4 = true;
+        vm.Version5 = true;
+        vm.Version6 = true;
+        vm.Version7 = true;
 
-        vm.SwitchM0 = true; vm.SwitchM1 = true; vm.SwitchM2 = true;
-        vm.SwitchM3 = true; vm.SwitchM4 = true; vm.SwitchM5 = true;
+        vm.SwitchM0 = true;
+        vm.SwitchM1 = true;
+        vm.SwitchM2 = true;
+        vm.SwitchM3 = true;
+        vm.SwitchM4 = true;
+        vm.SwitchM5 = true;
 
-        vm.SwitchMA4 = true; vm.SwitchMA5 = true;
+        vm.SwitchMA4 = true;
+        vm.SwitchMA5 = true;
 
-        vm.SwitchMD64K = true; vm.SwitchMD128K = true; vm.SwitchMD256K = true;
-        vm.SwitchMD512K = true; vm.SwitchMD1024K = true; vm.SwitchMD2048K = true;
-        vm.SwitchMD4096K = true; vm.SwitchMD8M = true; vm.SwitchMD16M = true;
-        vm.SwitchMD32M = true; vm.SwitchMD64M = true; vm.SwitchMD128M = true;
-        vm.SwitchMD256M = true; vm.SwitchMD512M = true; vm.SwitchMD1G = true;
+        vm.SwitchMD64K = true;
+        vm.SwitchMD128K = true;
+        vm.SwitchMD256K = true;
+        vm.SwitchMD512K = true;
+        vm.SwitchMD1024K = true;
+        vm.SwitchMD2048K = true;
+        vm.SwitchMD4096K = true;
+        vm.SwitchMD8M = true;
+        vm.SwitchMD16M = true;
+        vm.SwitchMD32M = true;
+        vm.SwitchMD64M = true;
+        vm.SwitchMD128M = true;
+        vm.SwitchMD256M = true;
+        vm.SwitchMD512M = true;
+        vm.SwitchMD1G = true;
 
-        vm.SwitchTSM0 = true; vm.SwitchTSM1 = true; vm.SwitchTSM2 = true;
-        vm.SwitchTSM3 = true; vm.SwitchTSM4 = true;
-        vm.SwitchTSC0 = true; vm.SwitchTSC1 = true; vm.SwitchTSC2 = true;
-        vm.SwitchTSC3 = true; vm.SwitchTSC4 = true;
-        vm.SwitchTSA0 = true; vm.SwitchTSA1 = true; vm.SwitchTSA2 = true;
-        vm.SwitchTSA3 = true; vm.SwitchTSA4 = true;
+        vm.SwitchTSM0 = true;
+        vm.SwitchTSM1 = true;
+        vm.SwitchTSM2 = true;
+        vm.SwitchTSM3 = true;
+        vm.SwitchTSM4 = true;
+        vm.SwitchTSC0 = true;
+        vm.SwitchTSC1 = true;
+        vm.SwitchTSC2 = true;
+        vm.SwitchTSC3 = true;
+        vm.SwitchTSC4 = true;
+        vm.SwitchTSA0 = true;
+        vm.SwitchTSA1 = true;
+        vm.SwitchTSA2 = true;
+        vm.SwitchTSA3 = true;
+        vm.SwitchTSA4 = true;
 
-        vm.SwitchAI = true; vm.SwitchR = true; vm.SwitchDS = true;
-        vm.SwitchS = true; vm.SwitchSDash = false;
-        vm.SwitchMT = true; vm.SwitchMTStart = 3; vm.SwitchMTEnd = 9;
+        vm.SwitchAI = true;
+        vm.SwitchR = true;
+        vm.SwitchDS = true;
+        vm.SwitchS = true;
+        vm.SwitchSDash = false;
+        vm.SwitchMT = true;
+        vm.SwitchMTStart = 3;
+        vm.SwitchMTEnd = 9;
 
-        vm.SwitchV = true; vm.VolumeSize = "12345"; vm.VolumeSizeUnitIndex = 2;
+        vm.SwitchV = true;
+        vm.VolumeSize = "12345";
+        vm.VolumeSizeUnitIndex = 2;
         vm.UseOldVolumeNaming = true;
 
-        vm.FileA = true; vm.FileI = true;
+        vm.FileA = true;
+        vm.FileI = true;
 
-        vm.DeleteRARFiles = true; vm.DeleteDuplicateCRCFiles = true;
-        vm.StopOnFirstMatch = true; vm.CompleteAllVolumes = true;
+        vm.DeleteRARFiles = true;
+        vm.DeleteDuplicateCRCFiles = true;
+        vm.StopOnFirstMatch = true;
+        vm.CompleteAllVolumes = true;
         vm.RenameToReleaseNames = true;
 
         vm.EnableHostOSPatching = true;
@@ -99,40 +137,81 @@ public sealed class ReconstructorConfigMapperTests
     /// </summary>
     private static void StampOppositeValues(ReconstructorViewModel vm)
     {
-        vm.WinRARPath = "X"; vm.ReleasePath = "X"; vm.VerificationPath = "X"; vm.OutputPath = "X";
+        vm.WinRARPath = "X";
+        vm.ReleasePath = "X";
+        vm.VerificationPath = "X";
+        vm.OutputPath = "X";
 
-        vm.Version2 = false; vm.Version3 = false; vm.Version4 = false;
-        vm.Version5 = false; vm.Version6 = false; vm.Version7 = false;
+        vm.Version2 = false;
+        vm.Version3 = false;
+        vm.Version4 = false;
+        vm.Version5 = false;
+        vm.Version6 = false;
+        vm.Version7 = false;
 
-        vm.SwitchM0 = false; vm.SwitchM1 = false; vm.SwitchM2 = false;
-        vm.SwitchM3 = false; vm.SwitchM4 = false; vm.SwitchM5 = false;
+        vm.SwitchM0 = false;
+        vm.SwitchM1 = false;
+        vm.SwitchM2 = false;
+        vm.SwitchM3 = false;
+        vm.SwitchM4 = false;
+        vm.SwitchM5 = false;
 
-        vm.SwitchMA4 = false; vm.SwitchMA5 = false;
+        vm.SwitchMA4 = false;
+        vm.SwitchMA5 = false;
 
-        vm.SwitchMD64K = false; vm.SwitchMD128K = false; vm.SwitchMD256K = false;
-        vm.SwitchMD512K = false; vm.SwitchMD1024K = false; vm.SwitchMD2048K = false;
-        vm.SwitchMD4096K = false; vm.SwitchMD8M = false; vm.SwitchMD16M = false;
-        vm.SwitchMD32M = false; vm.SwitchMD64M = false; vm.SwitchMD128M = false;
-        vm.SwitchMD256M = false; vm.SwitchMD512M = false; vm.SwitchMD1G = false;
+        vm.SwitchMD64K = false;
+        vm.SwitchMD128K = false;
+        vm.SwitchMD256K = false;
+        vm.SwitchMD512K = false;
+        vm.SwitchMD1024K = false;
+        vm.SwitchMD2048K = false;
+        vm.SwitchMD4096K = false;
+        vm.SwitchMD8M = false;
+        vm.SwitchMD16M = false;
+        vm.SwitchMD32M = false;
+        vm.SwitchMD64M = false;
+        vm.SwitchMD128M = false;
+        vm.SwitchMD256M = false;
+        vm.SwitchMD512M = false;
+        vm.SwitchMD1G = false;
 
-        vm.SwitchTSM0 = false; vm.SwitchTSM1 = false; vm.SwitchTSM2 = false;
-        vm.SwitchTSM3 = false; vm.SwitchTSM4 = false;
-        vm.SwitchTSC0 = false; vm.SwitchTSC1 = false; vm.SwitchTSC2 = false;
-        vm.SwitchTSC3 = false; vm.SwitchTSC4 = false;
-        vm.SwitchTSA0 = false; vm.SwitchTSA1 = false; vm.SwitchTSA2 = false;
-        vm.SwitchTSA3 = false; vm.SwitchTSA4 = false;
+        vm.SwitchTSM0 = false;
+        vm.SwitchTSM1 = false;
+        vm.SwitchTSM2 = false;
+        vm.SwitchTSM3 = false;
+        vm.SwitchTSM4 = false;
+        vm.SwitchTSC0 = false;
+        vm.SwitchTSC1 = false;
+        vm.SwitchTSC2 = false;
+        vm.SwitchTSC3 = false;
+        vm.SwitchTSC4 = false;
+        vm.SwitchTSA0 = false;
+        vm.SwitchTSA1 = false;
+        vm.SwitchTSA2 = false;
+        vm.SwitchTSA3 = false;
+        vm.SwitchTSA4 = false;
 
-        vm.SwitchAI = false; vm.SwitchR = false; vm.SwitchDS = false;
-        vm.SwitchS = false; vm.SwitchSDash = true;
-        vm.SwitchMT = false; vm.SwitchMTStart = 0; vm.SwitchMTEnd = 0;
+        vm.SwitchAI = false;
+        vm.SwitchR = false;
+        vm.SwitchDS = false;
+        vm.SwitchS = false;
+        vm.SwitchSDash = true;
+        vm.SwitchMT = false;
+        vm.SwitchMTStart = 0;
+        vm.SwitchMTEnd = 0;
 
-        vm.SwitchV = false; vm.VolumeSize = "0"; vm.VolumeSizeUnitIndex = 0;
+        vm.SwitchV = false;
+        vm.VolumeSize = "0";
+        vm.VolumeSizeUnitIndex = 0;
         vm.UseOldVolumeNaming = false;
 
-        vm.FileA = false; vm.FileI = false;
+        vm.FileA = false;
+        vm.FileI = false;
 
-        vm.DeleteRARFiles = false; vm.DeleteDuplicateCRCFiles = false;
-        vm.StopOnFirstMatch = false; vm.CompleteAllVolumes = false;
+        vm.DeleteRARFiles = false;
+        vm.DeleteDuplicateCRCFiles = false;
+        vm.StopOnFirstMatch = false;
+        vm.CompleteAllVolumes = false;
         vm.RenameToReleaseNames = false;
 
         vm.EnableHostOSPatching = false;
@@ -165,33 +244,63 @@ public sealed class ReconstructorConfigMapperTests
         Assert.Equal("OUT-PATH", vm.OutputPath);
 
         // RAR versions.
-        Assert.True(vm.Version2); Assert.True(vm.Version3); Assert.True(vm.Version4);
-        Assert.True(vm.Version5); Assert.True(vm.Version6); Assert.True(vm.Version7);
+        Assert.True(vm.Version2);
+        Assert.True(vm.Version3);
+        Assert.True(vm.Version4);
+        Assert.True(vm.Version5);
+        Assert.True(vm.Version6);
+        Assert.True(vm.Version7);
 
         // Compression method.
-        Assert.True(vm.SwitchM0); Assert.True(vm.SwitchM1); Assert.True(vm.SwitchM2);
-        Assert.True(vm.SwitchM3); Assert.True(vm.SwitchM4); Assert.True(vm.SwitchM5);
+        Assert.True(vm.SwitchM0);
+        Assert.True(vm.SwitchM1);
+        Assert.True(vm.SwitchM2);
+        Assert.True(vm.SwitchM3);
+        Assert.True(vm.SwitchM4);
+        Assert.True(vm.SwitchM5);
 
         // Archive format.
-        Assert.True(vm.SwitchMA4); Assert.True(vm.SwitchMA5);
+        Assert.True(vm.SwitchMA4);
+        Assert.True(vm.SwitchMA5);
 
         // Dictionary sizes (all 15).
-        Assert.True(vm.SwitchMD64K); Assert.True(vm.SwitchMD128K); Assert.True(vm.SwitchMD256K);
-        Assert.True(vm.SwitchMD512K); Assert.True(vm.SwitchMD1024K); Assert.True(vm.SwitchMD2048K);
-        Assert.True(vm.SwitchMD4096K); Assert.True(vm.SwitchMD8M); Assert.True(vm.SwitchMD16M);
-        Assert.True(vm.SwitchMD32M); Assert.True(vm.SwitchMD64M); Assert.True(vm.SwitchMD128M);
-        Assert.True(vm.SwitchMD256M); Assert.True(vm.SwitchMD512M); Assert.True(vm.SwitchMD1G);
+        Assert.True(vm.SwitchMD64K);
+        Assert.True(vm.SwitchMD128K);
+        Assert.True(vm.SwitchMD256K);
+        Assert.True(vm.SwitchMD512K);
+        Assert.True(vm.SwitchMD1024K);
+        Assert.True(vm.SwitchMD2048K);
+        Assert.True(vm.SwitchMD4096K);
+        Assert.True(vm.SwitchMD8M);
+        Assert.True(vm.SwitchMD16M);
+        Assert.True(vm.SwitchMD32M);
+        Assert.True(vm.SwitchMD64M);
+        Assert.True(vm.SwitchMD128M);
+        Assert.True(vm.SwitchMD256M);
+        Assert.True(vm.SwitchMD512M);
+        Assert.True(vm.SwitchMD1G);
 
         // Timestamp toggles (modification / creation / access).
-        Assert.True(vm.SwitchTSM0); Assert.True(vm.SwitchTSM1); Assert.True(vm.SwitchTSM2);
-        Assert.True(vm.SwitchTSM3); Assert.True(vm.SwitchTSM4);
-        Assert.True(vm.SwitchTSC0); Assert.True(vm.SwitchTSC1); Assert.True(vm.SwitchTSC2);
-        Assert.True(vm.SwitchTSC3); Assert.True(vm.SwitchTSC4);
-        Assert.True(vm.SwitchTSA0); Assert.True(vm.SwitchTSA1); Assert.True(vm.SwitchTSA2);
-        Assert.True(vm.SwitchTSA3); Assert.True(vm.SwitchTSA4);
+        Assert.True(vm.SwitchTSM0);
+        Assert.True(vm.SwitchTSM1);
+        Assert.True(vm.SwitchTSM2);
+        Assert.True(vm.SwitchTSM3);
+        Assert.True(vm.SwitchTSM4);
+        Assert.True(vm.SwitchTSC0);
+        Assert.True(vm.SwitchTSC1);
+        Assert.True(vm.SwitchTSC2);
+        Assert.True(vm.SwitchTSC3);
+        Assert.True(vm.SwitchTSC4);
+        Assert.True(vm.SwitchTSA0);
+        Assert.True(vm.SwitchTSA1);
+        Assert.True(vm.SwitchTSA2);
+        Assert.True(vm.SwitchTSA3);
+        Assert.True(vm.SwitchTSA4);
 
         // Other option flags + multithread bounds (ints).
-        Assert.True(vm.SwitchAI); Assert.True(vm.SwitchR); Assert.True(vm.SwitchDS);
+        Assert.True(vm.SwitchAI);
+        Assert.True(vm.SwitchR);
+        Assert.True(vm.SwitchDS);
         Assert.True(vm.SwitchS);
         Assert.False(vm.SwitchSDash);
         Assert.True(vm.SwitchMT);
@@ -209,8 +318,10 @@ public sealed class ReconstructorConfigMapperTests
         Assert.True(vm.FileI);
 
         // Output options.
-        Assert.True(vm.DeleteRARFiles); Assert.True(vm.DeleteDuplicateCRCFiles);
-        Assert.True(vm.StopOnFirstMatch); Assert.True(vm.CompleteAllVolumes);
+        Assert.True(vm.DeleteRARFiles);
+        Assert.True(vm.DeleteDuplicateCRCFiles);
+        Assert.True(vm.StopOnFirstMatch);
+        Assert.True(vm.CompleteAllVolumes);
         Assert.True(vm.RenameToReleaseNames);
 
         // Header patching.
@@ -227,10 +338,16 @@ public sealed class ReconstructorConfigMapperTests
     {
         ReconstructorViewModel vm = CreateVm();
         // Distinct, asymmetric pattern across the swap-prone TSC/TSA pairs.
-        vm.SwitchTSC0 = true; vm.SwitchTSC1 = false; vm.SwitchTSC2 = true;
-        vm.SwitchTSC3 = false; vm.SwitchTSC4 = true;
-        vm.SwitchTSA0 = false; vm.SwitchTSA1 = true; vm.SwitchTSA2 = false;
-        vm.SwitchTSA3 = true; vm.SwitchTSA4 = false;
+        vm.SwitchTSC0 = true;
+        vm.SwitchTSC1 = false;
+        vm.SwitchTSC2 = true;
+        vm.SwitchTSC3 = false;
+        vm.SwitchTSC4 = true;
+        vm.SwitchTSA0 = false;
+        vm.SwitchTSA1 = true;
+        vm.SwitchTSA2 = false;
+        vm.SwitchTSA3 = true;
+        vm.SwitchTSA4 = false;
 
         ReconstructorConfig config = ReconstructorConfigMapper.Capture(vm);
 
@@ -241,11 +358,17 @@ public sealed class ReconstructorConfigMapperTests
         ReconstructorConfigMapper.Apply(vm, config);
 
         // Creation triplet restored to its own pattern.
-        Assert.True(vm.SwitchTSC0); Assert.False(vm.SwitchTSC1); Assert.True(vm.SwitchTSC2);
-        Assert.False(vm.SwitchTSC3); Assert.True(vm.SwitchTSC4);
+        Assert.True(vm.SwitchTSC0);
+        Assert.False(vm.SwitchTSC1);
+        Assert.True(vm.SwitchTSC2);
+        Assert.False(vm.SwitchTSC3);
+        Assert.True(vm.SwitchTSC4);
         // Access triplet restored to ITS pattern (inverse), proving no TSC<->TSA bleed.
-        Assert.False(vm.SwitchTSA0); Assert.True(vm.SwitchTSA1); Assert.False(vm.SwitchTSA2);
-        Assert.True(vm.SwitchTSA3); Assert.False(vm.SwitchTSA4);
+        Assert.False(vm.SwitchTSA0);
+        Assert.True(vm.SwitchTSA1);
+        Assert.False(vm.SwitchTSA2);
+        Assert.True(vm.SwitchTSA3);
+        Assert.False(vm.SwitchTSA4);
     }
 
     // ── ImportedSRRStateMapper ────────────────────────────────
@@ -349,7 +472,8 @@ public sealed class ReconstructorConfigMapperTests
 
         ReconstructorConfig config = ReconstructorConfigMapper.Capture(vm);
 
-        Assert.Equal(new[] { 560, 624 }, config.SelectedRARVersions!.OrderBy(v => v).ToArray());
+        int[] expectedVersions = [560, 624];
+        Assert.Equal(expectedVersions, config.SelectedRARVersions!.OrderBy(v => v).ToArray());
     }
 
     [Fact]
@@ -363,7 +487,8 @@ public sealed class ReconstructorConfigMapperTests
 
         int[] ticked = [.. vm.VersionGroups.SelectMany(g => g.Leaves)
             .Where(l => l.IsChecked).Select(l => l.Version).OrderBy(v => v)];
-        Assert.Equal(new[] { 500, 624 }, ticked);
+        int[] expectedTicked = [500, 624];
+        Assert.Equal(expectedTicked, ticked);
     }
 
     [Fact]
@@ -372,8 +497,12 @@ public sealed class ReconstructorConfigMapperTests
         ReconstructorViewModel vm = CreateVm();
         var config = new ReconstructorConfig  // SelectedRARVersions == null (old config)
         {
-            Version2 = false, Version3 = false, Version4 = false,
-            Version5 = true, Version6 = true, Version7 = false,
+            Version2 = false,
+            Version3 = false,
+            Version4 = false,
+            Version5 = true,
+            Version6 = true,
+            Version7 = false,
         };
 
         ReconstructorConfigMapper.Apply(vm, config);          // pending stays null
@@ -381,7 +510,8 @@ public sealed class ReconstructorConfigMapperTests
 
         int[] ticked = [.. vm.VersionGroups.SelectMany(g => g.Leaves)
             .Where(l => l.IsChecked).Select(l => l.Version).OrderBy(v => v)];
-        Assert.Equal(new[] { 500, 560, 624 }, ticked);        // all installed in enabled majors
+        int[] expectedTicked = [500, 560, 624];
+        Assert.Equal(expectedTicked, ticked);        // all installed in enabled majors
     }
 
     [Fact]
@@ -434,6 +564,7 @@ public sealed class ReconstructorConfigMapperTests
         Assert.Equal(0x20u, state.DetectedFileAttributes);
         Assert.True(state.DetectedLargeFlag);
         Assert.Equal(5u, state.DetectedHighPackSize);
-        Assert.Equal(new[] { "cd1.rar", "cd2.rar" }, state.OriginalRARFileNames);
+        string[] expectedNames = ["cd1.rar", "cd2.rar"];
+        Assert.Equal(expectedNames, state.OriginalRARFileNames);
     }
 }

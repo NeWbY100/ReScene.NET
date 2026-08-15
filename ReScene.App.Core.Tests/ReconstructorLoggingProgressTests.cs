@@ -52,7 +52,7 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
     }
 
     /// <summary>
-    /// Counts UI-dispatch calls. <see cref="Invoke"/> always runs inline (and is counted); <see cref="Post"/>
+    /// Counts UI-dispatch calls. <see cref="Invoke"/> always runs inline (and is counted); <see cref="Post(Action)"/>
     /// is counted and either runs inline or is deferred onto a queue drained by <see cref="Pump"/> — so a
     /// test can observe how many batched log flushes were scheduled and control exactly when they run.
     /// </summary>
@@ -182,8 +182,8 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
         await vm.ExecuteReconstructionForTestAsync(CancellationToken.None);
 
         Assert.True(vm.LastRunSucceeded, JoinedLog(vm));
-        (string Title, string Message) warning = Assert.Single(dialog.Warnings);
-        Assert.Equal("Timestamp Preservation Failed", warning.Title);
+        (string Title, string Message) = Assert.Single(dialog.Warnings);
+        Assert.Equal("Timestamp Preservation Failed", Title);
     }
 
     [Fact]
@@ -206,8 +206,8 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
         await vm.ExecuteReconstructionForTestAsync(cts.Token);
 
         // The summary must fire from the finally on cancellation too, exactly once.
-        (string Title, string Message) warning = Assert.Single(dialog.Warnings);
-        Assert.Equal("Timestamp Preservation Failed", warning.Title);
+        (string Title, string Message) = Assert.Single(dialog.Warnings);
+        Assert.Equal("Timestamp Preservation Failed", Title);
         Assert.Equal("Cancelled", vm.PhaseDescription);
     }
 

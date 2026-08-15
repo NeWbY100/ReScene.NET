@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using ReScene.App.Core.Services;
-using ReScene.Core;
 using ReScene.App.Core.Models;
+using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
+using ReScene.Core;
 
 namespace ReScene.App.Core.Tests;
 
@@ -93,7 +93,9 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
     {
         foreach (string d in _tempDirs)
         {
-            try { Directory.Delete(d, recursive: true); } catch { /* best effort */ }
+            try
+            { Directory.Delete(d, recursive: true); }
+            catch { /* best effort */ }
         }
     }
 
@@ -215,7 +217,7 @@ public sealed class ReconstructorViewModelDialogTests : IDisposable
     /// <summary>
     /// Denies only "list directory contents" on <paramref name="path"/> itself — via <c>icacls</c>'s
     /// granular (RD) right on Windows, or clearing the read bit while keeping execute on Unix — so
-    /// <see cref="Directory.Exists"/> still sees the folder while <see cref="Directory.EnumerateDirectories"/>
+    /// <see cref="Directory.Exists"/> still sees the folder while <see cref="Directory.EnumerateDirectories(string)"/>
     /// throws <see cref="UnauthorizedAccessException"/>. Callers must pair this with
     /// <see cref="RestoreListing"/> so cleanup (<see cref="Dispose"/>) can proceed.
     /// </summary>

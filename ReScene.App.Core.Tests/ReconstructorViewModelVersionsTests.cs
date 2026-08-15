@@ -1,7 +1,7 @@
 using ReScene.App.Core.Services;
-using ReScene.Core;
 using ReScene.App.Core.ViewModels;
 using ReScene.App.Core.ViewModels.Reconstruction;
+using ReScene.Core;
 using ReScene.SRR;
 
 namespace ReScene.App.Core.Tests;
@@ -14,7 +14,9 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
     {
         foreach (string d in _tempDirs)
         {
-            try { Directory.Delete(d, recursive: true); } catch { /* best effort */ }
+            try
+            { Directory.Delete(d, recursive: true); }
+            catch { /* best effort */ }
         }
     }
 
@@ -101,12 +103,14 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
     {
         ReconstructorViewModel vm = CreateVm();
         vm.Version2 = vm.Version3 = vm.Version4 = vm.Version7 = false;
-        vm.Version5 = true; vm.Version6 = true;
+        vm.Version5 = true;
+        vm.Version6 = true;
 
         vm.ApplyScanResult(Installed, folderScanned: true);
 
         Assert.True(vm.HasScannedVersions);
-        Assert.Equal(new[] { 500, 560, 602, 624 }, Ticked(vm));
+        int[] expectedTicked = [500, 560, 602, 624];
+        Assert.Equal(expectedTicked, Ticked(vm));
         Assert.Equal(2, vm.VersionGroups.Count);   // 5.x and 6.x
     }
 
@@ -114,14 +118,17 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
     public void FolderScannedThenImport_ReTicksToNewMajors()
     {
         ReconstructorViewModel vm = CreateVm();
-        vm.Version5 = true; vm.Version6 = true;
+        vm.Version5 = true;
+        vm.Version6 = true;
         vm.ApplyScanResult(Installed, folderScanned: true);
 
         // Simulate an SRR import that maps only to 6.x
-        vm.Version5 = false; vm.Version6 = true;
+        vm.Version5 = false;
+        vm.Version6 = true;
         vm.LoadPendingVersionSelection(null);   // import path: no explicit list, reconcile from majors
 
-        Assert.Equal(new[] { 602, 624 }, Ticked(vm));
+        int[] expectedTicked = [602, 624];
+        Assert.Equal(expectedTicked, Ticked(vm));
     }
 
     [Fact]
@@ -131,7 +138,8 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
         vm.LoadPendingVersionSelection([560, 624, 999]);   // config load sets pending
         vm.ApplyScanResult(Installed, folderScanned: true);
 
-        Assert.Equal(new[] { 560, 624 }, Ticked(vm));
+        int[] expectedTicked = [560, 624];
+        Assert.Equal(expectedTicked, Ticked(vm));
 
         // A subsequent scan with no new intent must NOT re-apply the (now consumed) pending list;
         // it falls back to majors. With no majors enabled, nothing is ticked.
@@ -144,7 +152,8 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
     public void ManualLeafToggle_SyncsMajorBooleans()
     {
         ReconstructorViewModel vm = CreateVm();
-        vm.Version5 = true; vm.Version6 = true;
+        vm.Version5 = true;
+        vm.Version6 = true;
         vm.ApplyScanResult(Installed, folderScanned: true);
 
         foreach (RARVersionLeaf leaf in vm.VersionGroups.First(g => g.Major == 6).Leaves)
@@ -163,7 +172,8 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
         vm.LoadPendingVersionSelection([624, 500]);
         vm.ApplyScanResult(Installed, folderScanned: true);
 
-        Assert.Equal(new[] { 500, 624 }, vm.SelectedLeafVersions.ToArray());
+        int[] expectedVersions = [500, 624];
+        Assert.Equal(expectedVersions, vm.SelectedLeafVersions.ToArray());
     }
 
     [Fact]
@@ -202,7 +212,8 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
         // selection now ticks exactly the configured versions.
         await vm.LastVersionScan!;
         dispatcher.Pump();
-        Assert.Equal(new[] { 560, 624 }, Ticked(vm));
+        int[] expectedTicked = [560, 624];
+        Assert.Equal(expectedTicked, Ticked(vm));
     }
 
     [Fact]
@@ -325,7 +336,8 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
         vm.WinRARPath = folder;
         await vm.LastVersionScan!;
         Assert.True(vm.HasScannedVersions);
-        Assert.Equal(new[] { 390 }, Ticked(vm)); // only 3.90 so far — not RAR5-capable
+        int[] expectedTicked = [390];
+        Assert.Equal(expectedTicked, Ticked(vm)); // only 3.90 so far — not RAR5-capable
 
         // A new WinRAR 5.60 appears in the same folder. Major 5 was silently cleared by the first
         // scan's SyncMajorsFromTree (no 5.x leaf existed yet to keep it ticked) — re-enable it, as a
@@ -352,6 +364,7 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
         await vm.RunArchiveSetsForTestAsync(CancellationToken.None);
 
         Assert.True(vm.LastRunSucceeded, string.Join(Environment.NewLine, vm.LogEntries));
-        Assert.Equal(new[] { 390, 560 }, Ticked(vm)); // proves the completed (not stale) scan landed
+        int[] expectedAfterScan = [390, 560];
+        Assert.Equal(expectedAfterScan, Ticked(vm)); // proves the completed (not stale) scan landed
     }
 }

@@ -17,7 +17,8 @@ public sealed class VersionSelectionReconcilerTests
         HashSet<int> ticked = VersionSelectionReconciler.ComputeTicked(
             Installed, pendingExplicit: [560, 999], enabledMajors: new HashSet<int>());
 
-        Assert.Equal(new[] { 560 }, ticked.OrderBy(v => v).ToArray());
+        int[] expectedTicked = [560];
+        Assert.Equal(expectedTicked, ticked.OrderBy(v => v).ToArray());
     }
 
     [Fact]
@@ -26,7 +27,8 @@ public sealed class VersionSelectionReconcilerTests
         HashSet<int> ticked = VersionSelectionReconciler.ComputeTicked(
             Installed, pendingExplicit: null, enabledMajors: new HashSet<int> { 5 });
 
-        Assert.Equal(new[] { 500, 560 }, ticked.OrderBy(v => v).ToArray());
+        int[] expectedTicked = [500, 560];
+        Assert.Equal(expectedTicked, ticked.OrderBy(v => v).ToArray());
     }
 
     [Fact]

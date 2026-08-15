@@ -1,8 +1,7 @@
+using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
 using ReScene.SRR;
 using ReScene.SRS;
-
-using ReScene.App.Core.Services;
 namespace ReScene.App.Core.Tests;
 
 /// <summary>
@@ -642,7 +641,7 @@ public sealed class CreatorViewModelTests : IDisposable
         Assert.Equal(["a.nfo", "b.sfv"], vm.StoredFiles.Select(f => f.StoredName));
 
         // Selection follows the moved item throughout.
-        Assert.Equal("b.sfv", vm.SelectedStoredFile!.StoredName);
+        Assert.Equal("b.sfv", vm.SelectedStoredFile.StoredName);
     }
 
     // ── Reset ───────────────────────────────────────────────

@@ -1,7 +1,7 @@
+using ReScene.App.Core.ViewModels.Reconstruction;
 using ReScene.Core;
 using ReScene.Core.Cryptography;
 using ReScene.Core.Diagnostics;
-using ReScene.App.Core.ViewModels.Reconstruction;
 using ReScene.SRR;
 
 namespace ReScene.App.Core.Tests;
@@ -220,8 +220,8 @@ public class ArchiveSetPlannerTests
         Assert.Equal("hello", opts.RAROptions.ArchiveComment);
         Assert.True(opts.RAROptions.ArchiveCommentBytes.HasValue);
         Assert.True(opts.RAROptions.CmtCompressedData.HasValue);
-        Assert.True(new byte[] { 1, 2, 3 }.AsSpan().SequenceEqual(opts.RAROptions.ArchiveCommentBytes!.Value.Span));
-        Assert.True(new byte[] { 4, 5, 6 }.AsSpan().SequenceEqual(opts.RAROptions.CmtCompressedData!.Value.Span));
+        Assert.True(new byte[] { 1, 2, 3 }.AsSpan().SequenceEqual(opts.RAROptions.ArchiveCommentBytes.Value.Span));
+        Assert.True(new byte[] { 4, 5, 6 }.AsSpan().SequenceEqual(opts.RAROptions.CmtCompressedData.Value.Span));
         Assert.Equal((byte)0x30, opts.RAROptions.CmtCompressionMethod);
         Assert.Equal("C:\\foo.srr", opts.RAROptions.SRRFilePath);
         Assert.True(opts.RAROptions.EnableHostOSPatching);

@@ -15,7 +15,9 @@ public sealed class WinRARVersionScannerTests : IDisposable
 
     public void Dispose()
     {
-        try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
+        try
+        { Directory.Delete(_root, recursive: true); }
+        catch { /* best effort */ }
     }
 
     private void MakeVersion(string folderName, bool withRARExe)
@@ -48,7 +50,8 @@ public sealed class WinRARVersionScannerTests : IDisposable
 
         IReadOnlyList<InstalledRARVersion> result = WinRARVersionScanner.Scan(_root);
 
-        Assert.Equal(new[] { 560, 624 }, result.Select(r => r.Version).ToArray());
+        int[] expectedVersions = [560, 624];
+        Assert.Equal(expectedVersions, result.Select(r => r.Version).ToArray());
         Assert.Equal("winrar-560", result[0].FolderName);
     }
 
@@ -74,7 +77,8 @@ public sealed class WinRARVersionScannerTests : IDisposable
 
         IReadOnlyList<InstalledRARVersion> result = WinRARVersionScanner.Scan(_root);
 
-        Assert.Equal(new[] { 310, 550, 611 }, result.Select(r => r.Version).ToArray());
+        int[] expectedVersions = [310, 550, 611];
+        Assert.Equal(expectedVersions, result.Select(r => r.Version).ToArray());
     }
 
     [Fact]

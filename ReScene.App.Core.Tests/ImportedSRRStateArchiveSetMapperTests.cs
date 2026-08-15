@@ -104,7 +104,7 @@ public class ImportedSRRStateArchiveSetMapperTests
 
         ImportedSRRState? dto = ImportedSRRStateMapper.Capture(state, customPackerWarning: null);
         Assert.NotNull(dto);
-        Assert.Equal(ImportedSRRState.CurrentSchemaVersion, dto!.SchemaVersion);
+        Assert.Equal(ImportedSRRState.CurrentSchemaVersion, dto.SchemaVersion);
 
         // Round-trip through the REAL serializer (matching ReconstructorViewModel's config
         // export/import), not just an in-memory copy.
@@ -179,7 +179,7 @@ public class ImportedSRRStateArchiveSetMapperTests
         ImportedSRRState? dto = ImportedSRRStateMapper.Capture(state, customPackerWarning: null);
 
         Assert.NotNull(dto);
-        Assert.Equal(ImportedSRRState.CurrentSchemaVersion, dto!.SchemaVersion);
+        Assert.Equal(ImportedSRRState.CurrentSchemaVersion, dto.SchemaVersion);
         Assert.Single(dto.ArchiveSets);
     }
 

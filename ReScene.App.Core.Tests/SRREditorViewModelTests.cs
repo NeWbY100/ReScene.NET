@@ -1,7 +1,6 @@
 using ReScene.App.Core.Models;
-using ReScene.App.Core.ViewModels;
-
 using ReScene.App.Core.Services;
+using ReScene.App.Core.ViewModels;
 namespace ReScene.App.Core.Tests;
 
 // NOTE: the grid's code-behind handlers in EditSRRWizardBody.xaml.cs — SelectionChanged
@@ -178,7 +177,8 @@ public class SRREditorViewModelTests
         {
             CopyWorkingCopyToCalls++;
             LastCopiedTo = outputPath;
-            if (FailCopyWith is not null) { throw FailCopyWith; }
+            if (FailCopyWith is not null)
+            { throw FailCopyWith; }
         }
     }
 
@@ -321,7 +321,7 @@ public class SRREditorViewModelTests
             await vm.BrowseOutputCommand.ExecuteAsync(null);
 
             Assert.NotNull(dialog.LastSaveDefaultFileName);
-            Assert.EndsWith(" (edited).srr", dialog.LastSaveDefaultFileName!, StringComparison.Ordinal);
+            Assert.EndsWith(" (edited).srr", dialog.LastSaveDefaultFileName, StringComparison.Ordinal);
         }
         finally
         {
@@ -388,7 +388,7 @@ public class SRREditorViewModelTests
         Assert.Contains(nameof(FakeSRREditingService.AddStoredFiles), editing.Calls);
         Assert.Equal(TestSRREditorViewModel.DummyWorkingPath, editing.LastPath);
         Assert.NotNull(editing.LastAdded);
-        Assert.Equal("new.nfo", editing.LastAdded![0].StoredName);
+        Assert.Equal("new.nfo", editing.LastAdded[0].StoredName);
         Assert.Contains("new.nfo", vm.StoredFiles.Select(f => f.Name));
     }
 
@@ -436,7 +436,7 @@ public class SRREditorViewModelTests
         vm.RenameStoredFileCommand.Execute(null);
 
         Assert.NotNull(editing.LastRenamed);
-        Assert.Equal((TestSRREditorViewModel.DummyWorkingPath, "old.nfo", "new.nfo"), editing.LastRenamed!.Value);
+        Assert.Equal((TestSRREditorViewModel.DummyWorkingPath, "old.nfo", "new.nfo"), editing.LastRenamed.Value);
         Assert.Equal("old.nfo", dialog.LastPromptInitialValue);
         Assert.Contains("new.nfo", vm.StoredFiles.Select(f => f.Name));
         Assert.Equal("new.nfo", vm.SelectedStoredFile?.Name);
@@ -487,7 +487,7 @@ public class SRREditorViewModelTests
         vm.MoveStoredFileUpCommand.Execute(null);
 
         Assert.NotNull(editing.LastMoved);
-        Assert.Equal((TestSRREditorViewModel.DummyWorkingPath, "b.sfv", -1), editing.LastMoved!.Value);
+        Assert.Equal((TestSRREditorViewModel.DummyWorkingPath, "b.sfv", -1), editing.LastMoved.Value);
         Assert.Equal(["b.sfv", "a.nfo"], vm.StoredFiles.Select(f => f.Name));
         Assert.Equal("b.sfv", vm.SelectedStoredFile?.Name);
     }
@@ -504,7 +504,7 @@ public class SRREditorViewModelTests
         vm.MoveStoredFileDownCommand.Execute(null);
 
         Assert.NotNull(editing.LastMoved);
-        Assert.Equal((TestSRREditorViewModel.DummyWorkingPath, "a.nfo", +1), editing.LastMoved!.Value);
+        Assert.Equal((TestSRREditorViewModel.DummyWorkingPath, "a.nfo", +1), editing.LastMoved.Value);
         Assert.Equal(["b.sfv", "a.nfo"], vm.StoredFiles.Select(f => f.Name));
         Assert.Equal("a.nfo", vm.SelectedStoredFile?.Name);
     }
@@ -525,7 +525,7 @@ public class SRREditorViewModelTests
         await vm.ExtractStoredFileCommand.ExecuteAsync(null);
 
         Assert.NotNull(editing.LastExtracted);
-        Assert.Equal(TestSRREditorViewModel.DummyWorkingPath, editing.LastExtracted!.Value.SRRPath);
+        Assert.Equal(TestSRREditorViewModel.DummyWorkingPath, editing.LastExtracted.Value.SRRPath);
         Assert.Equal(@"D:\Output", editing.LastExtracted.Value.OutputDir);
         Assert.Equal("readme.nfo", editing.LastExtracted.Value.StoredName);
         Assert.Equal(FieldState.Ok, vm.ManageStatus.State);
@@ -956,7 +956,8 @@ public class SRREditorViewModelTests
         var transitions = new List<string>();
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SRREditorViewModel.ResultMessage)) { transitions.Add(vm.ResultMessage); }
+            if (e.PropertyName == nameof(SRREditorViewModel.ResultMessage))
+            { transitions.Add(vm.ResultMessage); }
         };
         return transitions;
     }

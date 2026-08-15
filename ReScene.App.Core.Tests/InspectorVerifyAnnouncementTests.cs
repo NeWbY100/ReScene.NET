@@ -111,7 +111,8 @@ public class InspectorVerifyAnnouncementTests
         var transitions = new List<string>();
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(vm.VerifyAnnouncement)) { transitions.Add(vm.VerifyAnnouncement); }
+            if (e.PropertyName == nameof(vm.VerifyAnnouncement))
+            { transitions.Add(vm.VerifyAnnouncement); }
         };
 
         await vm.VerifyIntegrityCommand.ExecuteAsync(null);

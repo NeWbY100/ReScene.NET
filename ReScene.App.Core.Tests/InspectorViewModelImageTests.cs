@@ -1,10 +1,9 @@
 using System.Text;
-using ReScene.Hex;
 using ReScene.App.Core.Models;
-using ReScene.App.Core.ViewModels;
-using ReScene.SRR;
-
 using ReScene.App.Core.Services;
+using ReScene.App.Core.ViewModels;
+using ReScene.Hex;
+using ReScene.SRR;
 namespace ReScene.App.Core.Tests;
 
 public class InspectorViewModelImageTests : TempDirTestBase

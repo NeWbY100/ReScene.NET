@@ -1,6 +1,6 @@
 using ReScene.App.Core.Services;
-using ReScene.Core;
 using ReScene.App.Core.ViewModels;
+using ReScene.Core;
 
 namespace ReScene.App.Core.Tests;
 

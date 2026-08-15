@@ -65,7 +65,7 @@ public sealed class CreatorViewModelDetectedSetsTests : TempDirTestBase
         public ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default)
         {
             Entered.Set();
-            _release.Wait();
+            _release.Wait(CancellationToken.None);
             return GatedResult;
         }
     }

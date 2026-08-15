@@ -1,8 +1,7 @@
 using ReScene.App.Core.Models;
+using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
 using ReScene.SRS;
-
-using ReScene.App.Core.Services;
 namespace ReScene.App.Core.Tests;
 
 /// <summary>
@@ -66,7 +65,9 @@ public sealed class SRSCreatorViewModelTests : IDisposable
     {
         foreach (string p in _tempFiles)
         {
-            try { File.Delete(p); } catch { /* best effort */ }
+            try
+            { File.Delete(p); }
+            catch { /* best effort */ }
         }
     }
 
@@ -236,7 +237,7 @@ public sealed class SRSCreatorViewModelTests : IDisposable
 
         Assert.Equal(1, srs.Calls);
         Assert.NotNull(srs.LastOutputPath);
-        Assert.EndsWith(".srs", srs.LastOutputPath!, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith(".srs", srs.LastOutputPath, StringComparison.OrdinalIgnoreCase);
         Assert.False(Directory.Exists(srs.LastOutputPath)); // a file path, not the bare directory
     }
 

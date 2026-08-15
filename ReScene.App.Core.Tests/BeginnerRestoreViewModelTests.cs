@@ -1,7 +1,6 @@
+using ReScene.App.Core.Helpers;
 using ReScene.App.Core.Models;
 using ReScene.App.Core.ViewModels;
-
-using ReScene.App.Core.Helpers;
 namespace ReScene.App.Core.Tests;
 
 public class BeginnerRestoreViewModelTests

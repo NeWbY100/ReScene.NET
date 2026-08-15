@@ -1,9 +1,8 @@
+using ReScene.App.Core.Services;
+using ReScene.App.Core.ViewModels;
 using ReScene.Core.Comparison;
 using ReScene.Hex;
-using ReScene.App.Core.ViewModels;
 using ReScene.RAR;
-
-using ReScene.App.Core.Services;
 namespace ReScene.App.Core.Tests;
 
 /// <summary>
@@ -98,8 +97,8 @@ public class FileCompareViewModelMKVTests : TempDirTestBase
 
         Assert.NotNull(muxLeft);
         Assert.NotNull(muxRight);
-        Assert.True(muxLeft!.IsDifferent, $"left MuxingApp node should be red; text was '{muxLeft.Text}'");
-        Assert.True(muxRight!.IsDifferent, $"right MuxingApp node should be red; text was '{muxRight.Text}'");
+        Assert.True(muxLeft.IsDifferent, $"left MuxingApp node should be red; text was '{muxLeft.Text}'");
+        Assert.True(muxRight.IsDifferent, $"right MuxingApp node should be red; text was '{muxRight.Text}'");
         Assert.Contains("[DIFF]", muxLeft.Text, StringComparison.Ordinal);
     }
 
@@ -117,7 +116,7 @@ public class FileCompareViewModelMKVTests : TempDirTestBase
 
         TreeNodeViewModel? clusterLeft = vm.LeftTreeRoots.Flatten().FirstOrDefault(n => n.Text.StartsWith("Cluster", StringComparison.Ordinal));
         Assert.NotNull(clusterLeft);
-        Assert.True(clusterLeft!.IsDifferent,
+        Assert.True(clusterLeft.IsDifferent,
             $"Cluster node should be red when its content differs; text was '{clusterLeft.Text}'");
         Assert.False(vm.FilesIdentical);
     }

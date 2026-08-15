@@ -1,7 +1,7 @@
-using ReScene.Core.Comparison;
-using ReScene.Hex;
 using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
+using ReScene.Core.Comparison;
+using ReScene.Hex;
 using ReScene.RAR;
 
 namespace ReScene.App.Core.Tests;

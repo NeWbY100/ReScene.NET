@@ -32,7 +32,7 @@ public class WindowStateServiceTests
             AppDataConfig.FolderName = folderA;
             WindowStateModel? loaded = new WindowStateService().Load();
             Assert.NotNull(loaded);
-            Assert.Equal(800, loaded!.Width);
+            Assert.Equal(800, loaded.Width);
             Assert.Equal(600, loaded.Height);
         }
         finally

@@ -1,6 +1,6 @@
+using ReScene.App.Core.ViewModels.Reconstruction;
 using ReScene.Core;
 using ReScene.Core.Diagnostics;
-using ReScene.App.Core.ViewModels.Reconstruction;
 
 namespace ReScene.App.Core.Tests;
 
@@ -454,7 +454,8 @@ public sealed class RARCommandLineBuilderTests
 
         List<VersionRange> ranges = RARCommandLineBuilder.BuildVersionRanges(settings);
 
-        Assert.Equal(new[] { 500, 560 }, ranges.Select(r => r.Start).ToArray());
+        int[] expectedStarts = [500, 560];
+        Assert.Equal(expectedStarts, ranges.Select(r => r.Start).ToArray());
     }
 
     [Fact]

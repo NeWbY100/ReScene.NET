@@ -1,8 +1,7 @@
-using CommunityToolkit.Mvvm.Input;
-using ReScene.App.Core.Services;
-using ReScene.Core;
 using ReScene.App.Core.Models;
+using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
+using ReScene.Core;
 
 namespace ReScene.App.Core.Tests;
 
@@ -38,7 +37,7 @@ public class ReconstructorViewModelArchiveSetTests
     }
 
     /// <summary>
-    /// Dialog service that returns <see cref="FixturePath"/> from <see cref="OpenFileAsync"/> (first
+    /// Dialog service that returns <paramref name="fixturePath"/> from <see cref="OpenFileAsync"/> (first
     /// call only) and behaves as no-op for everything else.
     /// </summary>
     private sealed class FixtureDialogService(string fixturePath) : NoOpFileDialogService
@@ -109,7 +108,7 @@ public class ReconstructorViewModelArchiveSetTests
             tempDir: tempDir);
     }
 
-    private static async Task ImportAsync(ReconstructorViewModel vm) => await ((IAsyncRelayCommand)vm.ImportSRRCommand).ExecuteAsync(null);
+    private static async Task ImportAsync(ReconstructorViewModel vm) => await vm.ImportSRRCommand.ExecuteAsync(null);
 
     // ── Tests ───────────────────────────────────────────────
 

@@ -1,7 +1,6 @@
 using System.Text;
-using ReScene.Hex;
-
 using ReScene.App.Core.Helpers;
+using ReScene.Hex;
 namespace ReScene.App.Core.Tests;
 
 public class TextDecoderTests

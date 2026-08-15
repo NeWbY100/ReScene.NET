@@ -8,7 +8,7 @@ namespace ReScene.App.Core.Tests;
 /// Test matrix for the main-set decision tree (pyrescene-rules-excerpt.txt,
 /// <c>remove_unwanted_sfvs</c>; see docs/superpowers/plans/2026-07-19-multiset-srr-creation.md),
 /// one Fact per row. Proof-related rows drive the injectable <c>proofRarReader</c> seam with fact
-/// literals only — <see cref="RarProofInspectorTests"/> (ReScene.Tests) proves the production
+/// literals only — <c>RarProofInspectorTests</c> (ReScene.Tests) proves the production
 /// <see cref="RarProofInspector"/> against real fixture bytes.
 /// </summary>
 public class ReleaseScannerMainSetTests : TempDirTestBase

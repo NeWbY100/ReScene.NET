@@ -120,7 +120,7 @@ public sealed class CreatorViewModelFolderModeTests : TempDirTestBase
             }
 
             Entered.Set();
-            _release.Wait();
+            _release.Wait(CancellationToken.None);
             return GatedResult;
         }
     }
