@@ -364,3 +364,29 @@ results: the lib's 1,559 tests run on **both** net8.0 and net10.0 (3,118 results
   unchanged. Busy-flag transition order does **not** — it will have one before step 3.5, per
   Sequencing. Where an invariant currently has only a comment, the extraction adds the missing test
   rather than trusting the comment.
+
+
+---
+
+## Closing note: what "behaviour-preserving" turned out to mean
+
+All three targets landed. The single most transferable lesson, and the one that caused every
+regression caught during the work, is that **behaviour preservation is not just final values**. It
+also covers:
+
+- **Ordering** — which property is written before which, and where a notification falls relative to
+  another. Several extractions produced identical values in identical order while moving *when* they
+  were computed.
+- **Identity** — writing a flag versus leaving it alone. `null` and `false` are different
+  instructions when a subscriber may have edited the value in between.
+- **Live versus snapshot reads** — a property read after an `await` is usually still live, because
+  this app does not disable its controls during a run. `Foo` → `inputs.Foo` is structurally a rename
+  and semantically a different read time, and a transcription diff cannot see the difference.
+- **Synchronous re-entrancy** — `ObservableCollection` and `[ObservableProperty]` both raise their
+  events synchronously, so a handler can run in the middle of the operation under test. That is what
+  makes several of these orderings observable at all, and it is also the cheapest way to write a
+  deterministic test for them: no threads, no timing.
+
+And one process rule, learned the hard way twice: **verify each commit from its committed tree.** A
+dirty working tree hid a commit that could not build on its own, and a cached second build reported
+zero warnings while the real one had twenty-six.
