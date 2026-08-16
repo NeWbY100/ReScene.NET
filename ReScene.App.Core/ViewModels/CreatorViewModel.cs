@@ -799,11 +799,13 @@ public partial class CreatorViewModel : OperationViewModelBase
                 // File mode: every phase - placeholder materialization, create-time SRS and vobsub
                 // generation, fix-RAR storage, and the writer call itself - lives in the pipeline.
                 // StoredFiles goes in BY REFERENCE and is still appended to incrementally as each
-                // phase generates, so the bound grid fills in live during the run.
+                // phase generates, so the collection is already growing while IsCreating is true.
+                // The options go in as LIVE accessors: each is read at its own phase boundary, and
+                // none of the controls is disabled during a run.
                 result = await _fileMode.RunAsync(
                     new FileModeCreationPipeline.Inputs(
-                        InputPath, OutputPath, IsSFVInput, AutoCreateSRS, CreateVobsubSRR,
-                        StoreFixRAR, AppName, options),
+                        () => InputPath, () => OutputPath, () => IsSFVInput, () => AutoCreateSRS,
+                        () => CreateVobsubSRR, () => StoreFixRAR, () => AppName, options),
                     // Lazily creates the run's temp directory at most once. The variable stays here
                     // because the `finally` below owns its cleanup.
                     () => tempDir ??= _tempDir.CreateTempDirectory(),

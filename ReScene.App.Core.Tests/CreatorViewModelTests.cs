@@ -731,10 +731,11 @@ public sealed class CreatorViewModelTests : IDisposable
     [Fact]
     public async Task CreateSRR_AppendsStoredFilesIncrementally_NotBatchedAtTheEnd()
     {
-        // Generation order is storage order, LIVE: each phase appends to StoredFiles as it goes, and
-        // the bound grid fills in while IsCreating is true. Collecting the results into a local list
-        // and adding them all at the end would produce a byte-identical SRR and would still satisfy
-        // CreateSRR_PassesStoredFilesToLibInCollectionOrder - while changing what the user sees.
+        // Generation order is storage order, LIVE: each phase appends to StoredFiles as it goes, so
+        // the collection is already growing while IsCreating is true. Collecting the results into a
+        // local list and adding them all at the end would produce a byte-identical SRR and would
+        // still satisfy CreateSRR_PassesStoredFilesToLibInCollectionOrder - while changing what a
+        // consumer of the collection observes during the run.
         //
         // The only way to tell the two apart is to look DURING the run: at the moment the second
         // sample's SRS is generated, the first sample's .srs must ALREADY be in the collection.
@@ -747,11 +748,11 @@ public sealed class CreatorViewModelTests : IDisposable
         vm.ExtraSampleFiles.Add(Path.Combine(dir, "CD1", "sample.mkv"));
         vm.ExtraSampleFiles.Add(Path.Combine(dir, "CD2", "sample.mkv"));
 
-        List<int> countAtEachGeneration = [];
+        List<string[]> namesAtEachGeneration = [];
         List<bool> creatingAtEachGeneration = [];
         srs.OnCreate = _ =>
         {
-            countAtEachGeneration.Add(vm.StoredFiles.Count);
+            namesAtEachGeneration.Add([.. vm.StoredFiles.Select(f => f.StoredName)]);
             creatingAtEachGeneration.Add(vm.IsCreating);
         };
 
@@ -759,12 +760,106 @@ public sealed class CreatorViewModelTests : IDisposable
         await vm.CreateSRRCommand.ExecutionTask!;
 
         // Two samples were generated, and the run was in progress throughout.
-        Assert.Equal(2, countAtEachGeneration.Count);
+        Assert.Equal(2, namesAtEachGeneration.Count);
         Assert.All(creatingAtEachGeneration, Assert.True);
 
-        // The second generation saw exactly one more stored file than the first: the first sample's
-        // .srs had already been appended. Batching would make these two counts equal.
-        Assert.Equal(countAtEachGeneration[0] + 1, countAtEachGeneration[1]);
+        // Nothing had been stored when the FIRST sample was generated, and by the SECOND the first
+        // sample's own .srs was already there - asserted by NAME, so an unrelated insertion could
+        // not satisfy it. Batching would leave the second observation empty as well.
+        Assert.Empty(namesAtEachGeneration[0]);
+        Assert.Equal(["CD1/sample.srs"], namesAtEachGeneration[1]);
+    }
+
+    /// <summary>
+    /// Builds a fix-style release the fix-RAR phase will actually act on: a directory whose NAME
+    /// matches a fix pattern, holding exactly one .sfv naming exactly one .rar that exists.
+    /// </summary>
+    private string CreateFixRelease()
+    {
+        string parent = Directory.CreateTempSubdirectory("rescene-fixrel-test-").FullName;
+        _tempPaths.Add(parent);
+        string dir = Path.Combine(parent, "Some.Movie.2009.DiRFiX-GRP");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "fix.sfv"), "movie.rar 00000000");
+        File.WriteAllBytes(Path.Combine(dir, "movie.rar"), [1]);
+        return dir;
+    }
+
+    [Fact]
+    public async Task CreateSRR_FixRarPhase_RunsWhenTheToggleIsOn()
+    {
+        // The control for the mid-run test below: with StoreFixRAR left alone, the phase DOES store
+        // the release's single RAR. Without this, that test could pass simply because the fixture
+        // never triggered the phase at all.
+        string dir = CreateFixRelease();
+        CreatorViewModel vm = CreateVm(out _, out _);
+        vm.StoreFixRAR = true;
+        vm.InputPath = Path.Combine(dir, "fix.sfv");
+        vm.OutputPath = Path.Combine(dir, "fix.srr");
+
+        vm.CreateSRRCommand.Execute(null);
+        await vm.CreateSRRCommand.ExecutionTask!;
+
+        Assert.Contains(vm.StoredFiles, f => f.StoredName.Equals("movie.rar", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task CreateSRR_PhaseToggleClearedMidRun_SkipsThatPhase()
+    {
+        // Every option the file-mode run reads is read at its own phase boundary, after the earlier
+        // phases' generation work, and none of the controls is disabled while IsCreating is true -
+        // so a toggle cleared mid-run must take effect on the phases that have not started yet. Folder mode already pins this for
+        // CreateVobsubSRR; nothing pinned it for file mode, which made the options easy to snapshot
+        // into a value object at the start of the run without any test objecting.
+        //
+        // StoreFixRAR is the one to assert on: its phase runs strictly after the SRS phase, so
+        // clearing it from inside SRS generation lands squarely in the window.
+        string dir = CreateFixRelease();
+        CreatorViewModel vm = CreateVm(out _, out FakeSRSCreationService srs);
+        vm.AutoCreateSRS = true;
+        vm.StoreFixRAR = true;
+        vm.InputPath = Path.Combine(dir, "fix.sfv");
+        vm.OutputPath = Path.Combine(dir, "fix.srr");
+        vm.ExtraSampleFiles.Add(Path.Combine(dir, "sample.mkv"));
+
+        int srsGenerations = 0;
+        srs.OnCreate = _ =>
+        {
+            srsGenerations++;
+            vm.StoreFixRAR = false;
+        };
+
+        vm.CreateSRRCommand.Execute(null);
+        await vm.CreateSRRCommand.ExecutionTask!;
+
+        Assert.Equal(1, srsGenerations);   // the toggle really was cleared DURING the run
+        Assert.False(vm.StoreFixRAR);
+        Assert.DoesNotContain(vm.StoredFiles, f => f.StoredName.Equals("movie.rar", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task CreateSRR_OutputPathChangedMidRun_WriterReceivesTheNewPath()
+    {
+        // The writer's destination is read in the LAST phase, after every generation await, and the
+        // output box is not disabled while IsCreating is true. So a path edited mid-run is the one
+        // the SRR is written to. Snapshotting the value at the start of the run would silently send
+        // the build to the old destination - which is exactly what a value-typed Inputs record did
+        // before this was pinned.
+        string dir = CreateTempRelease("movie.sfv");
+        CreatorViewModel vm = CreateVm(out FakeSRRCreationService srr, out FakeSRSCreationService srs);
+        vm.AutoCreateSRS = true;
+        vm.InputPath = Path.Combine(dir, "movie.sfv");
+        vm.OutputPath = Path.Combine(dir, "original.srr");
+        vm.ExtraSampleFiles.Add(Path.Combine(dir, "sample.mkv"));
+
+        string redirected = Path.Combine(dir, "redirected.srr");
+        srs.OnCreate = _ => vm.OutputPath = redirected;
+
+        vm.CreateSRRCommand.Execute(null);
+        await vm.CreateSRRCommand.ExecutionTask!;
+
+        Assert.Equal(redirected, vm.OutputPath);        // the edit really happened during the run
+        Assert.Equal(redirected, srr.LastOutputPath);   // and the writer honoured it
     }
 
     // ── Cross-instance isolation ─────────────────────────────

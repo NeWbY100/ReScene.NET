@@ -15,15 +15,17 @@ namespace ReScene.App.Core.ViewModels.Creation;
 /// <remarks>
 /// <para>
 /// <b>The stored-file collection is appended to INCREMENTALLY, during the run.</b> It is held by
-/// reference and each phase adds to it as it generates, exactly where it did before. Generation
-/// order is storage order, and the bound DataGrid shows the list filling in live while
-/// <c>IsCreating</c> is true. Batching the appends into one add at the end would produce a
-/// byte-identical SRR and would still satisfy the collection-order test, while changing what the
-/// user sees.
+/// reference and each phase adds to it as it generates, exactly where it did before, so generation
+/// order is storage order and the collection is already growing while <c>IsCreating</c> is true.
+/// Batching the appends into one add at the end would produce a byte-identical SRR and would still
+/// satisfy the collection-order test, so
+/// <c>CreateSRR_AppendsStoredFilesIncrementally_NotBatchedAtTheEnd</c> observes the collection
+/// mid-run instead. That test pins the collection's state, not what Avalonia renders.
 /// </para>
 /// <para>
-/// The appends also stay on the awaiting continuation and must NOT be moved behind
+/// The appends also stay on the awaiting continuation rather than being moved behind
 /// <c>IUiDispatcher.Post</c>, which would reorder them relative to the posted progress updates.
+/// Nothing pins that: the test dispatcher runs posted work inline, so it cannot tell the two apart.
 /// </para>
 /// </remarks>
 internal sealed class FileModeCreationPipeline(
@@ -35,18 +37,29 @@ internal sealed class FileModeCreationPipeline(
     Action<string> log)
 {
     /// <summary>
-    /// The per-run view-model values the pipeline reads. Snapshotted into a record at the start of a
-    /// run rather than read live: unlike folder mode's release root, none of these is meant to
-    /// change mid-run, and passing them as a value makes that explicit.
+    /// The view-model state the pipeline reads, as LIVE accessors rather than values.
     /// </summary>
+    /// <remarks>
+    /// Each is read at its own phase boundary, which for every one except the initial input read
+    /// can follow awaited generation work — and all of them stay user-editable while a run is in
+    /// progress: the input and output boxes are not disabled by <c>IsCreating</c>, and the option
+    /// toggles are ordinary checkboxes. Snapshotting them at the start of the run would therefore
+    /// change behaviour — a phase toggled off mid-run would still execute. That is not hypothetical: <c>CreateVobsubSRR</c> being switched off during the SRS
+    /// phase, and the vobsub phase then being skipped, is an existing test. Folder mode's
+    /// <see cref="CreatorArtifactStager"/> takes accessors for the same reason.
+    /// <para>
+    /// <see cref="Options"/> is the exception and is a plain value: the original builds it once,
+    /// before the run begins.
+    /// </para>
+    /// </remarks>
     internal sealed record Inputs(
-        string InputPath,
-        string OutputPath,
-        bool IsSFVInput,
-        bool AutoCreateSRS,
-        bool CreateVobsubSRR,
-        bool StoreFixRAR,
-        string AppName,
+        Func<string> InputPath,
+        Func<string> OutputPath,
+        Func<bool> IsSFVInput,
+        Func<bool> AutoCreateSRS,
+        Func<bool> CreateVobsubSRR,
+        Func<bool> StoreFixRAR,
+        Func<string> AppName,
         SRRCreationOptions Options);
 
     /// <summary>
@@ -90,7 +103,7 @@ internal sealed class FileModeCreationPipeline(
     /// <summary>
     /// Runs every file-mode creation phase in order and returns the writer's result.
     /// </summary>
-    /// <param name="inputs">The run's snapshotted view-model values.</param>
+    /// <param name="inputs">Live accessors for the view-model state the phases read.</param>
     /// <param name="ensureTempDir">
     /// Returns the run's temp directory, creating it on first call. A callback rather than a path
     /// because the directory is created lazily — only if a phase actually needs one — while its
@@ -109,7 +122,7 @@ internal sealed class FileModeCreationPipeline(
     {
         // GetDirectoryName returns "" (not null) for a bare file name — same guard as
         // ComputeStoredName and BuildSampleAndSubtitlePlaceholders.
-        string releaseDir = Path.GetDirectoryName(inputs.InputPath) is { Length: > 0 } dir ? dir : ".";
+        string releaseDir = Path.GetDirectoryName(inputs.InputPath()) is { Length: > 0 } dir ? dir : ".";
 
         // Phase 0: Materialize the wizard's sample/subtitle placeholders — generate their
         // actual .srs/.srr now, in the order the user arranged. (Advanced has no placeholders.)
@@ -123,19 +136,19 @@ internal sealed class FileModeCreationPipeline(
 
         // Phase 1: Auto-create SRS files for samples (Advanced tab; the wizard uses placeholders
         // above instead, with AutoCreateSRS off).
-        if (inputs.AutoCreateSRS)
+        if (inputs.AutoCreateSRS())
         {
             await CreateSRSForSamplesAsync(releaseDir, ensureTempDir(), inputs.AppName, ct);
         }
 
         // Phase 2: Create nested SRRs for subtitle archives
-        if (inputs.CreateVobsubSRR)
+        if (inputs.CreateVobsubSRR())
         {
             await CreateVobsubSRRsAsync(releaseDir, inputs.Options, ensureTempDir(), ct);
         }
 
         // Phase 3: Store fix RAR if applicable
-        if (inputs.StoreFixRAR)
+        if (inputs.StoreFixRAR())
         {
             StoreFixRARFile(releaseDir);
         }
@@ -181,20 +194,20 @@ internal sealed class FileModeCreationPipeline(
             }
         }
 
-        if (inputs.IsSFVInput)
+        if (inputs.IsSFVInput())
         {
             return await srrService.CreateFromSFVAsync(
-                inputs.OutputPath, inputs.InputPath,
+                inputs.OutputPath(), inputs.InputPath(),
                 storedFiles.Count > 0 ? storedFiles : null,
                 inputs.Options, ct);
         }
         else
         {
-            List<string> volumes = CreatorArtifactNaming.DiscoverRARVolumes(inputs.InputPath);
+            List<string> volumes = CreatorArtifactNaming.DiscoverRARVolumes(inputs.InputPath());
             log($"Found {volumes.Count} volume(s).");
 
             return await srrService.CreateFromRARAsync(
-                inputs.OutputPath, volumes,
+                inputs.OutputPath(), volumes,
                 storedFiles.Count > 0 ? storedFiles : null,
                 inputs.Options, ct);
         }
@@ -203,7 +216,7 @@ internal sealed class FileModeCreationPipeline(
 
     // ── SRS auto-creation (Advanced tab: scan + generate at create time) ──
 
-    private async Task CreateSRSForSamplesAsync(string releaseDir, string tempDir, string appName, CancellationToken ct)
+    private async Task CreateSRSForSamplesAsync(string releaseDir, string tempDir, Func<string> appName, CancellationToken ct)
     {
         // Auto-detected samples plus any added manually on the wizard's Samples step.
         List<string> samples = [.. ReleaseFileScanner.FindSampleFiles(releaseDir)
@@ -212,7 +225,7 @@ internal sealed class FileModeCreationPipeline(
 
         var srsOptions = new SRSCreationOptions
         {
-            AppName = string.IsNullOrWhiteSpace(appName) ? "ReScene Manager" : appName
+            AppName = string.IsNullOrWhiteSpace(appName()) ? "ReScene Manager" : appName()
         };
 
         await ArtifactFileGenerator.GenerateAndRecordAsync(
