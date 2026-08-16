@@ -171,9 +171,12 @@ internal sealed class ArtifactFileGenerator(
     }
 
     /// <summary>
-    /// Creates one nested .srr from the subtitle <paramref name="sfvPath"/> (and any .nfo beside it)
-    /// into <paramref name="tempDir"/> and returns its path, or null on failure. Used only by the
-    /// wizard's placeholder materialization.
+    /// Creates one nested .srr from the subtitle <paramref name="sfvPath"/> into
+    /// <paramref name="tempDir"/> and returns its path, or null on failure. Used only by the
+    /// wizard's placeholder materialization. It contains RAR blocks ONLY — no embedded SFV and no
+    /// sibling .nfo files, per <see cref="BuildNestedSubtitleStoredFiles"/>, which returns
+    /// <see langword="null"/> unconditionally. (This summary previously promised "any .nfo beside
+    /// it", contradicting that method's own remarks thirty lines above.)
     ///
     /// Unlike the Advanced-tab create-time path (which emits one nested SRR PER RAR CHAIN via
     /// <see cref="GenerateNestedSubtitleSrrsAsync"/>), this wizard-placeholder path stays

@@ -4,9 +4,18 @@ namespace ReScene.App.Core.ViewModels.Reconstruction;
 
 /// <summary>
 /// The SRR import's pure DECISIONS: which RAR majors an SRR's metadata implies, and which unit a
-/// volume size is best expressed in. Each returns what to do; the view-model still does it, at the
-/// call site the original used.
+/// volume size is best expressed in. Each returns what to do; the view-model still APPLIES it at
+/// the call site the original used.
 /// </summary>
+/// <remarks>
+/// One honest caveat on "the call site the original used": that holds for the assignments, not for
+/// the READS behind them. <see cref="SelectRARVersions"/> reads <c>DictionarySize</c>,
+/// <c>HasFirstVolumeFlag</c> and <c>HasUnicodeNames</c> when it is called, which is BEFORE the
+/// caller's blanket clear; the original read them after it. Nothing in the app can observe the
+/// difference — the <see cref="SRRFile"/> is a local with <c>internal</c> setters that is never
+/// handed to a subscriber — but the timing is genuinely different and should not be described as
+/// unchanged.
+/// </remarks>
 /// <remarks>
 /// <para>
 /// The application deliberately stays behind. The decisions are interleaved with each other during

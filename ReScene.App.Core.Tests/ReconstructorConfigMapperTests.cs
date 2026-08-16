@@ -557,8 +557,13 @@ public sealed class ReconstructorConfigMapperTests
 
         Assert.Equal("rel.srr", state.SRRFilePath);
         Assert.Equal("hello", state.ArchiveComment);
-        Assert.Equal(commentBytes, state.ArchiveCommentBytes);
-        Assert.Equal(cmtData, state.CmtCompressedData);
+
+        // Compared against fresh literals, NOT against commentBytes/cmtData. Those locals are the
+        // SAME instances the DTO carries, so an Apply that corrupted a payload in place would
+        // mutate the "expected" value too and this assertion would still pass — xUnit compares
+        // byte[] element-wise, which catches a substituted array but not an aliased one.
+        Assert.Equal([1, 2, 3], state.ArchiveCommentBytes);
+        Assert.Equal([9, 8, 7, 6], state.CmtCompressedData);
         Assert.Equal((byte)0x35, state.CmtCompressionMethod);
         Assert.Equal((byte)2, state.DetectedFileHostOS);
         Assert.Equal(0x20u, state.DetectedFileAttributes);

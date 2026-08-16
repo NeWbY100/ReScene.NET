@@ -14,8 +14,10 @@ internal interface IRunSink
 {
     /// <summary>
     /// Sets the active set/attempt label. It stays a view-model field rather than moving into the
-    /// runner because the progress handler reads it LIVE from the engine's callback thread while the
-    /// run writes it on its await continuation - hence <c>volatile</c> there.
+    /// runner because the progress handler reads it LIVE while the run writes it on its await
+    /// continuation. Both accesses land on the UI thread under the production dispatcher - the
+    /// read happens inside <c>IUiDispatcher.Invoke</c> - but the field is <c>volatile</c> there
+    /// because a dispatcher that invokes inline runs that read on the engine's callback thread.
     /// </summary>
     public void SetStageLabel(SetStageLabel? label);
 

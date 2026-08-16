@@ -787,11 +787,23 @@ internal static class CompactHeightBehavior
             {
                 if (Grid.GetRow(child) == i)
                 {
-                    rowDesired = Math.Max(rowDesired, child.DesiredSize.Height + child.Margin.Top + child.Margin.Bottom);
+                    // DesiredSize ALREADY includes the child's margin — Avalonia's Layoutable adds
+                    // it in MeasureCore. Adding Margin.Top/Bottom again counted every margined
+                    // child's margin twice, inflating the floor and collapsing the view to compact
+                    // mode while the expanded content still had room.
+                    rowDesired = Math.Max(rowDesired, child.DesiredSize.Height);
                 }
             }
 
             total += Math.Max(rowDesired, row.MinHeight);
+        }
+
+        // Row spacing sits BETWEEN rows and is real height the grid will demand, so leaving it out
+        // pushed the floor the other way: below the actual content floor, letting expanded content
+        // be clipped before compact mode engaged.
+        if (grid.RowDefinitions.Count > 1)
+        {
+            total += grid.RowSpacing * (grid.RowDefinitions.Count - 1);
         }
 
         return total;

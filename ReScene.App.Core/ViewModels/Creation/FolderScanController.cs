@@ -34,7 +34,7 @@ internal sealed class FolderScanController(
 {
     /// <summary>
     /// The view-model state this controller writes. Grouped into a record rather than passed as
-    /// nine positional constructor arguments so the single construction site reads as named
+    /// twelve positional constructor arguments so the single construction site reads as named
     /// assignments; the members are individually documented because several are ordering-sensitive.
     /// </summary>
     /// <param name="SetIsScanning">

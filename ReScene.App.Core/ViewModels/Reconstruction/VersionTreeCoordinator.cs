@@ -20,9 +20,17 @@ namespace ReScene.App.Core.ViewModels.Reconstruction;
 /// <para>
 /// <b><see cref="_suppressGroupSync"/> guards the tree→major sync during a programmatic bulk change,
 /// and BOTH regions that raise it are load-bearing.</b> In <see cref="RebuildVersionGroups"/> a sync
-/// would otherwise run against a partially-built group list; in <see cref="SetAllLeaves"/> it keeps
-/// the bulk tick/untick atomic to any subscriber of the tree's own SelectionChanged. Each is pinned
-/// separately in <c>ReconstructorViewModelVersionsTests</c>.
+/// would otherwise run against a partially-built group list; in <see cref="SetAllLeaves"/> it defers
+/// the tree→major projection so the six <c>VersionN</c> properties are written ONCE, from the
+/// final state, instead of once per leaf. Each is pinned separately in
+/// <c>ReconstructorViewModelVersionsTests</c>.
+/// </para>
+/// <para>
+/// It does NOT make the bulk change atomic to a subscriber of the tree's own SelectionChanged:
+/// <see cref="SetAllLeaves"/> never sets <c>RARVersionGroup._bulkUpdating</c>, so every
+/// <c>leaf.IsChecked</c> write still reaches <c>RaiseStateChanged</c> and raises SelectionChanged
+/// per leaf. The sibling bulk path, <c>RARVersionGroup.ToggleAll</c>, does use that flag and IS
+/// atomic in that sense — the difference between the two is deliberate, not an oversight here.
 /// </para>
 /// </remarks>
 internal sealed class VersionTreeCoordinator(

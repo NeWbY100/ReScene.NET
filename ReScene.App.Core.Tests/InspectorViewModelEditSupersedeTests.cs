@@ -58,14 +58,14 @@ public sealed class InspectorViewModelEditSupersedeTests : TempDirTestBase
 
     private static void RunSync(Func<Task> action) => Task.Run(action).GetAwaiter().GetResult();
 
-    private InspectorViewModel NewViewModel(ISRREditingService editing, IFileDialogService dialog) =>
+    private static InspectorViewModel NewViewModel(ISRREditingService editing, IFileDialogService dialog) =>
         new(dialog, editing, new StubVerifyService(), new StubPropertyExportService(), new RecordingImagePreviewService());
 
     private string WriteSrr(string name, string storedName) =>
         SRREditingServiceImageTests.WriteMinimalSRR(TempDir, name, storedName, Encoding.ASCII.GetBytes("DATA"));
 
     [Fact]
-    public void RenameStoredFile_WhenAnotherFileIsOpenedMidEdit_DoesNotPullTheViewBack()
+    public async Task RenameStoredFile_WhenAnotherFileIsOpenedMidEdit_DoesNotPullTheViewBack()
     {
         string first = WriteSrr("first.srr", "keep.nfo");
         string second = WriteSrr("second.srr", "other.nfo");
@@ -85,7 +85,7 @@ public sealed class InspectorViewModelEditSupersedeTests : TempDirTestBase
 
         // Now the edit finishes. Its reload must NOT win.
         editing.RenameGate.SetResult();
-        rename.GetAwaiter().GetResult();
+        await rename;
 
         Assert.Equal(second, vm.LoadedFilePath);
     }
