@@ -132,12 +132,10 @@ public sealed class CreatorViewModelFolderModeTests : TempDirTestBase
         public ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default) => resultsByRoot[releaseRoot];
     }
 
-    /// <summary>Throws an UNEXPECTED (non-OCE) exception from <c>Scan</c> — the very fault
-    /// <c>RarProofInspector.Inspect</c>'s narrow IOException/UnauthorizedAccessException catch (or a
-    /// RAR-parser fault) would let escape, to prove the catch-all doesn't strand the busy state.</summary>
     /// <summary>
-    /// Throws, but only after the test has released it — so the fault completion is guaranteed to
-    /// run AFTER the <c>InputPath</c> setter returned and its generated command notification fired.
+    /// Throws the same kind of UNEXPECTED (non-OCE) fault as <see cref="ThrowingReleaseScanner"/>,
+    /// but only after the test has released it — so the fault completion is guaranteed to run AFTER
+    /// the <c>InputPath</c> setter returned and its generated command notification fired.
     /// </summary>
     private sealed class GatedThrowingReleaseScanner(Exception toThrow) : IReleaseScanner
     {
@@ -155,6 +153,9 @@ public sealed class CreatorViewModelFolderModeTests : TempDirTestBase
         }
     }
 
+    /// <summary>Throws an UNEXPECTED (non-OCE) exception from <c>Scan</c> — the very fault
+    /// <c>RarProofInspector.Inspect</c>'s narrow IOException/UnauthorizedAccessException catch (or a
+    /// RAR-parser fault) would let escape, to prove the catch-all doesn't strand the busy state.</summary>
     private sealed class ThrowingReleaseScanner(Exception toThrow) : IReleaseScanner
     {
         public ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default) => throw toThrow;
