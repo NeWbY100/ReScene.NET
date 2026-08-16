@@ -21,6 +21,17 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
   redirect outside the output directory) is now refused outright with exit code 2 and nothing
   written — previously such names were silently rewritten and extraction continued. Truncated
   stored data is likewise refused up front instead of producing silently short files.
+- The SRR Creator's view-model has been split into focused collaborators — artifact naming,
+  scan-session lifecycle, per-file generation, folder-mode staging, field guidance, the
+  folder-scan controller and the file-mode creation pipeline — shrinking it from 2,295 lines to
+  1,035. Behaviour is unchanged; each moved method body was diffed mechanically against its
+  original rather than retyped. The decomposition is covered by new characterization tests for
+  the behaviour it could have disturbed, several of which closed pre-existing gaps: the Create
+  button's enabled-state *notification* (as opposed to its predicate, which is re-evaluated on
+  demand and so could never detect a missing notification) was untested on the scan fault,
+  root-error and success paths; nothing verified that the Advanced tab and the Beginner wizard
+  keep separate progress streams; and nothing pinned that the stored-file list is appended to
+  incrementally during a build, or that an option toggled off mid-run takes effect.
 
 ### Fixed
 

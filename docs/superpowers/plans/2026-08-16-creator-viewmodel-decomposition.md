@@ -37,7 +37,7 @@
 - Produces: `internal static class CreatorArtifactNaming` exposing, with signatures unchanged from their current private forms:
   `bool IsFilesystemRoot(string path)`, `bool IsRootError(ReleaseScanResult result)`, `string RootRelativeName(string releaseRoot, string fullPath)`, `int FindSampleArtifactSpliceIndex(List<StoredFileEntry> entries)`, `int FindSubtitleArtifactSpliceIndex(List<StoredFileEntry> entries)`, `bool IsUnderProofDirectory(string storedName)`, `bool HasMatchingSfv(string storedName, List<StoredFileEntry> entries)`, `bool IsRarBackedVobSample(string samplePath)`, `string FolderRelativeName(string releaseRoot, string sourcePath, string conventionalDir)`, `string FolderRelativeStem(string releaseRoot, string sourcePath, string conventionalDir)`, `string GeneratedStoredName(string releaseDir, string sourcePath, string newExtension, string conventionalDir)`, `List<string> DiscoverRARVolumes(string firstRARPath)`.
 
-- [ ] **Step 1: Create the class and move the twelve members verbatim**
+- [x] **Step 1: Create the class and move the twelve members verbatim**
 
 Create `ReScene.App.Core/ViewModels/Creation/CreatorArtifactNaming.cs`:
 
@@ -63,11 +63,11 @@ internal static class CreatorArtifactNaming
 
 Move each member from `CreatorViewModel.cs` (current lines 1349, 1363, 1369, 1431, 1464, 1483, 1509, 1655, 1908, 1917, 2205, 2214) into it, changing only the accessibility modifier. **Copy every XML doc comment with the member** — `FindSampleArtifactSpliceIndex` and `FindSubtitleArtifactSpliceIndex` carry multi-paragraph rationale describing exactly which pyrescene pass they reproduce, and that rationale is the reason the code is correct.
 
-- [ ] **Step 2: Update the call sites**
+- [x] **Step 2: Update the call sites**
 
 In `CreatorViewModel.cs`, add `using ReScene.App.Core.ViewModels.Creation;` and prefix each call with `CreatorArtifactNaming.`. There are roughly 25 call sites; the compiler will find every one you miss.
 
-- [ ] **Step 3: Build and run both suites**
+- [x] **Step 3: Build and run both suites**
 
 Run: `dotnet build ReScene.App.Core/ReScene.App.Core.csproj --no-incremental`
 Expected: 0 warnings, 0 errors.
@@ -75,7 +75,7 @@ Expected: 0 warnings, 0 errors.
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj`
 Expected: **PASS**, same total as before this task (732).
 
-- [ ] **Step 4: Add a direct test file for the moved helpers**
+- [x] **Step 4: Add a direct test file for the moved helpers**
 
 The helpers were previously reachable only through the view-model. Now that they are `internal`, test them directly. Create `ReScene.App.Core.Tests/CreatorArtifactNamingTests.cs`:
 
@@ -117,7 +117,7 @@ public class CreatorArtifactNamingTests
 
 Adjust the expected values to whatever the moved implementations actually produce — read each method before writing its assertion, and if a case surprises you, the implementation is the source of truth here, not your expectation. Do not change an implementation to satisfy a guess.
 
-- [ ] **Step 5: Run and commit**
+- [x] **Step 5: Run and commit**
 
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj`
 Expected: **PASS**, total increased by the number of new test cases.
@@ -153,7 +153,7 @@ This isolates the sharpest edge in the file. It reduces risk more than line coun
   `void CompleteIfCurrent(CancellationTokenSource cts)`,
   `int BumpGeneration()`.
 
-- [ ] **Step 1: Create the session type**
+- [x] **Step 1: Create the session type**
 
 ```csharp
 namespace ReScene.App.Core.ViewModels.Creation;
@@ -213,7 +213,7 @@ internal sealed class FolderScanSession
 }
 ```
 
-- [ ] **Step 2: Replace the two fields and rewire**
+- [x] **Step 2: Replace the two fields and rewire**
 
 In `CreatorViewModel.cs`, replace `private int _scanGeneration;` and `private CancellationTokenSource? _scanCts;` with `private readonly FolderScanSession _scan = new();`.
 
@@ -225,14 +225,14 @@ Then rewire, preserving each site's exact position:
 
 **Do not** change which thread any of this runs on, and do not move the eager token capture.
 
-- [ ] **Step 3: Build and run**
+- [x] **Step 3: Build and run**
 
 Run: `dotnet build ReScene.App.Core/ReScene.App.Core.csproj --no-incremental` → 0 issues.
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj` → **PASS**, unchanged total.
 
 The load-bearing guard is `RapidInputSwitching_WithoutAwaiting_NeverThrows` (`CreatorViewModelFolderModeTests.cs:647`), together with `StaleScan_Discarded_WhenNewerInputSupersedes` (:223) and the `InputChange_ToNonFolder_DiscardsStaleFolderScan` theory (:493). If any of those fail, the claim/cancel discipline moved — revert and redo rather than adjusting the test.
 
-- [ ] **Step 4: Prove the eager token capture still matters**
+- [x] **Step 4: Prove the eager token capture still matters**
 
 Temporarily change `Begin()` to return `cts` without the token and have `StartFolderScan` read `cts.Token` inside the scan body instead.
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj --filter "FullyQualifiedName~RapidInputSwitching"`
@@ -240,7 +240,7 @@ Expected: **FAIL** with `ObjectDisposedException`. Revert and confirm PASS.
 
 If it does NOT fail, say so in the commit message rather than claiming the guard is proven — the race may simply not reproduce on this machine, and a silent claim would be worse than an honest note.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ReScene.App.Core/ViewModels/Creation/FolderScanSession.cs ReScene.App.Core/ViewModels/CreatorViewModel.cs
@@ -274,7 +274,7 @@ Extracted **before** the stager so the stager comes out clean, and because this 
   `Task<List<StoredFileEntry>> GenerateNestedSubtitleSrrsAsync(...)` (keep the current parameter list verbatim),
   and the `static` `GenerateAndRecordAsync<TSource>` helper.
 
-- [ ] **Step 1: Create the generator with a primary constructor**
+- [x] **Step 1: Create the generator with a primary constructor**
 
 ```csharp
 using ReScene.App.Core.Services;
@@ -307,7 +307,7 @@ Move `GenerateNestedSubtitleSrrsAsync` (1802), `BuildNestedSubtitleStoredFiles` 
 
 **The three `nestedOptions` constructions** (currently at ~1615, ~1833, ~2044) each build `AllowCompressed = true, ComputeOSOHashes = false` independently. They may share one private factory inside this class, but must never forward the caller's outer `options` — four tests guard that (`SubtitleNestedSrr_ForcesComputeOSOHashesFalse_…`, `RarBackedVobSample_NestedSrr_ForcesComputeOSOHashesFalse_…`, `AdvancedTab_VobsubScan_OuterOsoTrue_…`, `WizardPlaceholder_NestedSubtitleSrr_OuterOsoTrue_HasNoOso`).
 
-- [ ] **Step 2: Construct it in the view-model and update the three call sites**
+- [x] **Step 2: Construct it in the view-model and update the three call sites**
 
 Add `private readonly ArtifactFileGenerator _artifacts;` and build it in the constructor:
 
@@ -317,14 +317,14 @@ Add `private readonly ArtifactFileGenerator _artifacts;` and build it in the con
 
 Update the three callers — `MaterializePlaceholdersAsync`, `CreateSRSForSamplesAsync`, `CreateVobsubSRRsAsync` — to call through `_artifacts`. **They keep owning the `StoredFiles` mutation**; only the file creation moves.
 
-- [ ] **Step 3: Build and run both suites**
+- [x] **Step 3: Build and run both suites**
 
 Run: `dotnet build ReScene.App.Core/ReScene.App.Core.csproj --no-incremental` → 0 issues.
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj` → **PASS**, unchanged total.
 
 Guards: `SubtitleSfv_MultipleRarChains_YieldsOneNestedSrrPerChain_…`, `SubtitleSfv_SpacedRarName_…`, `SubtitleSfv_DotSlashContinuation_…`, `AdvancedTab_VobsubScan_*`, `WizardPlaceholder_NestedSubtitleSrr_*`, `CreateSRR_TwoSamplesSameBasename_GenerateDistinctTempFiles`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.App.Core/ViewModels/Creation/ArtifactFileGenerator.cs ReScene.App.Core/ViewModels/CreatorViewModel.cs
@@ -357,7 +357,7 @@ Required before Task 5. The stager reads `ExtraSampleFiles` when sample generati
 - Consumes: the file's existing `CreateVm` folder-mode factory and its fake creation services.
 - Produces: nothing consumed later.
 
-- [ ] **Step 1: Add a mid-call hook to the existing SRS double**
+- [x] **Step 1: Add a mid-call hook to the existing SRS double**
 
 `RecordingSRSCreationService` (top of `CreatorViewModelArtifactTests.cs`) already supports `Configure` and `ConfigureThrow`. Add one more, in the same style:
 
@@ -376,7 +376,7 @@ and invoke it as the first statement of `CreateAsync`, immediately after `CallsI
             OnCreate?.Invoke(sampleFilePath);
 ```
 
-- [ ] **Step 2: Write the test**
+- [x] **Step 2: Write the test**
 
 ```csharp
     [Fact]
@@ -408,19 +408,19 @@ and invoke it as the first statement of `CreateAsync`, immediately after `CallsI
 
 If `RunCreateAsync`'s scan overwrites `ExtraSubtitleSfvFiles` before staging runs, add the late SFV from `OnCreate` as written above (which fires after the scan) — that is why the hook is on the SRS service rather than set before the run.
 
-- [ ] **Step 3: Run it**
+- [x] **Step 3: Run it**
 
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj --filter "FullyQualifiedName~Staging_ReadsSubtitleInputsAfterSampleGeneration"`
 Expected: **PASS** against current behavior (characterization).
 
 If it fails, the reads are not phase-local the way the spec claims — stop and report, do not adjust the production code.
 
-- [ ] **Step 4: Prove it has teeth**
+- [x] **Step 4: Prove it has teeth**
 
 Temporarily hoist the subtitle read: in `StageFolderArtifactsAsync`, capture `List<string> subtitleSnapshot = [.. ExtraSubtitleSfvFiles];` as the **first** statement and make `GenerateSubtitleArtifactsAsync` use that snapshot.
 Run the same filter. Expected: **FAIL** — the late-added SFV is missing. Revert and confirm PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ReScene.App.Core.Tests/CreatorViewModelArtifactTests.cs
@@ -469,7 +469,7 @@ So the signature is:
 
 `createVobsubSrr` is likewise a `Func<bool>`: the current code reads that property after sample generation, not before.
 
-- [ ] **Step 1: Create the stager**
+- [x] **Step 1: Create the stager**
 
 Move `StageFolderArtifactsAsync` (1385), `GenerateSampleArtifactsAsync` (1527) and `GenerateSubtitleArtifactsAsync` (1696) verbatim, rewriting `_releaseRoot!` to the accessor, `Log(...)` to the callback, and the generator calls to the injected `ArtifactFileGenerator`.
 
@@ -484,11 +484,11 @@ And inside `GenerateSubtitleArtifactsAsync`, the strict two-pass structure: **al
 
 Keep the concrete `ReleaseScanner.ResolveDedupKey` / `ReleaseScanner.ApplyProofBeforeSfvReorder` calls as concrete — they are `internal static` on the class, not on `IReleaseScanner`, and hiding them behind the interface would be a lie about the coupling.
 
-- [ ] **Step 2: Wire the view-model**
+- [x] **Step 2: Wire the view-model**
 
 Construct the stager in the view-model's constructor and replace the `CreateSRRAsync` folder-mode branch's call with `_stager.StageAsync(...)`. The workdir creation and its `finally` cleanup stay in `CreateSRRAsync`.
 
-- [ ] **Step 3: Build and run both suites**
+- [x] **Step 3: Build and run both suites**
 
 Run: `dotnet build ReScene.App.Core/ReScene.App.Core.csproj --no-incremental` → 0 issues.
 Run: `dotnet test ReScene.App.Core.Tests/ReScene.App.Core.Tests.csproj` → **PASS**, unchanged total.
@@ -496,7 +496,7 @@ Run: `dotnet test ReScene.Manager.Tests/ReScene.Manager.Tests.csproj` → **PASS
 
 Guards: essentially all of `CreatorViewModelArtifactTests.cs` (~40 tests), including Task 4's new one, `RealScanner_SubtitleSfv_StoredExactlyOnce_NestedSrrImmediatelyBeforeIt` (which uses the **real** `ReleaseScanner`, so it also guards the stager↔scanner interplay), `Cancellation_DuringArtifactStaging_RemovesWorkingDir_DoesNotSwallowOce`, and the proof-reorder ordering tests.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.App.Core/ViewModels/Creation/CreatorArtifactStager.cs ReScene.App.Core/ViewModels/CreatorViewModel.cs
@@ -532,11 +532,11 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 Note `UpdateActionHint` returns a **string** (`ActionHint`), not a `FieldStatus`. Neither function is side-effect-free: `UpdateInputStatus` calls `File.Exists` and `CountReleaseArchives`. Pass the inputs it needs and let it keep reading the filesystem exactly where it does now.
 
-- [ ] **Step 1: Read both methods and design the parameter lists**
+- [x] **Step 1: Read both methods and design the parameter lists**
 
 Read `CreatorViewModel.cs:373-414`. List every view-model member each one reads. Those become parameters. Do not pass the view-model itself.
 
-- [ ] **Step 2: Create the class, move the logic, leave two-line assigners behind**
+- [x] **Step 2: Create the class, move the logic, leave two-line assigners behind**
 
 The view-model keeps:
 
@@ -550,11 +550,11 @@ The view-model keeps:
 
 The auto-output-path arbitration (`_outputPathAutoGenerated`, `_lastAutoOutputPath`, `TrySetAutoOutputPath`, `AutoSetFolderOutputPath`) **stays on the view-model** — it round-trips through `OnOutputPathChanged`, a generated hook that cannot move.
 
-- [ ] **Step 3: Add direct tests**
+- [x] **Step 3: Add direct tests**
 
 Create `ReScene.App.Core.Tests/CreatorFieldGuidanceTests.cs` covering at least: a blank input, a nonexistent path, a valid file, a valid folder, and the busy/scanning state. Read the implementation for the exact expected strings rather than guessing them.
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 Run both suites. Expected: **PASS**.
 
@@ -580,7 +580,7 @@ Required before Task 9. `ClearFolderScanResults` also clears the three `Selected
 **Files:**
 - Modify: `ReScene.App.Core.Tests/CreatorViewModelFolderModeTests.cs`
 
-- [ ] **Step 1: Write two tests**
+- [x] **Step 1: Write two tests**
 
 ```csharp
     [Fact]
@@ -624,11 +624,11 @@ Required before Task 9. `ClearFolderScanResults` also clears the three `Selected
 
 If `ActionHint` has no public setter, capture its value before the scan into a local and assert it *changed* instead of writing a sentinel. Read the property first; do not add a setter to make the test convenient.
 
-- [ ] **Step 2: Run** → **PASS** (characterization).
+- [x] **Step 2: Run** → **PASS** (characterization).
 
-- [ ] **Step 3: Prove teeth** — comment out the selection clears in `ClearFolderScanResults`, confirm the first test fails; comment out the success-path `UpdateActionHint()` call, confirm the second fails. Revert both, confirm PASS.
+- [x] **Step 3: Prove teeth** — comment out the selection clears in `ClearFolderScanResults`, confirm the first test fails; comment out the success-path `UpdateActionHint()` call, confirm the second fails. Revert both, confirm PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.App.Core.Tests/CreatorViewModelFolderModeTests.cs
@@ -651,7 +651,7 @@ Required before Task 9. Two `CreatorViewModel` instances coexist — the Advance
 **Files:**
 - Modify: `ReScene.App.Core.Tests/CreatorViewModelTests.cs`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```csharp
     [Fact]
@@ -686,11 +686,11 @@ Required before Task 9. Two `CreatorViewModel` instances coexist — the Advance
 
 changing its `Progress` from a discarding `{ add { } remove { } }` accessor to a real event only if that is what it already is — read it first, and keep the change additive.
 
-- [ ] **Step 2: Run** → **PASS** (characterization).
+- [x] **Step 2: Run** → **PASS** (characterization).
 
-- [ ] **Step 3: Prove teeth** — temporarily construct both with the *same* service double and confirm the test fails. Revert.
+- [x] **Step 3: Prove teeth** — temporarily construct both with the *same* service double and confirm the test fails. Revert.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.App.Core.Tests/CreatorViewModelTests.cs
@@ -720,7 +720,7 @@ In scope per the spec's "everything" decision, but this is the seam that drags t
 
 `Reset()` and `ExitFolderMode()` are required because `CreatorViewModel.Reset` and `OnInputPathChanged` sit **outside** the moved range yet mutate the moved fields; once those fields live in the controller, both callers need an API rather than field access.
 
-- [ ] **Step 1: Create the controller and move the lifecycle**
+- [x] **Step 1: Create the controller and move the lifecycle**
 
 Move `ExitFolderMode` (1028), `CancelInFlightScan` (1049), `ClearFolderScanResults` (1072), `StartFolderScan` (1089), `RunFolderScanAsync`, `ApplyFolderScanResult`, `AutoSetFolderOutputPath` and `TrySetAutoOutputPath`'s folder-mode half. `_isFolderMode`, `_isMusicOnlyFolder`, `_folderScanInvalid` and `_releaseRoot` move in and are re-exposed read-only.
 
@@ -728,15 +728,15 @@ Move `ExitFolderMode` (1028), `CancelInFlightScan` (1049), `ClearFolderScanResul
 
 `ExitFolderMode` must keep clearing `IsScanning` **synchronously**; a discarded scan will not do it, and deferring it strands the UI in "Scanning…" with Create disabled.
 
-- [ ] **Step 2: Wire the view-model**
+- [x] **Step 2: Wire the view-model**
 
 `CanCreateSRR` and `CreateSRRAsync` read the controller's read-only properties. `Reset` and `OnInputPathChanged` call `_folderScan.Reset()` / `.ExitFolderMode()` / `.Start(value)`. The `internal LastFolderScan` seam forwards to `_folderScan.LastScan` — it is used 40 times across three test files and cannot change shape.
 
-- [ ] **Step 3: Build and run both suites** → **PASS**, unchanged totals.
+- [x] **Step 3: Build and run both suites** → **PASS**, unchanged totals.
 
 Guards: all of `CreatorViewModelFolderModeTests.cs` (including Task 7's two new tests), all of `CreatorViewModelDetectedSetsTests.cs`, and Task 8's isolation test.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.App.Core/ViewModels/Creation/FolderScanController.cs ReScene.App.Core/ViewModels/CreatorViewModel.cs
@@ -769,22 +769,22 @@ In scope per the spec, and the lowest payoff-to-risk ratio in this plan. Its cov
 - Consumes: `ArtifactFileGenerator` (Task 3), `ITempDirectoryService`.
 - Produces: `internal sealed class FileModeCreationPipeline` with a method per phase, operating on the view-model's `ObservableCollection<StoredFileItem> StoredFiles` passed by reference.
 
-- [ ] **Step 1: Move the file-mode phases**
+- [x] **Step 1: Move the file-mode phases**
 
 Move the file-mode branch of `CreateSRRAsync`, plus `AutoScanReleaseFiles`, `CreateSRSForSamplesAsync`, `CreateVobsubSRRsAsync` and `StoreFixRARFile`.
 
 **`StoredFiles` must continue to be appended to INCREMENTALLY during the run**, while `IsCreating == true`. Generation order is storage order, live, in the bound DataGrid. Batching the appends into a single add at the end would produce an identical SRR and would still pass `CreateSRR_PassesStoredFilesToLibInCollectionOrder` — while changing what the user sees. The appends also stay on the awaiting continuation and must **not** be moved behind `_uiDispatcher.Post`, which would reorder them relative to the posted progress updates.
 
-- [ ] **Step 2: Build and run both suites** → **PASS**, unchanged totals.
+- [x] **Step 2: Build and run both suites** → **PASS**, unchanged totals.
 
 Guards: `FileModeCreate_StillCallsCreateFromSFVAsync_Regression`, `CreateSRR_PassesStoredFilesToLibInCollectionOrder`, `CreateSRR_CollidingStoredNames_LogsWarning`, `CreateSRR_BackslashAndSlashName_TreatedAsOneEntry`, `CreateSRR_MaterializesPlaceholders_InListOrder`, `CreateSRR_RetryAfterFailure_RematerializesPlaceholders`.
 
-- [ ] **Step 3: Measure the result**
+- [x] **Step 3: Measure the result**
 
 Run: `wc -l ReScene.App.Core/ViewModels/CreatorViewModel.cs`
 Expected: roughly 800 lines, down from 2,295. If it is materially larger, record which phase did not extract and why in the commit message rather than forcing it.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.App.Core/ViewModels/Creation/FileModeCreationPipeline.cs ReScene.App.Core/ViewModels/CreatorViewModel.cs
@@ -809,3 +809,37 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 1. Full solution verification: `dotnet build ReScene.Manager.slnx -c Release && dotnet test ReScene.Manager.slnx -c Release --no-build` — 0 warnings, 0 errors, all suites green.
 2. Add an `[Unreleased] / ### Changed` entry to the root `CHANGELOG.md` noting the internal restructuring and that behavior is unchanged.
 3. `ReconstructorViewModel` is the remaining target and gets its own plan.
+
+---
+
+## Outcome
+
+All ten tasks implemented, each reviewed by Codex before commit. `CreatorViewModel` went from
+2,295 lines to 1,035 — short of the ~800 the plan projected for Task 10; the remainder is
+observable properties, commands and stored-file editing, which have no seam left to move behind.
+Release-configuration verification across the whole solution: 4,458 tests pass, 0 warnings.
+
+Five things the plan did not anticipate, recorded because they cost real time:
+
+1. **The Create-gate notification was entirely untested.** Probing the extraction by making each
+   `FolderScanController` hook inert found seven of eight caught and `NotifyCanExecuteChanged`
+   caught by nothing. `CanExecute(null)` re-evaluates the predicate on demand, so every existing
+   assertion of that shape is structurally incapable of detecting a missing notification. Four
+   new tests record the gate at each `CanExecuteChanged` and assert the value at the final
+   re-query.
+2. **Task 10's first cut changed behaviour.** Passing the file-mode options as a value record
+   snapshotted state the original read at each phase boundary, so a toggle cleared mid-run would
+   have been ignored and an output path edited mid-run would have sent the build to the old
+   destination. The transcription diff could not catch it: `Property` -> `inputs.Property` is
+   structurally a rename and semantically a different read time.
+3. **Two "teeth checks" were worthless when first run.** One compared a tuple of `string[]` with
+   a single `Assert.Equal`, which compares arrays by reference — the test could only ever fail,
+   so its apparent mutation-sensitivity proved nothing. Another used an ungated scanner whose
+   completion could run inline before the property setter returned. Both were caught by
+   re-running green *before* trusting any mutation result; that ordering is now the rule.
+4. **A mutation-probe script's `git checkout` destroyed uncommitted work twice.** Mutations are
+   now reverted by inverse substitution, and extraction work is committed before probing.
+5. **Mechanical renames need guarding.** A `StoredFiles` -> `storedFiles` rename collided with a
+   local `List<StoredFileEntry>` of the same name, which would have silently written an SRR with
+   no stored files; another pass rewrote identifiers inside prose comments. The generator now
+   skips comment lines, and every moved body is diffed back against the original.
