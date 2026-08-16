@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -58,15 +57,9 @@ public partial class ReconstructorViewModel : ViewModelBase
     private readonly Lock _timestampFailuresLock = new();
 
     // ── Generation-safe batched log (#20) ──
-    // Log lines are enqueued (thread-safe) and applied to the bound log properties in batches on the UI
-    // thread. An atomic flush flag coalesces many enqueues into at most one pending UI dispatch, and a
-    // run-generation token stamped on each line lets a stale flush from a prior run discard its batch
-    // rather than repopulate a log the next run already cleared.
-    private readonly ConcurrentQueue<PendingLogLine> _logQueue = new();
-    // Accessed only through Interlocked/Volatile helpers (not declared volatile, which would conflict
-    // with passing it by ref and emit CS0420) — those calls carry the needed memory semantics.
-    private int _logGeneration;
-    private int _logFlushScheduled;
+    // Owned by ReconstructionLogBuffer, which holds the queue, the generation token and the flush
+    // flag along with the three orderings between them.
+    private readonly ReconstructionLogBuffer _log;
 
     // The active set/attempt label prepended to progress messages (#24), so a seed→full progress reset
     // within one set reads as a labelled stage change rather than an unexplained rewind. Volatile: it is
@@ -90,6 +83,9 @@ public partial class ReconstructorViewModel : ViewModelBase
         _tempDir = tempDir ?? new TempDirectoryService();
         _launcher = launcher ?? new SystemLauncherService();
         _fileMover = fileMover ?? new SystemFileMover();
+        // Constructed here rather than as a field initializer: it needs the injected dispatcher.
+        // LogEntries is a field-initialized collection, so it already exists.
+        _log = new ReconstructionLogBuffer(uiDispatcher, LogEntries);
 
         _bruteForceService.Progress += OnProgress;
         _bruteForceService.LogMessage += OnLogMessage;
@@ -1703,7 +1699,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         ShowProgress = true;
         ProgressPercent = 0;
         ProgressMessage = "Starting...";
-        BeginNewLogGeneration();
+        _log.BeginNewGeneration();
         _setStageLabel = null;
         lock (_timestampFailuresLock)
         {
@@ -1805,7 +1801,7 @@ public partial class ReconstructorViewModel : ViewModelBase
 
             // Drain any log lines still queued between the last batched flush and now so the run's
             // final messages are never lost (#20), then surface the timestamp summary once (#19).
-            DrainLogQueue();
+            _log.Drain();
             ShowTimestampFailureWarningIfAny();
         }
     }
@@ -2697,71 +2693,12 @@ public partial class ReconstructorViewModel : ViewModelBase
     /// schedules a single batched flush. Never mutates the bound log collection directly (#20).
     /// Phase lines get their [P1]/[P2] provenance tag here, at enqueue, so the drain is a plain append.
     /// </summary>
-    private void AppendLog(LogTarget target, string message)
-    {
-        string tag = target switch
-        {
-            LogTarget.Phase1 => "[P1] ",
-            LogTarget.Phase2 => "[P2] ",
-            _ => string.Empty,
-        };
-        string line = $"{DateTime.Now:HH:mm:ss} {tag}{message}";
-        _logQueue.Enqueue(new PendingLogLine(line, Volatile.Read(ref _logGeneration)));
-        ScheduleLogFlush();
-    }
-
     /// <summary>
-    /// Schedules exactly one UI-thread flush per pending batch: the atomic flag flips 0→1 only for the
-    /// first enqueue after a drain, so a burst of log events collapses into a single dispatch (#20).
+    /// Forwards to <see cref="ReconstructionLogBuffer.Append"/>. Kept as a method on the view-model
+    /// rather than replaced at its ~40 call sites, and because <c>_progress</c> is handed this method
+    /// group in the constructor.
     /// </summary>
-    private void ScheduleLogFlush()
-    {
-        if (Interlocked.Exchange(ref _logFlushScheduled, 1) == 0)
-        {
-            _uiDispatcher.Post(FlushLogQueue);
-        }
-    }
-
-    /// <summary>
-    /// Runs on the UI thread. Releases the flush flag first (so lines enqueued during the drain
-    /// schedule the next flush), then applies the queued batch.
-    /// </summary>
-    private void FlushLogQueue()
-    {
-        Interlocked.Exchange(ref _logFlushScheduled, 0);
-        DrainLogQueue();
-    }
-
-    /// <summary>
-    /// Drains the queue onto the bound log collection, dropping any line whose generation is not the
-    /// current one — so a stale flush queued by a prior run cannot repopulate a log the next run has
-    /// already cleared (#20). Also called synchronously from the run's finally as the final drain.
-    /// </summary>
-    private void DrainLogQueue()
-    {
-        int generation = Volatile.Read(ref _logGeneration);
-        while (_logQueue.TryDequeue(out PendingLogLine entry))
-        {
-            if (entry.Generation != generation)
-            {
-                continue;
-            }
-
-            LogEntries.Add(entry.Line);
-        }
-    }
-
-    /// <summary>
-    /// Clears the visible log and starts a new log generation for a run. Bumping the generation makes
-    /// any lines still queued from a prior run drop on their (stale) flush, and resetting the flush flag
-    /// ensures this run's first line schedules a fresh dispatch (#20).
-    /// </summary>
-    private void BeginNewLogGeneration()
-    {
-        LogEntries.Clear();
-        Interlocked.Increment(ref _logGeneration);
-        Interlocked.Exchange(ref _logFlushScheduled, 0);
-    }
+    private void AppendLog(LogTarget target, string message) => _log.Append(target, message);
 
     // ── Test seams (InternalsVisibleTo ReScene.App.Core.Tests) ──
     internal void ShowTimestampSummaryForTest() => ShowTimestampFailureWarningIfAny();
@@ -2777,10 +2714,7 @@ public partial class ReconstructorViewModel : ViewModelBase
         }
     }
 
-    internal void BeginNewLogGenerationForTest() => BeginNewLogGeneration();
-
-    /// <summary>One queued log line, tagged with the run generation it belongs to (#20).</summary>
-    private readonly record struct PendingLogLine(string Line, int Generation);
+    internal void BeginNewLogGenerationForTest() => _log.BeginNewGeneration();
 
     /// <summary>The active set/attempt label for progress messages: <c>Set X/N · &lt;stage&gt;</c> (#24).</summary>
     private sealed record SetStageLabel(int SetIndex, int SetCount, string Stage)
