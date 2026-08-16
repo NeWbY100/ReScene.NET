@@ -110,6 +110,33 @@ public sealed class InspectorViewModelEditSupersedeTests : TempDirTestBase
     }
 
     [Fact]
+    public async Task RenameStoredFile_WhenAnotherEditTouchedTheSameFile_StillReloadsAndReports()
+    {
+        // "Superseded" must mean the view moved to a DIFFERENT file. An earlier version compared
+        // the generation counter, which another edit to the SAME file also bumps — so a slow edit
+        // overlapping a fast one skipped its reload and left the tree showing the file as it was
+        // BEFORE its write landed, with no confirmation that anything happened.
+        string srr = WriteSrr("only.srr", "keep.nfo");
+
+        var editing = new GatedRenameEditingService();
+        InspectorViewModel vm = NewViewModel(editing, new PromptReturnsNameDialog("renamed.nfo"));
+
+        RunSync(() => vm.LoadFileAsync(srr));
+        vm.SelectedTreeNode = FindStoredFileNode(vm);
+
+        Task rename = Task.Run(() => vm.RenameStoredFileCommand.ExecuteAsync(null));
+
+        // A second edit on the SAME file completes first and reloads, bumping the generation.
+        RunSync(() => vm.LoadFileAsync(srr));
+
+        editing.RenameGate.SetResult();
+        await rename;
+
+        Assert.Equal(srr, vm.LoadedFilePath);
+        Assert.Contains("Renamed stored file", vm.StatusMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LoadFile_AfterDispose_DoesNotInstallANewDataSource()
     {
         string srr = WriteSrr("only.srr", "keep.nfo");
