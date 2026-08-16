@@ -37,6 +37,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
     // matches, so overlapping loads and close-during-load can't leave torn state or a leaked source.
     private int _loadGeneration;
 
+    // The path of the most recently REQUESTED load, set before its parse begins — unlike
+    // _loadedFilePathInternal, which only becomes that path once the parse has been applied.
+    // ReloadAfterEditAsync needs the requested one: while a newly opened file is still parsing the
+    // applied path is still the OLD file, so testing against it would call an edit on the old file
+    // "current" and reload it, superseding the navigation the user just made.
+    private string? _requestedFilePath;
+
     [ObservableProperty]
     public partial string LoadedFilePath { get; set; } = string.Empty;
 
@@ -84,6 +91,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         // Supersede any in-flight LoadFileAsync so its continuation won't resurrect the file
         // after we've closed it.
         _loadGeneration++;
+        _requestedFilePath = null;
 
         _fileDataSource?.Dispose();
         _fileDataSource = null;
@@ -273,6 +281,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         // Without this, two overlapping loads race — the loser's continuation would overwrite the
         // winner's _fileDataSource without disposing it (leaking a memory-mapped view + handle).
         int loadGeneration = ++_loadGeneration;
+        _requestedFilePath = filePath;
 
         try
         {
@@ -762,12 +771,17 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             return;
         }
 
-        if (string.IsNullOrEmpty(LoadedFilePath))
+        if (string.IsNullOrEmpty(_loadedFilePathInternal))
         {
             return;
         }
 
-        string srrPath = LoadedFilePath;
+        // The INTERNAL path, not the bound LoadedFilePath. That property is an editable text box:
+        // a user who retypes the path in a different spelling (case, a "\.\" segment, short vs
+        // long form) without pressing Enter would make this capture disagree with the path
+        // ReloadAfterEditAsync compares against, and the reload would be skipped as "superseded"
+        // while the handles released above stayed released. Add and Remove already capture this.
+        string srrPath = _loadedFilePathInternal;
         ReleaseFileHandles();
 
         string outcome;
@@ -812,20 +826,27 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             return;
         }
 
-        // "Superseded" means the view has moved to a DIFFERENT file (or closed), which is tested
-        // by the loaded path, NOT by the generation counter. Another edit to the SAME file also
-        // bumps that counter, and an earlier generation check skipped the reload there too —
-        // leaving the tree showing the file as it was BEFORE this edit's write landed, with no
-        // confirmation that anything happened. Two edits in quick succession on a large SRR
-        // (Move Up, then Remove) reproduced it.
-        if (!string.Equals(_loadedFilePathInternal, srrPath, StringComparison.Ordinal))
+        // "Superseded" means the view has moved to a DIFFERENT file (or closed) — tested by the
+        // REQUESTED path, not by the generation counter and not by the applied path.
+        //
+        // Not the counter: another edit to the SAME file bumps it too, so a counter check skipped
+        // the reload there and left the tree showing the file as it was BEFORE this edit's write
+        // landed (Move Up followed by Remove reproduced it).
+        //
+        // Not the applied path: while a newly opened file is still parsing, the APPLIED path is
+        // still the old one, so this would call the old file current, reload it, and supersede the
+        // navigation the user just made.
+        if (!string.Equals(_requestedFilePath, srrPath, StringComparison.Ordinal))
         {
             return;
         }
 
         await LoadFileAsync(srrPath);
 
-        if (!_disposed)
+        // Re-checked after the await: the reload itself yields, and a file opened during it can
+        // finish first. Writing the outcome unconditionally would stamp this edit's message over
+        // the status of a file it has nothing to do with.
+        if (!_disposed && string.Equals(_requestedFilePath, srrPath, StringComparison.Ordinal))
         {
             StatusMessage = outcome;
         }
@@ -859,7 +880,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             return;
         }
 
-        string srrPath = LoadedFilePath;
+        string srrPath = _loadedFilePathInternal!;
         ReleaseFileHandles();
 
         string outcome;

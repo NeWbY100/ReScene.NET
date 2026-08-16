@@ -12,11 +12,12 @@ namespace ReScene.App.Core.Tests;
 /// That is not a containment primitive: an absolute name replaces the directory outright, and
 /// <c>..</c> segments climb out of it.
 /// </remarks>
-public class MetadataOutputPathTests
+public class MetadataOutputPathTests : TempDirTestBase
 {
-    private static readonly string Root = OperatingSystem.IsWindows()
-        ? @"C:\chosen\output"
-        : "/chosen/output";
+    // A REAL directory, so the link-resolution branch actually runs. With a fictional root the
+    // resolver has nothing to resolve and that whole check is skipped, which would leave it
+    // untested.
+    private string Root => TempDir;
 
     [Theory]
     [InlineData("../escape.mkv")]
@@ -84,15 +85,60 @@ public class MetadataOutputPathTests
     [InlineData("Movie: Part 1.mkv")]
     [InlineData("Artist - Album: Deluxe.flac")]
     [InlineData("12:34 timestamp.mkv")]
-    public void TryResolve_ColonInAnOrdinaryName_IsNotTreatedAsADriveQualifier(string name)
+    public void TryResolve_ColonInAnOrdinaryName_IsHandledPerPlatform(string name)
     {
-        // ':' is a legal filename character on POSIX. Refusing it outright — which an earlier
-        // version of this guard did, to catch "C:\..." on Linux — would reject perfectly ordinary
-        // sample names. Only a drive-LETTER prefix ("C:", "D:") is a path qualifier.
+        // ':' means different things on the two platforms, so the correct verdict differs and the
+        // test has to say which it expects rather than assert one everywhere.
         bool ok = MetadataOutputPath.TryResolve(Root, name, out string full, out string error);
 
-        Assert.True(ok, error);
-        Assert.StartsWith(Path.GetFullPath(Root) + Path.DirectorySeparatorChar, full, StringComparison.Ordinal);
+        if (OperatingSystem.IsWindows())
+        {
+            // Any colon past the drive-letter position opens an alternate data stream, so this
+            // name cannot become the ordinary file the user expects to see.
+            Assert.False(ok);
+            Assert.Contains("alternate data stream", error, StringComparison.Ordinal);
+        }
+        else
+        {
+            // On POSIX ':' is an ordinary character. Refusing it — which an earlier version of
+            // this guard did, to catch "C:\..." on Linux — rejected legitimate sample names.
+            Assert.True(ok, error);
+            Assert.StartsWith(Path.GetFullPath(Root) + Path.DirectorySeparatorChar, full, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("NUL")]
+    [InlineData("CON.mkv")]
+    [InlineData("aux.srs")]
+    [InlineData("COM1.txt")]
+    [InlineData("Sample/LPT1.mkv")]
+    public void TryResolve_ReservedWindowsDeviceName_IsRefused(string name)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;   // DOS device names are reserved only on Windows.
+        }
+
+
+        // These are lexically inside the chosen directory, so the containment checks cannot see
+        // them, but Windows resolves them to devices rather than files in EVERY directory — a
+        // bulk restore would silently discard output or fail instead of producing a sample.
+        Assert.False(MetadataOutputPath.TryResolve(Root, name, out _, out string error));
+        Assert.Contains("reserved Windows device name", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryResolve_AlternateDataStreamSuffix_IsRefusedOnWindows()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;   // Alternate data streams are a Windows concept.
+        }
+
+
+        Assert.False(MetadataOutputPath.TryResolve(Root, "movie.mkv:restored", out _, out string error));
+        Assert.Contains("alternate data stream", error, StringComparison.Ordinal);
     }
 
     [Fact]

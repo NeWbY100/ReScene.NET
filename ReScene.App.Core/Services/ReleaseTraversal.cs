@@ -83,12 +83,12 @@ public static class ReleaseTraversal
         // rendered to the user as "Unreadable: <path> (<message>)", which a deliberate skip is not.
         foreach (string file in dirFiles)
         {
-            if (IsLink(file, isDirectory: false, issues, out bool fileFailed))
-            {
-                continue;
-            }
+            // One metadata call per file, so honour cancellation here rather than only once per
+            // directory: a folder with tens of thousands of entries on a network share would
+            // otherwise keep issuing requests for a scan the user already abandoned.
+            ct.ThrowIfCancellationRequested();
 
-            if (fileFailed)
+            if (IsLink(file, isDirectory: false, issues, out bool fileFailed) || fileFailed)
             {
                 continue;
             }
@@ -98,8 +98,11 @@ public static class ReleaseTraversal
 
         foreach (string sub in subdirs)
         {
-            // pyrescene's os.walk does not follow directory links by default.
-            if (IsLink(sub, isDirectory: true, issues, out _))
+            // pyrescene's os.walk does not follow directory links by default. A directory that
+            // could not be INSPECTED is skipped too — the previous code returned from its catch,
+            // and dropping that (by discarding the failure flag) would descend into a junction
+            // whose target was never checked, which is the exact escape this guard exists to stop.
+            if (IsLink(sub, isDirectory: true, issues, out bool subFailed) || subFailed)
             {
                 continue;
             }
