@@ -294,6 +294,61 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
         Assert.False(vm.IsVerifying, "a late queued CRC event must not re-raise IsVerifying");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CopyAndCrcProgress_AreDeferredUntilTheUiQueueRuns(bool copyNotVerify)
+    {
+        // Both handlers marshal onto the UI thread; neither runs on the engine's callback thread.
+        // What differs is whether the ENGINE CALLBACK WAITS. Copy and CRC use Post, so a burst of
+        // per-file events returns immediately instead of stalling the engine on the UI thread.
+        //
+        // Nothing caught a Post -> Invoke change: through a whole run, an Invoke'd handler raises the
+        // busy flag and the finally clears it again, so every other assertion still holds. Only the
+        // TIMING differs, so this drives the handler directly rather than through a run.
+        var brute = new RaisingBruteForceService();
+        var dispatcher = new CountingUiDispatcher(deferPosts: true);
+        ReconstructorViewModel vm = CreateVm(brute, dispatcher);
+        vm.IsRunning = true;   // past the staleness gate
+
+        if (copyNotVerify)
+        {
+            brute.RaiseFileCopyProgress("a.rar");
+            Assert.False(vm.IsCopying, "the callback returned before the UI work ran, so it was Post'ed");
+            dispatcher.Pump();
+            Assert.True(vm.IsCopying, "control: the queued handler really existed and applied");
+        }
+        else
+        {
+            brute.RaiseCrcProgress("a.rar");
+            Assert.False(vm.IsVerifying, "the callback returned before the UI work ran, so it was Post'ed");
+            dispatcher.Pump();
+            Assert.True(vm.IsVerifying, "control: the queued handler really existed and applied");
+        }
+    }
+
+    [Fact]
+    public void MainProgress_IsAppliedBeforeTheEngineCallbackReturns()
+    {
+        // The other half of the mix, and equally unguarded before this test: OnProgress uses Invoke,
+        // which blocks the engine callback until the UI thread has applied the update - so the main
+        // progress figures are current the moment the raise returns. Switching it to Post left all
+        // 792 tests passing.
+        var brute = new RaisingBruteForceService();
+        var dispatcher = new CountingUiDispatcher(deferPosts: true);
+        ReconstructorViewModel vm = CreateVm(brute, dispatcher);
+        vm.IsRunning = true;
+
+        brute.RaiseProgress(new BruteForceProgressEventArgs(
+            releaseDirectoryPath: "rel", rarVersionDirectoryPath: "winrar-500",
+            rarCommandLineArguments: "-m0", operationSize: 100, operationProgressed: 42,
+            startDateTime: DateTime.UtcNow));
+
+        // Asserted on the rendered text rather than a number, so the assertion is unambiguous about
+        // WHICH event landed. Under Post this is still empty when the raise returns.
+        Assert.Equal("Test 42 of 100", vm.TestCountText);
+    }
+
     /// <summary>The merged log flattened to one string — for contains/order asserts and diagnostics.</summary>
     private static string JoinedLog(ReconstructorViewModel vm) => string.Join(Environment.NewLine, vm.LogEntries);
 
