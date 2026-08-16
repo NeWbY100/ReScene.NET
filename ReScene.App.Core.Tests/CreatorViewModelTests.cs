@@ -17,7 +17,17 @@ public sealed class CreatorViewModelTests : IDisposable
 
     private sealed class FakeSRRCreationService : ISRRCreationService
     {
-        public event EventHandler<SRRCreationProgressEventArgs>? Progress { add { } remove { } }
+        /// <summary>
+        /// A REAL event, not the discarding accessor the other doubles use: the view-model
+        /// subscribes to this in its constructor, and the cross-instance isolation test needs that
+        /// subscription to be observable. Nothing raises it unless a test calls
+        /// <see cref="RaiseProgress"/>, so existing tests are unaffected.
+        /// </summary>
+        public event EventHandler<SRRCreationProgressEventArgs>? Progress;
+
+        /// <summary>Raises <see cref="Progress"/> with a caller-chosen, recognisable payload.</summary>
+        public void RaiseProgress(int percent, string message) =>
+            Progress?.Invoke(this, new SRRCreationProgressEventArgs { ProgressPercent = percent, Message = message });
 
         public bool Succeed { get; set; } = true;
         public int Calls { get; private set; }
@@ -697,5 +707,68 @@ public sealed class CreatorViewModelTests : IDisposable
         vm.MoveStoredFileDownCommand.Execute(null);
         Assert.Equal(["a.nfo", "c.jpg", "b.sfv"], vm.StoredFiles.Select(f => f.StoredName));
         Assert.Same(vm.StoredFiles[1], vm.SelectedStoredFile);
+    }
+
+    // ── Cross-instance isolation ─────────────────────────────
+
+    [Fact]
+    public void TwoInstances_DoNotShareState_OrProgressStreams()
+    {
+        // MainWindowViewModel constructs TWO CreatorViewModels — the Advanced tab's and the Beginner
+        // wizard's — and gives the wizard its OWN creation-service instances precisely so progress
+        // never crosses. The constructor does `_sRRService.Progress += OnProgress` and never
+        // unsubscribes, so an extraction that changes when or where that subscription happens can
+        // route one instance's progress into the other's log. Nothing tested that they coexist.
+        //
+        // Scope: this pins CreatorViewModel's own isolation GIVEN distinct publishers. That the
+        // composition root actually hands them distinct publishers is a separate risk, pinned by
+        // CompositionRootTests.Wizard_And_AdvancedCreator_DoNotShareAProgressStream. Only the SRR
+        // stream is covered here — the view-model subscribes to no SRS progress event.
+        CreatorViewModel advanced = CreateVm(out FakeSRRCreationService advancedSrr);
+        CreatorViewModel wizard = CreateVm(out FakeSRRCreationService wizardSrr);
+
+        // Seed BOTH sides with recognisable state, so the untouched instance is asserted to have
+        // PRESERVED its own values rather than merely to have kept type defaults.
+        advanced.AddStoredFiles([FakePath("adv", "advanced-only.nfo")]);
+        wizard.AddStoredFiles([FakePath("wiz", "wizard-a.nfo"), FakePath("wiz", "wizard-b.nfo")]);
+        wizard.ProgressPercent = 7;
+
+        // A snapshot is captured as arrays and compared FIELD BY FIELD below. Comparing the whole
+        // tuple with one Assert.Equal would compare its string[] members BY REFERENCE: two
+        // structurally identical snapshots would never be equal, so that assertion could only ever
+        // fail — including on unmutated code, which makes it worthless as a regression guard.
+        static (int Percent, string Message, string[] Log, string[] Stored) SnapshotOf(CreatorViewModel vm) =>
+            (vm.ProgressPercent, vm.ProgressMessage, [.. vm.LogEntries], [.. vm.StoredFiles.Select(f => f.StoredName)]);
+
+        static void AssertUnchanged((int Percent, string Message, string[] Log, string[] Stored) before, CreatorViewModel vm)
+        {
+            (int percent, string message, string[] log, string[] stored) = SnapshotOf(vm);
+            Assert.Equal(before.Percent, percent);
+            Assert.Equal(before.Message, message);
+            Assert.Equal(before.Log, log);
+            Assert.Equal(before.Stored, stored);
+        }
+
+        // ── Direction 1: the Advanced tab's service must reach ONLY the Advanced view-model.
+        var wizardBefore = SnapshotOf(wizard);
+        advancedSrr.RaiseProgress(41, "advanced-only progress line");
+
+        Assert.Equal(41, advanced.ProgressPercent);
+        Assert.Contains(advanced.LogEntries, l => l.Contains("advanced-only progress line", StringComparison.Ordinal));
+        AssertUnchanged(wizardBefore, wizard);
+
+        // ── Direction 2: and the wizard's service must reach ONLY the wizard. Asserted separately
+        // because a shared router that always targets the first instance to publish would satisfy
+        // direction 1 while failing here.
+        var advancedBefore = SnapshotOf(advanced);
+        wizardSrr.RaiseProgress(83, "wizard-only progress line");
+
+        Assert.Equal(83, wizard.ProgressPercent);
+        Assert.Contains(wizard.LogEntries, l => l.Contains("wizard-only progress line", StringComparison.Ordinal));
+        AssertUnchanged(advancedBefore, advanced);
+
+        // ── And the collections stayed each instance's own throughout.
+        Assert.Equal(["advanced-only.nfo"], advanced.StoredFiles.Select(f => f.StoredName));
+        Assert.Equal(["wizard-a.nfo", "wizard-b.nfo"], wizard.StoredFiles.Select(f => f.StoredName));
     }
 }
