@@ -39,9 +39,20 @@ public sealed class CreatorViewModelArtifactTests : TempDirTestBase
 
         private readonly Dictionary<string, Exception> _throws = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Runs inside <see cref="CreateAsync"/>, before it returns — lets a test mutate view-model
+        /// state DURING sample generation, which is how the phase-local snapshot timing of the
+        /// LATER staging phases is pinned.
+        /// </summary>
+        public Action<string>? OnCreate
+        {
+            get; set;
+        }
+
         public Task<SRSCreationResult> CreateAsync(string outputPath, string sampleFilePath, SRSCreationOptions options, CancellationToken ct)
         {
             CallsInOrder.Add(sampleFilePath);
+            OnCreate?.Invoke(sampleFilePath);
 
             if (_throws.TryGetValue(sampleFilePath, out Exception? toThrow))
             {
@@ -1085,5 +1096,67 @@ public sealed class CreatorViewModelArtifactTests : TempDirTestBase
         Assert.Single(names, n => n == "Subs/external-subs.sfv");
         Assert.DoesNotContain(names, n => n.EndsWith(".srr", StringComparison.OrdinalIgnoreCase));
         Assert.Empty(srr.RarCalls);
+    }
+
+    // ── Phase-local snapshot timing ──────────────────────────
+
+    [Fact]
+    public async Task Staging_ReadsSubtitleInputsAfterSampleGeneration_NotUpFront()
+    {
+        // Staging reads its inputs at DIFFERENT moments: sample inputs when sample generation
+        // begins, subtitle inputs only AFTER all sample generation has completed. An extraction
+        // that gathers both up front into one inputs record would still produce a valid SRR and
+        // would still pass every other test in this file — but a subtitle SFV that arrived while
+        // samples were generating would silently stop being stored.
+        //
+        // The SRS double adds one mid-sample-generation, which is when a scanner result or an
+        // "Add Subtitle" click landing during an earlier awaiting phase would arrive.
+        string root = Path.Combine(TempDir, "rel-" + Guid.NewGuid().ToString("N"));
+        string sample = Path.Combine(root, "Sample", "clip.mkv");
+        Directory.CreateDirectory(Path.GetDirectoryName(sample)!);
+        File.WriteAllBytes(sample, [1, 2, 3]);
+
+        var scan = new ReleaseScanResult([], [sample], [], [], [], []);
+        (CreatorViewModel vm, RecordingSRSCreationService srs, RecordingSRRCreationService srr, _) = CreateVm(scan);
+
+        string lateSfv = WriteSfv(Path.Combine(root, "Subs", "late.sfv"), "sub.rar");
+        srs.OnCreate = _ => vm.ExtraSubtitleSfvFiles.Add(lateSfv);
+
+        IReadOnlyList<StoredFileEntry> stored = await RunCreateAsync(vm, root, srr);
+
+        Assert.Contains(stored, e => e.StoredName.EndsWith("late.sfv", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Staging_ReadsCreateVobsubSRRAfterSampleGeneration_NotUpFront()
+    {
+        // The companion to the test above: the subtitle COLLECTION is not the only late read — the
+        // CreateVobsubSRR toggle is read at the same phase boundary. A refactor could snapshot the
+        // collection lazily but the toggle up front and still pass the previous test, so the toggle
+        // is pinned separately.
+        //
+        // Starts true (the folder-mode default) and is flipped OFF during sample generation. Pass 9
+        // must then generate no nested SRR, while pass 10 still stores the SFV itself — that split
+        // is pyrescene's --vobsub-srr parity, which the toggle gates only the nested-SRR half of.
+        string root = Path.Combine(TempDir, "rel-" + Guid.NewGuid().ToString("N"));
+        string sample = Path.Combine(root, "Sample", "clip.mkv");
+        Directory.CreateDirectory(Path.GetDirectoryName(sample)!);
+        File.WriteAllBytes(sample, [1, 2, 3]);
+
+        string subSfv = WriteSfv(Path.Combine(root, "Subs", "subs.sfv"), "eng.rar");
+        Touch(Path.Combine(root, "Subs", "eng.rar"));
+
+        var scan = new ReleaseScanResult([], [sample], [subSfv], [subSfv], [], []);
+        (CreatorViewModel vm, RecordingSRSCreationService srs, RecordingSRRCreationService srr, _) = CreateVm(scan);
+        Assert.True(vm.CreateVobsubSRR, "the folder-mode factory must start with the toggle on for this test to mean anything");
+
+        srs.OnCreate = _ => vm.CreateVobsubSRR = false;
+
+        IReadOnlyList<StoredFileEntry> stored = await RunCreateAsync(vm, root, srr);
+
+        List<string> names = [.. stored.Select(e => e.StoredName)];
+        Assert.DoesNotContain(names, n => n.EndsWith(".srr", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(srr.RarCalls);
+        Assert.Single(names, n => n == "Subs/subs.sfv");
     }
 }
