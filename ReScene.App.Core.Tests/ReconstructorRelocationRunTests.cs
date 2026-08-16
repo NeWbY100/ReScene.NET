@@ -42,8 +42,17 @@ public sealed class ReconstructorRelocationRunTests : TempDirTestBase
             => Task.FromResult(OnRun(options));
     }
 
-    private static ReconstructorViewModel CreateVm(ScriptedBruteForceService brute, IAppSettingsService? settings = null) =>
-        new(brute, new NoOpFileDialogService(), new InlineUiDispatcher(), new TestUiTimerFactory(), settingsService: settings);
+    private static ReconstructorViewModel CreateVm(ScriptedBruteForceService brute, IAppSettingsService? settings = null, IFileMover? mover = null) =>
+        new(brute, new NoOpFileDialogService(), new InlineUiDispatcher(), new TestUiTimerFactory(),
+            settings, tempDir: null, launcher: null, fileMover: mover);
+
+    /// <summary>Records every move without performing it, so a test can assert the DESTINATION.</summary>
+    private sealed class RecordingFileMover : IFileMover
+    {
+        public List<(string Source, string Destination)> Moves { get; } = [];
+
+        public void Move(string source, string destination) => Moves.Add((source, destination));
+    }
 
     /// <summary>Settings double opting into clearing the scratch work-roots (the pre-setting behaviour).</summary>
     private static FakeAppSettingsService CleanupOptIn() =>
@@ -286,4 +295,76 @@ public sealed class ReconstructorRelocationRunTests : TempDirTestBase
         Assert.Contains(vm.LogEntries, l => l.Contains("Set two failed:", StringComparison.Ordinal));
         Assert.False(vm.LastRunSucceeded); // summary ran and marked the run failed — the run did not abort
     }
+    // ── Live reads during relocation ─────────────────────────
+    //
+    // OutputPath and CompleteAllVolumes are read DURING relocation, after the brute-force awaits, and
+    // neither control is disabled while a run is in progress - so an edit made mid-run is honoured.
+    // Probing the extracted runner found both unguarded: snapshotting either at run start left all
+    // 800 tests passing, which is exactly the regression a seam like this invites.
+
+    [Fact]
+    public async Task OutputPathChangedMidRun_RelocationTargetsTheNewPath()
+    {
+        string original = Path.Combine(TempDir, "original");
+        string redirected = Path.Combine(TempDir, "redirected");
+        Directory.CreateDirectory(original);
+        Directory.CreateDirectory(redirected);
+
+        ReconstructorViewModel? vm = null;
+        var mover = new RecordingFileMover();
+        var brute = new ScriptedBruteForceService
+        {
+            OnRun = o =>
+            {
+                BruteForceRunResult result = WriteBruteSuccess(o, "store_little.rar");
+                vm!.OutputPath = redirected;   // the user retargets while the engine is running
+                return result;
+            },
+        };
+
+        vm = CreateVm(brute, CleanupOptIn(), mover);
+        vm.WinRARPath = TempDir;
+        vm.ReleasePath = TempDir;
+        vm.OutputPath = original;
+        vm.CompleteAllVolumes = false;
+        vm.SetImportStateForTest(ImportWith(MakeSet("store_little", "", "store_little.rar")));
+
+        await vm.RunArchiveSetsForTestAsync(CancellationToken.None);
+
+        (_, string destination) = Assert.Single(mover.Moves);
+        Assert.StartsWith(redirected, destination, StringComparison.Ordinal);
+        Assert.DoesNotContain(Path.Combine(original, "output"), destination, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CompleteAllVolumesSetMidRun_IsHonouredAndRejectsAPartialSet()
+    {
+        // The set declares two volumes but only one is committed. With CompleteAllVolumes read live,
+        // the flag flipped on mid-run makes relocation refuse the partial result; with a run-start
+        // snapshot of false it would accept and move it.
+        ReconstructorViewModel? vm = null;
+        var mover = new RecordingFileMover();
+        var brute = new ScriptedBruteForceService
+        {
+            OnRun = o =>
+            {
+                BruteForceRunResult result = WriteBruteSuccess(o, "two_vol.rar");
+                vm!.CompleteAllVolumes = true;
+                return result;
+            },
+        };
+
+        vm = CreateVm(brute, CleanupOptIn(), mover);
+        vm.WinRARPath = TempDir;
+        vm.ReleasePath = TempDir;
+        vm.OutputPath = TempDir;
+        vm.CompleteAllVolumes = false;
+        vm.SetImportStateForTest(ImportWith(MakeSet("two_vol", "", "two_vol.rar", "two_vol.r00")));
+
+        await vm.RunArchiveSetsForTestAsync(CancellationToken.None);
+
+        Assert.Empty(mover.Moves);
+        Assert.False(vm.LastRunSucceeded);
+    }
+
 }

@@ -11,7 +11,7 @@ using ReScene.RAR;
 using ReScene.SRR;
 namespace ReScene.App.Core.ViewModels;
 
-public partial class ReconstructorViewModel : ViewModelBase
+public partial class ReconstructorViewModel : ViewModelBase, IRunSink
 {
     private const long DefaultVolumeSizeKb = 15000;
 
@@ -19,10 +19,6 @@ public partial class ReconstructorViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialog;
     private readonly IAppSettingsService? _settingsService;
 
-    // Captured once at run start from settings: whether each finished set's scratch work-root is
-    // deleted (user opt-in) or kept for diagnostics (the default — per-attempt rar logs, input
-    // copies and attempted archives stay inspectable under the output folder's .rescene-work).
-    private bool _cleanupWorkFilesThisRun;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly ITempDirectoryService _tempDir;
     private readonly ILauncherService _launcher;
@@ -104,13 +100,6 @@ public partial class ReconstructorViewModel : ViewModelBase
             EnabledMajors,
             SyncMajorsFromTree);
 
-        _runner = new ReconstructionRunner(
-            _fileMover,
-            () => _import,
-            () => OutputPath,
-            () => CompleteAllVolumes,
-            () => _cleanupWorkFilesThisRun,
-            message => Log(LogTarget.System, message));
 
         _bruteForceService.Progress += OnProgress;
         _bruteForceService.LogMessage += OnLogMessage;
@@ -139,6 +128,20 @@ public partial class ReconstructorViewModel : ViewModelBase
             // Copy Full Command Line.
             getFullCommandLine: row => row.ExeAndArguments,
             appendLog: AppendLog);
+
+        _runner = new ReconstructionRunner(
+            bruteForceService,
+            _fileMover,
+            settingsService,
+            _progress,
+            VersionEntries,
+            this,
+            () => _import,
+            () => OutputPath,
+            () => CompleteAllVolumes,
+            () => LastVersionScan,
+            BuildSharedSettingsAsync,
+            message => Log(LogTarget.System, message));
 
         _elapsedTimer = timerFactory.Create(TimeSpan.FromSeconds(1), OnElapsedTimerTick);
 
@@ -1454,7 +1457,7 @@ public partial class ReconstructorViewModel : ViewModelBase
             Log(LogTarget.System, $"Release: {ReleasePath}");
             Log(LogTarget.System, $"Output: {OutputPath}");
 
-            await RunArchiveSetsAsync(token);
+            await _runner.RunArchiveSetsAsync(token);
 
             // A Stop during RAR execution cancels the run but returns normally (the library
             // swallows the process's OperationCanceledException), so detect the cancelled token
@@ -1525,6 +1528,15 @@ public partial class ReconstructorViewModel : ViewModelBase
     // relocation; these let a test inject that state and drive the loop with a file-writing fake service.
     internal void SetImportStateForTest(ReconstructionImportState import) => _import = import;
 
+    // ── IRunSink: the bound state the run loop writes back ──
+    void IRunSink.SetStageLabel(SetStageLabel? label) => _setStageLabel = label;
+    void IRunSink.SetProgressPercent(double value) => ProgressPercent = value;
+    void IRunSink.SetProgressPercentText(string value) => ProgressPercentText = value;
+    void IRunSink.SetTestCountText(string value) => TestCountText = value;
+    void IRunSink.SetProgressMessage(string value) => ProgressMessage = value;
+    void IRunSink.SetPhaseDescription(string value) => PhaseDescription = value;
+    void IRunSink.SetLastRunSucceeded(bool value) => LastRunSucceeded = value;
+
     /// <summary>
     /// Test-facing forwarder for the embedded-SFV name match. ArchiveSetEmbeddedSfvTests calls this
     /// through the view-model, so the surface stays here even though the logic moved to the runner.
@@ -1532,198 +1544,16 @@ public partial class ReconstructorViewModel : ViewModelBase
     internal static bool EmbeddedSfvMatchesSet(string storedName, SRRArchiveSet set) =>
         ReconstructionRunner.EmbeddedSfvMatchesSet(storedName, set);
 
-    internal Task RunArchiveSetsForTestAsync(CancellationToken token) => RunArchiveSetsAsync(token);
-
-    private async Task RunArchiveSetsAsync(CancellationToken token)
-    {
-        // Await any in-flight version scan (e.g. a manual Rescan whose Task hasn't landed yet) BEFORE
-        // capturing the shared settings below — RescanVersions does not clear HasScannedVersions for a
-        // valid folder, so without this a still-running rescan's stale _lastScan could be captured
-        // even though HasScannedVersions correctly reads true.
-        await (LastVersionScan ?? Task.CompletedTask);
-
-        // Run-scoped capture: a mid-run settings save must not flip cleanup behaviour between sets.
-        _cleanupWorkFilesThisRun = _settingsService?.Load().CleanupReconstructionWorkFiles ?? false;
-
-        SharedReconstructionSettings shared = await BuildSharedSettingsAsync(token);
-
-        // For the legacy / no-SRR single flat set the original RAR names may be empty; fall back to
-        // the verification snapshot's RAR-volume entries so output renaming still works (matches the
-        // old ResolveOutputRenameNames behaviour). When an SRR was imported its names take precedence.
-        IReadOnlyList<string> flatNames = _import.OriginalRARFileNames.Count > 0
-            ? _import.OriginalRARFileNames
-            : shared.Verification.VolumeNames;
-
-        IReadOnlyList<SRRArchiveSet> sets = ArchiveSetPlanner.ResolveSets(
-            _import.ArchiveSets, _import.SRRFilePath, flatNames, _import.ArchiveFiles);
-
-        var outcomes = new List<SetOutcome>();
-        WinningCombo? seed = null;
-
-        if (sets.Count > 1)
-        {
-            Log(LogTarget.System, $"Reconstructing {sets.Count} archive sets independently.");
-        }
-
-        for (int i = 0; i < sets.Count; i++)
-        {
-            SRRArchiveSet set = sets[i];
-            string label = string.IsNullOrEmpty(set.Key) ? "(release)" : set.Key;
-            if (sets.Count > 1)
-            {
-                Log(LogTarget.System, $"=== Set {i + 1}/{sets.Count}: {label} ===");
-            }
-
-            byte[]? embedded = _runner.LoadEmbeddedSfvBytes(set);
-            Dictionary<string, string> expected = ArchiveSetPlanner.BuildExpectedVolumeCrcs(set, embedded, shared.Verification);
-
-            // Full-volume verification needs a per-volume CRC for every volume; without them we
-            // cannot honestly verify the set, so skip it rather than report a false success.
-            // Note: SHA1 runs (no per-volume CRC source) and zero-coverage cases are NOT skipped —
-            // the engine still runs and gates on the first-volume hash. Only partial CRC32 coverage
-            // (some volumes have CRCs but not all) is an honest skip.
-            if (ArchiveSetPlanner.ShouldSkipUnverifiableSet(shared.CompleteAllVolumes, shared.HashType, expected.Count, set.VolumeNames.Count))
-            {
-                Log(LogTarget.System, $"Set {label}: no per-volume CRCs to verify; supply its .sfv. Skipping.");
-                outcomes.Add(new SetOutcome(set, label, Success: false, Skipped: true));
-                continue;
-            }
-
-            // The work-root path is resolved before the per-set try (it never depends on the set's own
-            // command/version matrix). Its own guarded resolution can throw a path-resolution error
-            // (e.g. a keyed set's scratch child real-resolves through an un-inspectable or junction-
-            // redirected reserved root): keep that scoped to THIS set — the loop records a failing set
-            // and continues — instead of letting it abort every remaining set. The `continue` runs
-            // BEFORE the outer try/finally below, so the finally never sees (nor tries to clean) an
-            // uncomputed work root. A per-set matrix failure (#6 — no selected WinRAR version can
-            // produce this set's format) is likewise raised INSIDE the try and handled there.
-            string workRoot;
-            try
-            {
-                workRoot = ArchiveSetPlanner.WorkRootFor(shared, set);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                Log(LogTarget.System, $"Set {label} failed: {ex.Message}");
-                _progress.CompleteActiveVersion("No Match");
-                outcomes.Add(new SetOutcome(set, label, Success: false, Skipped: false));
-                continue;
-            }
-
-            bool committed = false;
-            bool preserveScratch = false;
-            try
-            {
-                BruteForceRunResult result;
-                try
-                {
-                    // Build this set's own per-set command/version matrix off the UI thread (#6) —
-                    // it can rebuild the full cartesian matrix via RARCommandLineBuilder, matching how
-                    // BuildSharedSettingsAsync already offloads the global build.
-                    BruteForceOptions options = await Task.Run(
-                        () => ArchiveSetPlanner.BuildOptionsForSet(set, shared, expected, token), token);
-
-                    // Tell the progress tracker which set is active so new rows are stamped with the label.
-                    _progress.SetActiveSet(sets.Count > 1 ? label : string.Empty);
-
-                    result = await RunSingleSetAsync(label, options, seed, i + 1, sets.Count, token);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    // A set's own failure (e.g. an InvalidDataException from input-CRC validation, or
-                    // an InvalidOperationException from an unsatisfiable per-set format/version
-                    // requirement) must not abort the whole run — record it and move on to the next set.
-                    Log(LogTarget.System, $"Set {label} failed: {ex.Message}");
-                    // Finalize THIS set's own row now, from its own outcome (#23) — a later set's
-                    // progress events must never be the ones that decide whether this row reads Match.
-                    _progress.CompleteActiveVersion("No Match");
-                    outcomes.Add(new SetOutcome(set, label, Success: false, Skipped: false));
-                    continue;
-                }
-
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                if (!result.Success)
-                {
-                    _progress.CompleteActiveVersion("No Match");
-                    outcomes.Add(new SetOutcome(set, label, Success: false, Skipped: false));
-                    continue;
-                }
-
-                seed ??= result.Combo;
-
-                // Relocate the verified volumes out of the guarded scratch work-root into the real
-                // output tree. Only a successful relocation counts as a committed set; a relocation
-                // failure whose rollback could not complete preserves the scratch for recovery.
-                (bool relocated, preserveScratch) = _runner.RelocateVerifiedOutput(workRoot, set, sets.Count, result);
-                committed = relocated;
-                _progress.CompleteActiveVersion(relocated ? "Match" : "No Match");
-                outcomes.Add(new SetOutcome(set, label, relocated, Skipped: false));
-            }
-            finally
-            {
-                // A committed set's scratch was already handled by the relocation (cleared or kept per
-                // the work-files setting); a set whose rollback could not complete keeps its scratch
-                // (recoverable output). Everything else — a failed, errored, or cancelled set — goes
-                // through the same setting-gated CleanupWorkRoot here.
-                if (!committed && !preserveScratch)
-                {
-                    _runner.CleanupWorkRoot(workRoot, set);
-                }
-            }
-        }
-
-        ReportSetSummary(outcomes, sets.Count, token.IsCancellationRequested);
-    }
-
     /// <summary>
-    /// Runs one set's brute force. For later sets a captured winning combo is tried first (seeding);
-    /// only if it fails (and the run was not cancelled) is the full option matrix run. Returns the full
-    /// run result (success, winning combo for seeding, and the committed/custom-packer file paths the
-    /// relocation moves out of the scratch work-root).
+    /// Test seams for the two SRR-import decisions extracted in the next step. Both are otherwise
+    /// only reachable by driving a whole import, which would make a per-branch theory unreadable.
     /// </summary>
-    private async Task<BruteForceRunResult> RunSingleSetAsync(
-        string label, BruteForceOptions options, WinningCombo? seed, int setIndex, int setCount, CancellationToken token)
-    {
-        BruteForceRunResult result;
-        if (seed is not null && setCount > 1)
-        {
-            // Label this set's progress as the seeded attempt so its high-% progress and the full
-            // attempt's fresh low-% progress read as distinct stages, not a rewind within the set (#24).
-            _setStageLabel = new SetStageLabel(setIndex, setCount, "seed");
-            BruteForceOptions narrowed = ArchiveSetPlanner.NarrowToCombo(options, seed);
-            result = await Task.Run(() => _bruteForceService.RunAsync(narrowed, token), token);
-            if (!result.Success && !token.IsCancellationRequested)
-            {
-                Log(LogTarget.System, $"Seed combo did not reproduce {label}; running full search.");
-                _setStageLabel = new SetStageLabel(setIndex, setCount, "full");
-                result = await Task.Run(() => _bruteForceService.RunAsync(options, token), token);
-            }
-        }
-        else
-        {
-            _setStageLabel = new SetStageLabel(setIndex, setCount, "full");
-            result = await Task.Run(() => _bruteForceService.RunAsync(options, token), token);
-        }
+    internal void SetRARVersionsFromSRRForTest(SRRFile srr) => SetRARVersionsFromSRR(srr);
 
-        return result;
-    }
+    internal void ApplyVolumeSizeForTest(long sizeBytes) => ApplyVolumeSize(sizeBytes);
 
-    /// <summary>One archive set's reconstruction outcome.</summary>
-    private readonly record struct SetOutcome(SRRArchiveSet Set, string Label, bool Success, bool Skipped);
+    internal Task RunArchiveSetsForTestAsync(CancellationToken token) => _runner.RunArchiveSetsAsync(token);
 
-    /// <summary>
-    /// Captures the non-per-set toggles, version ranges, command-line matrix, and release-wide SRR
-    /// data. The matrix build is bounded (checked cardinality cap) but can still be tens of
-    /// thousands of iterations, so it runs off the UI thread via <see cref="Task.Run{TResult}(Func{TResult}, CancellationToken)"/>.
-    /// </summary>
     internal async Task<SharedReconstructionSettings> BuildSharedSettingsAsync(CancellationToken ct)
     {
         RARSwitchSettings switches = BuildSwitchSettings();
@@ -1800,74 +1630,6 @@ public partial class ReconstructorViewModel : ViewModelBase
             OutputPath,
             message => Log(LogTarget.System, message),
             _fileDialog.ShowError);
-
-    /// <summary>
-    /// Logs a per-set pass/fail/skip/cancelled summary and sets the overall progress message and
-    /// <see cref="LastRunSucceeded"/>. Overall success requires every set to have passed with none
-    /// skipped and no cancellation.
-    /// </summary>
-    private void ReportSetSummary(IReadOnlyList<SetOutcome> outcomes, int totalSets, bool cancelled)
-    {
-        bool multi = totalSets > 1;
-
-        if (multi)
-        {
-            Log(LogTarget.System, "=== Reconstruction summary ===");
-            foreach (SetOutcome o in outcomes)
-            {
-                string mark = o.Skipped ? "skipped" : o.Success ? "OK" : "failed";
-                Log(LogTarget.System, $"  [{mark}] {o.Label}");
-            }
-
-            int notAttempted = totalSets - outcomes.Count;
-            if (notAttempted > 0)
-            {
-                Log(LogTarget.System, $"  [not attempted] {notAttempted} set(s)");
-            }
-        }
-
-        if (cancelled)
-        {
-            // The outer cancellation handler owns the final version-row status and progress message.
-            return;
-        }
-
-        ProgressPercent = 100;
-        ProgressPercentText = "100%";
-        if (_progress.LastOperationSize > 0)
-        {
-            TestCountText = $"Test {_progress.LastOperationSize:N0} of {_progress.LastOperationSize:N0}";
-        }
-
-        // Each set's own row was already finalized from its own outcome at set completion (#23) — no
-        // per-row relabeling here. This method only owns the run-wide aggregate below.
-        bool attemptedAll = outcomes.Count == totalSets;
-        bool allOk = attemptedAll && outcomes.All(o => o is { Success: true, Skipped: false });
-
-        // Surface the count of combinations the engine could not run (e.g. a rar binary without the
-        // execute bit) in the completion heading — a run-wide "existence of errors" aggregate (WCAG
-        // 4.1.3) that a blind user would otherwise have to hunt cell-by-cell, and that gives sighted
-        // users an at-a-glance signal too. The heading is a Polite live region, so this announces once
-        // at completion.
-        int errorCount = VersionEntries.Count(v => v.Status == "Error");
-        string errorSuffix = errorCount > 0 ? $" ({errorCount} could not run)" : string.Empty;
-
-        ProgressMessage = allOk ? "Match found!" : "No match found.";
-        PhaseDescription = (allOk ? "Complete — Match Found!" : "Complete — No Match") + errorSuffix;
-        LastRunSucceeded = allOk;
-        Log(LogTarget.System, allOk
-            ? "Brute-force completed: all sets matched!"
-            : "Brute-force completed: not all sets matched.");
-
-        // Existence-of-errors aggregate: the scannable "did anything fail?" marker at the end of the
-        // log, matching the completion heading's "(N could not run)". The per-failure [P2] WARNINGs sit
-        // earlier in the same merged log, so the line points up rather than at a separate pane.
-        if (errorCount > 0)
-        {
-            Log(LogTarget.System,
-                $"{errorCount} combination(s) could not run — each failure is logged above.");
-        }
-    }
 
     [RelayCommand]
     private void Stop()
@@ -2127,11 +1889,6 @@ public partial class ReconstructorViewModel : ViewModelBase
 
     internal void BeginNewLogGenerationForTest() => _log.BeginNewGeneration();
 
-    /// <summary>The active set/attempt label for progress messages: <c>Set X/N · &lt;stage&gt;</c> (#24).</summary>
-    private sealed record SetStageLabel(int SetIndex, int SetCount, string Stage)
-    {
-        public string Format() => $"Set {SetIndex}/{SetCount} · {Stage}";
-    }
 
     // ── SRR Import Helpers ──
 

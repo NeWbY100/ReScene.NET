@@ -349,6 +349,44 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
         Assert.Equal("Test 42 of 100", vm.TestCountText);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RunCompletion_SettlesTheProgressReadoutTo100Percent(bool succeed)
+    {
+        // The run's completion summary writes six pieces of bound state. Probing the runner's sink
+        // found four of them - the percentage, its text, the test count and the message - guarded by
+        // nothing at all, so an extraction could have dropped any of them and left the progress
+        // readout frozen wherever the last engine event happened to leave it.
+        var brute = new RaisingBruteForceService();
+        ReconstructorViewModel vm = CreateVm(brute, new InlineUiDispatcher());
+        ConfigureRunnablePaths(vm);
+        vm.SetImportStateForTest(ImportWith(MakeSet("a", "a.rar")));
+
+        string? midRunTestCount = null;
+        brute.OnRun = o =>
+        {
+            // A mid-run event so the readout starts somewhere OTHER than the completion state.
+            brute.RaiseProgress(new BruteForceProgressEventArgs(
+                releaseDirectoryPath: "rel", rarVersionDirectoryPath: "winrar-500",
+                rarCommandLineArguments: "-m0", operationSize: 100, operationProgressed: 7,
+                startDateTime: DateTime.UtcNow));
+            midRunTestCount = vm.TestCountText;
+            return succeed ? WriteBruteSuccess(o, "a.rar") : new BruteForceRunResult(false, null);
+        };
+
+        vm.IsRunning = true;
+        await vm.ExecuteReconstructionForTestAsync(CancellationToken.None);
+
+        // Control: the readout really was somewhere else mid-run, so settling to 100% is a change.
+        Assert.Equal("Test 7 of 100", midRunTestCount);
+
+        Assert.Equal(100, vm.ProgressPercent);
+        Assert.Equal("100%", vm.ProgressPercentText);
+        Assert.Equal("Test 100 of 100", vm.TestCountText);
+        Assert.Equal(succeed ? "Match found!" : "No match found.", vm.ProgressMessage);
+    }
+
     /// <summary>The merged log flattened to one string — for contains/order asserts and diagnostics.</summary>
     private static string JoinedLog(ReconstructorViewModel vm) => string.Join(Environment.NewLine, vm.LogEntries);
 
