@@ -19,7 +19,6 @@ public partial class CreatorViewModel : OperationViewModelBase
     private readonly ITempDirectoryService _tempDir;
     private readonly IAppSettingsService _settingsService;
     private readonly IUiDispatcher _uiDispatcher;
-    private readonly IReleaseScanner _releaseScanner;
     private readonly Func<string> _workDirFactory;
 
     public CreatorViewModel(ISRRCreationService srrService, ISRSCreationService srsService, IFileDialogService fileDialog, ITempDirectoryService tempDir, IAppSettingsService settingsService, IUiDispatcher uiDispatcher, IReleaseScanner releaseScanner, Func<string>? workDirFactory = null)
@@ -29,7 +28,6 @@ public partial class CreatorViewModel : OperationViewModelBase
         _tempDir = tempDir;
         _settingsService = settingsService;
         _uiDispatcher = uiDispatcher;
-        _releaseScanner = releaseScanner;
         // A unique working directory per Create run, used ONLY by folder mode's generated-artifact
         // staging (CreatorArtifactStager.StageAsync) — separate from the pre-existing ITempDirectoryService
         // (_tempDir), which the file-mode/wizard placeholder path already owns. Injectable so a test
@@ -41,7 +39,22 @@ public partial class CreatorViewModel : OperationViewModelBase
         _artifacts = new ArtifactFileGenerator(srrService, srsService, Log);
         // The release root is a LIVE accessor: staging re-reads it at each phase point,
         // across awaits, while InputPath stays user-editable during a run.
-        _stager = new CreatorArtifactStager(srrService, srsService, _artifacts, () => _releaseRoot!, Log);
+        _folderScan = new FolderScanController(
+            releaseScanner, uiDispatcher,
+            DetectedSets, StoredFiles, ExtraSampleFiles, ExtraSubtitleSfvFiles,
+            new FolderScanController.Hooks(
+                SetIsScanning: v => IsScanning = v,
+                SetInputStatus: v => InputStatus = v,
+                SetOutputStatus: v => OutputStatus = v,
+                TrySetAutoOutputPath: v => TrySetAutoOutputPath(v),
+                NotifyCanExecuteChanged: CreateSRRCommand.NotifyCanExecuteChanged,
+                NotifyFolderModeChanged: () => OnPropertyChanged(nameof(IsFolderMode)),
+                ClearSelections: ClearScanSelections,
+                UpdateActionHint: UpdateActionHint,
+                DetectedSetsSummary: () => DetectedSetsSummary,
+                AppendLog: Log));
+
+        _stager = new CreatorArtifactStager(srrService, srsService, _artifacts, () => _folderScan.ReleaseRoot!, Log);
 
         _sRRService.Progress += OnProgress;
 
@@ -104,24 +117,14 @@ public partial class CreatorViewModel : OperationViewModelBase
     [ObservableProperty]
     public partial string? SelectedExtraSubtitle { get; set; }
 
-    // ── Folder mode: a directory InputPath triggers a background release scan whose
-    // results replace StoredFiles/ExtraSampleFiles/ExtraSubtitleSfvFiles and populate DetectedSets.
-    // Mirrors InspectorViewModel's generation-guard house pattern: every InputPath change bumps
-    // the scan generation and cancels the in-flight source, so a scan whose generation is no longer
-    // current is discarded on the UI thread even if it had already finished before the cancellation
-    // was seen. FolderScanSession owns that discipline.
-    private readonly FolderScanSession _scan = new();
+    // ── Folder mode: a directory InputPath triggers a background release scan whose results
+    // replace StoredFiles/ExtraSampleFiles/ExtraSubtitleSfvFiles and populate DetectedSets. The
+    // whole lifecycle — the generation guard, the scan task, applying or discarding its result, and
+    // tearing the mode down — belongs to FolderScanController; this view-model reads the mode flags
+    // only through that controller's read-only properties.
+    private readonly FolderScanController _folderScan;
     private readonly ArtifactFileGenerator _artifacts;
     private readonly CreatorArtifactStager _stager;
-    private bool _isFolderMode;
-    private bool _isMusicOnlyFolder;
-
-    // Set when the current folder-mode state has nothing creatable: the input itself is invalid
-    // (a filesystem root) or the scanner couldn't enumerate the root at all (ReleaseScanResult
-    // "RootError" — e.g. permission denied). Gates CanCreateSRR so an empty/header-only SRR can't
-    // be built from a scan that never actually looked at the release.
-    private bool _folderScanInvalid;
-    private string? _releaseRoot;
 
     // OutputPath auto-vs-user tracking: _lastAutoOutputPath is whatever value
     // AutoSetFolderOutputPath last wrote, so OnOutputPathChanged can tell "this is the value we
@@ -137,10 +140,10 @@ public partial class CreatorViewModel : OperationViewModelBase
     /// drove a release scan). Bound by the view to DISABLE the "Store fix RAR" checkbox: in folder
     /// mode a fix release's RAR is always stored automatically (the scanner provides it in its
     /// <see cref="ReleaseScanResult.StoredFiles"/>), matching pyrescene, which has no fix-RAR flag —
-    /// so the toggle is inert here. Change-notified manually at every <see cref="_isFolderMode"/>
-    /// assignment (Reset / ExitFolderMode / StartFolderScan).
+    /// so the toggle is inert here. Change-notified manually by
+    /// <see cref="FolderScanController"/> at every mode change (Reset / ExitFolderMode / Start).
     /// </summary>
-    public bool IsFolderMode => _isFolderMode;
+    public bool IsFolderMode => _folderScan.IsFolderMode;
 
     /// <summary>
     /// Whether the most recent folder scan found any main RAR sets — the detected-sets list binds its
@@ -172,7 +175,7 @@ public partial class CreatorViewModel : OperationViewModelBase
     /// The most recent folder-scan Task, exposed so tests can await scan completion
     /// deterministically (production is fire-and-forget and marshals results to the UI thread).
     /// </summary>
-    internal Task? LastFolderScan { get; private set; }
+    internal Task? LastFolderScan => _folderScan.LastScan;
 
     [RelayCommand]
     private async Task BrowseInputFolderAsync()
@@ -252,13 +255,7 @@ public partial class CreatorViewModel : OperationViewModelBase
         // Folder mode: cancel any in-flight scan and clear the folder-only state up front so it
         // can't linger between wizard runs (its stale completion is also independently discarded
         // by the generation check below, but a reset shouldn't wait on that).
-        _scan.BumpGeneration();
-        _scan.CancelInFlight();
-        _isFolderMode = false;
-        OnPropertyChanged(nameof(IsFolderMode));
-        _isMusicOnlyFolder = false;
-        _folderScanInvalid = false;
-        _releaseRoot = null;
+        _folderScan.Reset();
         _outputPathAutoGenerated = false;
         _lastAutoOutputPath = null;
         IsScanning = false;
@@ -324,18 +321,17 @@ public partial class CreatorViewModel : OperationViewModelBase
         // folder scan: bump the generation and cancel+dispose the CTS so a stale completion (even
         // one that finished the work before observing cancellation) is discarded by the generation
         // check in ApplyFolderScanResult, never overwriting newer state.
-        _scan.BumpGeneration();
-        _scan.CancelInFlight();
+        _folderScan.InvalidateInFlight();
 
         if (Directory.Exists(value))
         {
-            StartFolderScan(value);
+            _folderScan.Start(value);
             return;
         }
 
-        if (_isFolderMode)
+        if (_folderScan.IsFolderMode)
         {
-            ExitFolderMode();
+            _folderScan.ExitFolderMode();
         }
 
         if (!string.IsNullOrWhiteSpace(value))
@@ -694,8 +690,8 @@ public partial class CreatorViewModel : OperationViewModelBase
 
     private bool CanCreateSRR() => !IsCreating
         && !IsScanning
-        && !_isMusicOnlyFolder
-        && !_folderScanInvalid
+        && !_folderScan.IsMusicOnly
+        && !_folderScan.IsInvalid
         && !string.IsNullOrWhiteSpace(InputPath)
         && !string.IsNullOrWhiteSpace(OutputPath);
 
@@ -741,11 +737,11 @@ public partial class CreatorViewModel : OperationViewModelBase
 
             SRRCreationResult result;
 
-            if (_isFolderMode)
+            if (_folderScan.IsFolderMode)
             {
                 // Folder mode: stage generated artifacts (SRS/nested SRR/failure txt) into the
                 // stored-file list before handing everything to the multi-input writer.
-                Log($"Release root: {_releaseRoot}");
+                Log($"Release root: {_folderScan.ReleaseRoot}");
 
                 List<string> inputPaths = [.. DetectedSets.Select(s => s.SfvOrRarPath)];
                 List<StoredFileEntry> additionalFiles = [.. StoredFiles.Select(f => new StoredFileEntry(f.StoredName, f.FullPath))];
@@ -769,7 +765,7 @@ public partial class CreatorViewModel : OperationViewModelBase
                     result = await _sRRService.CreateFromInputsAsync(
                         OutputPath,
                         inputPaths,
-                        _releaseRoot,
+                        _folderScan.ReleaseRoot,
                         storeRelativePaths: true,
                         additionalFiles.Count > 0 ? additionalFiles : null,
                         options,
@@ -993,257 +989,15 @@ public partial class CreatorViewModel : OperationViewModelBase
     // ── Folder mode (release scan) ────────────────────────────
 
     /// <summary>
-    /// Leaves folder mode when InputPath changes to a file/blank/nonexistent path: resets the
-    /// folder-only state so a stale detected-set list or a music-only gate can't linger into file
-    /// mode. The in-flight scan (if any) was already cancelled by <see cref="OnInputPathChanged(string)"/>;
-    /// since its completion will be discarded by the generation check in
-    /// <see cref="ApplyFolderScanResult"/>, <see cref="IsScanning"/> must be cleared here
-    /// synchronously — nothing else will do it.
+    /// Clears the three selections that accompany the folder-scan collections. Called by
+    /// <see cref="FolderScanController"/>, which owns clearing the collections themselves but not
+    /// these view-model properties.
     /// </summary>
-    private void ExitFolderMode()
+    private void ClearScanSelections()
     {
-        _isFolderMode = false;
-        OnPropertyChanged(nameof(IsFolderMode));
-        _isMusicOnlyFolder = false;
-        _folderScanInvalid = false;
-        _releaseRoot = null;
-        IsScanning = false;
-        ClearFolderScanResults();
-    }
-
-    private void ClearFolderScanResults()
-    {
-        DetectedSets.Clear();
-        StoredFiles.Clear();
         SelectedStoredFile = null;
-        ExtraSampleFiles.Clear();
         SelectedExtraSample = null;
-        ExtraSubtitleSfvFiles.Clear();
         SelectedExtraSubtitle = null;
-    }
-
-    /// <summary>
-    /// Kicks off a background release scan of <paramref name="releaseRoot"/>. A filesystem root
-    /// (e.g. "C:\") is rejected synchronously without scanning — the scanner walks the tree
-    /// recursively, so scanning an entire drive would be both meaningless (no name to derive an SRR
-    /// filename from) and dangerously slow.
-    /// </summary>
-    private void StartFolderScan(string releaseRoot)
-    {
-        _isFolderMode = true;
-        OnPropertyChanged(nameof(IsFolderMode));
-        _releaseRoot = releaseRoot;
-
-        if (CreatorArtifactNaming.IsFilesystemRoot(releaseRoot))
-        {
-            // Never scanned — Create must not be able to build an empty/header-only SRR from an
-            // input that was rejected outright. Reset music-only too: a prior scan's gate must not
-            // linger once the input itself becomes invalid.
-            IsScanning = false;
-            _isMusicOnlyFolder = false;
-            _folderScanInvalid = true;
-            ClearFolderScanResults();
-            InputStatus = FieldStatus.Error("This is a drive root, not a release folder — choose the folder containing the release's files.");
-            OutputStatus = FieldStatus.Error("Choose a release folder, not a drive root — there's no name to base the SRR on.");
-            UpdateActionHint();
-            CreateSRRCommand.NotifyCanExecuteChanged();
-            return;
-        }
-
-        IsScanning = true;
-
-        // Busy announcement: reuse the existing InputStatus + its FieldStatusLine live region for a
-        // single announced busy→result transition. ApplyFolderScanResult (or the root-error paths
-        // above) overwrites this with the Ok(summary)/Error(...) result on completion — no second
-        // status line, so a screen reader isn't double-announced.
-        InputStatus = FieldStatus.Info("Scanning release folder…");
-
-        // Begin() installs the new source and hands back the token captured as a VALUE, while the
-        // source is certainly not yet disposed — the background delegate below must read `token`
-        // and never `cts.Token` again (see FolderScanSession.Begin's remarks, and the
-        // RapidInputSwitching_WithoutAwaiting_NeverThrows test).
-        (int generation, CancellationTokenSource cts, CancellationToken token) = _scan.Begin();
-
-        LastFolderScan = RunFolderScanAsync(releaseRoot, generation, cts, token);
-    }
-
-    private async Task RunFolderScanAsync(string releaseRoot, int generation, CancellationTokenSource cts, CancellationToken token)
-    {
-        try
-        {
-            ReleaseScanResult result = await Task.Run(
-                () => _releaseScanner.Scan(releaseRoot, token), token).ConfigureAwait(false);
-
-            _uiDispatcher.Post(() =>
-            {
-                // Every scan-session read/write below happens inside this Post callback — which, like
-                // every other UI-thread-invoked entry point (a property-changed hook, Reset), is
-                // serialized onto the UI thread — never on the background thread that ran the
-                // scan. That's what keeps TryComplete's identity check race-free against a cancel:
-                // the two either run one-at-a-time on the same thread, or (in a real app) are
-                // serialized by the dispatcher itself.
-                //
-                // TryComplete performs the identity check AND the cleanup as one operation. A false
-                // return means superseded: the newer input change already cancelled, disposed and
-                // cleared `cts` itself, so this is a hard bail, not just a "don't apply the result"
-                // check — touching it again would resurrect a reference someone else tore down.
-                if (!_scan.TryComplete(generation, cts))
-                {
-                    return;
-                }
-
-                ApplyFolderScanResult(releaseRoot, result);
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // Superseded — the newer input change already cancelled, disposed, and null'd out `cts`
-            // itself (see FolderScanSession.CancelInFlight); there's nothing left for us to do here.
-        }
-        catch (Exception ex)
-        {
-            // The scan faulted with an UNEXPECTED (non-OCE) exception — the scan and
-            // RarProofInspector.Inspect both catch only IOException/UnauthorizedAccessException, so
-            // an ArgumentException/NotSupportedException/SecurityException from a FileStream or a
-            // RAR-parser fault escapes here. Without this catch the background Task faults, the
-            // success Post never runs, and IsScanning + InputStatus stay stranded on the busy
-            // "Scanning release folder…" state (Create disabled, the live region stuck announcing
-            // busy) until the user re-inputs. Post the SAME session-gated UI-thread
-            // continuation the success completion uses — every session read/write stays on the UI
-            // thread, preserving the CTS-lifecycle invariants — then fail closed EXACTLY like
-            // ApplyFolderScanResult's root-enumeration (IsRootError) branch: clear IsScanning, gate
-            // Create, and surface the failure, so a faulted scan can never leave an empty/header-only
-            // SRR buildable. Cancellation stays silent (handled above).
-            _uiDispatcher.Post(() =>
-            {
-                if (!_scan.TryComplete(generation, cts))
-                {
-                    return;
-                }
-
-                IsScanning = false;
-                _isMusicOnlyFolder = false;
-                _folderScanInvalid = true;
-                ClearFolderScanResults();
-                InputStatus = FieldStatus.Error($"Could not scan the folder: {ex.Message}");
-                CreateSRRCommand.NotifyCanExecuteChanged();
-                UpdateActionHint();
-            });
-        }
-    }
-
-    /// <summary>
-    /// Applies a completed, still-current folder scan: populates <see cref="DetectedSets"/>,
-    /// <see cref="StoredFiles"/> (StoredName = root-relative path), <see cref="ExtraSampleFiles"/>,
-    /// and <see cref="ExtraSubtitleSfvFiles"/>; sets the input status summary (or a music-only
-    /// error, which also gates <see cref="CreateSRRCommand"/>); logs every warning in order (the
-    /// status line shows only a count/preview); and auto-fills <see cref="OutputPath"/> when it is
-    /// still blank or auto-generated.
-    /// </summary>
-    private void ApplyFolderScanResult(string releaseRoot, ReleaseScanResult result)
-    {
-        IsScanning = false;
-        _releaseRoot = releaseRoot;
-
-        if (CreatorArtifactNaming.IsRootError(result))
-        {
-            // The scanner couldn't enumerate the root at all (e.g. permission denied) — surface the
-            // failure and gate Create, rather than the previous fail-open behavior of treating the
-            // resulting empty collections as an ordinary (successful, Ok-status) empty scan, which
-            // let Create build an empty/header-only SRR from a root that was never actually read.
-            _isMusicOnlyFolder = false;
-            _folderScanInvalid = true;
-            ClearFolderScanResults();
-            InputStatus = FieldStatus.Error(result.Warnings[0]);
-            CreateSRRCommand.NotifyCanExecuteChanged();
-            UpdateActionHint();
-            return;
-        }
-
-        // A successful scan clears any earlier invalid/error state — Create is re-enabled once the
-        // input points at something the scanner could actually read.
-        _folderScanInvalid = false;
-
-        DetectedSets.Clear();
-        foreach (ReleaseSetInput set in result.MainSets)
-        {
-            DetectedSets.Add(set);
-        }
-
-        StoredFiles.Clear();
-        foreach (string path in result.StoredFiles)
-        {
-            StoredFiles.Add(new StoredFileItem
-            {
-                FullPath = path,
-                StoredName = CreatorArtifactNaming.RootRelativeName(releaseRoot, path),
-            });
-        }
-
-        ExtraSampleFiles.Clear();
-        foreach (string sample in result.SampleFiles)
-        {
-            ExtraSampleFiles.Add(sample);
-        }
-
-        ExtraSubtitleSfvFiles.Clear();
-        foreach (string sfv in result.SubtitleSfvs)
-        {
-            ExtraSubtitleSfvFiles.Add(sfv);
-        }
-
-        // [DIVERGENCE: Spec 2] the scanner routes rescue-fallback music SFVs to MusicSfvs instead of
-        // admitting them as ordinary main sets; a folder holding only music has no supported output
-        // yet, so Create is gated off with an explanatory error rather than silently building an
-        // empty (or wrong) SRR.
-        _isMusicOnlyFolder = result.MusicSfvs.Count > 0 && result.MainSets.Count == 0;
-
-        if (_isMusicOnlyFolder)
-        {
-            InputStatus = FieldStatus.Error("Music release — folder scan support arrives in a later update.");
-        }
-        else
-        {
-            // Reuse DetectedSetsSummary for the set-count segment so the status line's grammar
-            // ("No RAR sets"/"1 RAR set"/"{n} RAR sets") matches the detected-sets list's own
-            // automation Name — DetectedSets was populated from result.MainSets just above, so the
-            // two counts are identical here. (The sample/stored-file "(s)" segments are left as-is.)
-            string summary = $"{DetectedSetsSummary} · {result.SampleFiles.Count} sample(s) · {result.StoredFiles.Count} stored file(s)";
-            if (result.Warnings.Count > 0)
-            {
-                summary += $" · {result.Warnings.Count} warning(s): {result.Warnings[0]}";
-            }
-
-            InputStatus = FieldStatus.Ok(summary);
-        }
-
-        foreach (string warning in result.Warnings)
-        {
-            Log($"WARNING: {warning}");
-        }
-
-        AutoSetFolderOutputPath(releaseRoot);
-        CreateSRRCommand.NotifyCanExecuteChanged();
-        UpdateActionHint();
-    }
-
-    /// <summary>
-    /// Auto-fills <see cref="OutputPath"/> from the release root when it is still blank or holds a
-    /// previously auto-generated value — never a user-typed or user-picked one.
-    /// <paramref name="releaseRoot"/> is never a filesystem root here: <see cref="StartFolderScan"/>
-    /// rejects that case before a scan ever runs.
-    /// </summary>
-    private void AutoSetFolderOutputPath(string releaseRoot)
-    {
-        string trimmedRoot = Path.TrimEndingDirectorySeparator(releaseRoot);
-        string? parent = Path.GetDirectoryName(trimmedRoot);
-        string rootName = Path.GetFileName(trimmedRoot);
-        if (string.IsNullOrEmpty(parent) || string.IsNullOrEmpty(rootName))
-        {
-            return;
-        }
-
-        TrySetAutoOutputPath(Path.Combine(parent, rootName + ".srr"));
     }
 
     /// <summary>
