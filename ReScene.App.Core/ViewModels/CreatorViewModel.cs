@@ -57,6 +57,8 @@ public partial class CreatorViewModel : OperationViewModelBase
                 AppendLog: Log));
 
         _stager = new CreatorArtifactStager(srrService, srsService, _artifacts, () => _folderScan.ReleaseRoot!, Log);
+        _fileMode = new FileModeCreationPipeline(
+            srrService, _artifacts, StoredFiles, ExtraSampleFiles, ExtraSubtitleSfvFiles, Log);
 
         _sRRService.Progress += OnProgress;
 
@@ -127,6 +129,7 @@ public partial class CreatorViewModel : OperationViewModelBase
     private readonly FolderScanController _folderScan;
     private readonly ArtifactFileGenerator _artifacts;
     private readonly CreatorArtifactStager _stager;
+    private readonly FileModeCreationPipeline _fileMode;
 
     // OutputPath auto-vs-user tracking: _lastAutoOutputPath is whatever value
     // AutoSetFolderOutputPath last wrote, so OnOutputPathChanged can tell "this is the value we
@@ -351,7 +354,7 @@ public partial class CreatorViewModel : OperationViewModelBase
         }
 
         UpdateStoredNames();
-        AutoScanReleaseFiles();
+        _fileMode.AutoScanReleaseFiles(AutoIncludeFiles, InputPath);
         UpdateInputStatus(value);
         UpdateActionHint();
     }
@@ -793,97 +796,19 @@ public partial class CreatorViewModel : OperationViewModelBase
             }
             else
             {
-                // GetDirectoryName returns "" (not null) for a bare file name — same guard as
-                // ComputeStoredName and BuildSampleAndSubtitlePlaceholders.
-                string releaseDir = Path.GetDirectoryName(InputPath) is { Length: > 0 } dir ? dir : ".";
-
-                // Phase 0: Materialize the wizard's sample/subtitle placeholders — generate their
-                // actual .srs/.srr now, in the order the user arranged. (Advanced has no placeholders.)
-                // Non-destructive: returns a map; placeholders stay placeholders so a retry regenerates.
-                var materialized = new Dictionary<StoredFileItem, string>();
-                if (StoredFiles.Any(f => f.Kind != StoredFileKind.Regular))
-                {
-                    tempDir = _tempDir.CreateTempDirectory();
-                    materialized = await MaterializePlaceholdersAsync(tempDir, options, _cts.Token);
-                }
-
-                // Phase 1: Auto-create SRS files for samples (Advanced tab; the wizard uses placeholders
-                // above instead, with AutoCreateSRS off).
-                if (AutoCreateSRS)
-                {
-                    await CreateSRSForSamplesAsync(releaseDir, tempDir ??= _tempDir.CreateTempDirectory(), _cts.Token);
-                }
-
-                // Phase 2: Create nested SRRs for subtitle archives
-                if (CreateVobsubSRR)
-                {
-                    await CreateVobsubSRRsAsync(releaseDir, options, tempDir ??= _tempDir.CreateTempDirectory(), _cts.Token);
-                }
-
-                // Phase 3: Store fix RAR if applicable
-                if (StoreFixRAR)
-                {
-                    StoreFixRARFile(releaseDir);
-                }
-
-                // Phase 4: Create the main SRR
-
-                // Stored files are written in this list's order. A stored name can only appear once in
-                // an SRR, so two files sharing a name can't both be written: keep the entry in its
-                // original position but take the last source for it (so a freshly generated SRS wins
-                // over an earlier auto-scanned copy), and warn rather than silently dropping a file.
-                var storedFiles = new List<StoredFileEntry>();
-                var positions = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (StoredFileItem item in StoredFiles)
-                {
-                    // A placeholder's real path comes from this run's materialization map (it's not
-                    // written back onto the item, so a retry regenerates). Skip a placeholder whose
-                    // generation failed.
-                    string fullPath = item.Kind == StoredFileKind.Regular
-                        ? item.FullPath
-                        : materialized.GetValueOrDefault(item, string.Empty);
-                    if (string.IsNullOrEmpty(fullPath))
-                    {
-                        continue;
-                    }
-
-                    // Normalize to the writer's key space (forward slashes) so a backslash typed into
-                    // the editable "Stored As" column can't slip past this collision check and then be
-                    // silently dropped by the writer.
-                    string storedName = item.StoredName.Replace('\\', '/');
-                    if (positions.TryGetValue(storedName, out int pos))
-                    {
-                        if (!storedFiles[pos].FullPath.Equals(fullPath, StringComparison.OrdinalIgnoreCase))
-                        {
-                            Log($"WARNING: Two stored files use the name \"{storedName}\" — only one is included. Rename one to keep both.");
-                        }
-
-                        storedFiles[pos] = new StoredFileEntry(storedName, fullPath);
-                    }
-                    else
-                    {
-                        positions[storedName] = storedFiles.Count;
-                        storedFiles.Add(new StoredFileEntry(storedName, fullPath));
-                    }
-                }
-
-                if (IsSFVInput)
-                {
-                    result = await _sRRService.CreateFromSFVAsync(
-                        OutputPath, InputPath,
-                        storedFiles.Count > 0 ? storedFiles : null,
-                        options, _cts.Token);
-                }
-                else
-                {
-                    List<string> volumes = CreatorArtifactNaming.DiscoverRARVolumes(InputPath);
-                    Log($"Found {volumes.Count} volume(s).");
-
-                    result = await _sRRService.CreateFromRARAsync(
-                        OutputPath, volumes,
-                        storedFiles.Count > 0 ? storedFiles : null,
-                        options, _cts.Token);
-                }
+                // File mode: every phase - placeholder materialization, create-time SRS and vobsub
+                // generation, fix-RAR storage, and the writer call itself - lives in the pipeline.
+                // StoredFiles goes in BY REFERENCE and is still appended to incrementally as each
+                // phase generates, so the bound grid fills in live during the run.
+                result = await _fileMode.RunAsync(
+                    new FileModeCreationPipeline.Inputs(
+                        InputPath, OutputPath, IsSFVInput, AutoCreateSRS, CreateVobsubSRR,
+                        StoreFixRAR, AppName, options),
+                    // Lazily creates the run's temp directory at most once. The variable stays here
+                    // because the `finally` below owns its cleanup.
+                    () => tempDir ??= _tempDir.CreateTempDirectory(),
+                    MaterializePlaceholdersAsync,
+                    _cts.Token);
             }
 
             if (result.Success)
@@ -955,39 +880,6 @@ public partial class CreatorViewModel : OperationViewModelBase
 
     // ── Auto-scan ───────────────────────────────────────────
 
-    private void AutoScanReleaseFiles()
-    {
-        if (!AutoIncludeFiles || string.IsNullOrWhiteSpace(InputPath))
-        {
-            return;
-        }
-
-        string releaseDir = Path.GetDirectoryName(InputPath) ?? ".";
-        if (!Directory.Exists(releaseDir))
-        {
-            return;
-        }
-
-        StoredFiles.Clear();
-
-        try
-        {
-            List<(string FullPath, string StoredName)> scanned = ReleaseFileScanner.ScanReleaseDirectory(releaseDir);
-            foreach ((string? fullPath, string? storedName) in scanned)
-            {
-                StoredFiles.Add(new StoredFileItem
-                {
-                    FullPath = fullPath,
-                    StoredName = storedName
-                });
-            }
-        }
-        catch
-        {
-            // Directory scan failures are non-fatal
-        }
-    }
-
     // ── Folder mode (release scan) ────────────────────────────
 
     /// <summary>
@@ -1026,112 +918,11 @@ public partial class CreatorViewModel : OperationViewModelBase
 
     // ── SRS auto-creation (Advanced tab: scan + generate at create time) ──
 
-    private async Task CreateSRSForSamplesAsync(string releaseDir, string tempDir, CancellationToken ct)
-    {
-        // Auto-detected samples plus any added manually on the wizard's Samples step.
-        List<string> samples = [.. ReleaseFileScanner.FindSampleFiles(releaseDir)
-            .Concat(ExtraSampleFiles)
-            .Distinct(StringComparer.OrdinalIgnoreCase)];
-
-        var srsOptions = new SRSCreationOptions
-        {
-            AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene Manager" : AppName
-        };
-
-        await ArtifactFileGenerator.GenerateAndRecordAsync(
-            samples,
-            (sample, i, token) => _artifacts.GenerateSRSFileAsync(sample, tempDir, i, srsOptions, token),
-            (sample, srsPath) => StoredFiles.Add(new StoredFileItem
-            {
-                FullPath = srsPath,
-                StoredName = CreatorArtifactNaming.GeneratedStoredName(releaseDir, sample, ".srs", "Sample"),
-            }),
-            ct);
-    }
-
     // ── Vobsub nested SRR (Advanced tab: scan + generate at create time) ──
-
-    private async Task CreateVobsubSRRsAsync(string releaseDir, SRRCreationOptions options, string tempDir, CancellationToken ct)
-    {
-        List<string> subtitleSfvs = [.. ReleaseFileScanner.FindSubtitleSFVFiles(releaseDir)
-            .Concat(ExtraSubtitleSfvFiles)
-            .Distinct(StringComparer.OrdinalIgnoreCase)];
-
-        // The Advanced-tab create-time scan produces one nested SRR PER RAR CHAIN by REUSING the
-        // folder-mode GenerateNestedSubtitleSrrsAsync — which already does the chain-split AND
-        // builds its own nestedOptions (ComputeOSOHashes=false, AllowCompressed=true), so a
-        // multi-language subtitle SFV yields per-chain SRRs (never one merged SRR) and a user
-        // enabling ComputeOSOHashes for the outer run cannot leak OSO blocks into them.
-        // GenerateAndRecordAsync's 1-source->1-path shape no longer fits (a single SFV can now
-        // yield multiple SRRs), so record the returned list directly; the per-source index still
-        // keeps temp filenames unique.
-        for (int i = 0; i < subtitleSfvs.Count; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            string sfv = subtitleSfvs[i];
-
-            // dirPrefix = the directory half of the Advanced-tab CreatorArtifactNaming.GeneratedStoredName("Subs")
-            // convention (strip the file-name), so each chain becomes `dirPrefix + chainStem +
-            // ".srr"` — consistent with folder mode, where each chain keeps its OWN first-RAR
-            // basename as the file-name half, not the subtitle SFV's.
-            string generatedName = CreatorArtifactNaming.GeneratedStoredName(releaseDir, sfv, ".srr", "Subs");
-            int lastSlash = generatedName.LastIndexOf('/');
-            string dirPrefix = lastSlash < 0 ? string.Empty : generatedName[..(lastSlash + 1)];
-
-            foreach (StoredFileEntry entry in await _artifacts.GenerateNestedSubtitleSrrsAsync(sfv, dirPrefix, tempDir, i, options, ct))
-            {
-                StoredFiles.Add(new StoredFileItem
-                {
-                    FullPath = entry.FullPath,
-                    StoredName = entry.StoredName,
-                });
-            }
-        }
-    }
 
     // ── Per-file generators (shared by Advanced create-time and wizard placeholder paths) ──
 
     // ── Fix release detection ───────────────────────────────
-
-    private void StoreFixRARFile(string releaseDir)
-    {
-        string releaseName = Path.GetFileName(releaseDir) ?? string.Empty;
-        if (!ReleaseFileScanner.IsFixRelease(releaseName))
-        {
-            return;
-        }
-
-        // Find SFV files in the release root
-        string[] sfvFiles = Directory.GetFiles(releaseDir, "*.sfv");
-        if (sfvFiles.Length != 1)
-        {
-            return;
-        }
-
-        // Find RAR files referenced by the SFV
-        List<string> rarFiles = ReleaseFileScanner.FindRARFilesFromSFV(sfvFiles[0]);
-        if (rarFiles.Count != 1)
-        {
-            return;
-        }
-
-        string rarPath = rarFiles[0];
-        string storedName = Path.GetFileName(rarPath);
-
-        // Don't add if already in stored files
-        if (StoredFiles.Any(f => f.StoredName.Equals(storedName, StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-
-        StoredFiles.Add(new StoredFileItem
-        {
-            FullPath = rarPath,
-            StoredName = storedName
-        });
-
-        Log($"Fix release detected. Storing RAR: {storedName}");
-    }
 
     // ── Progress & logging ──────────────────────────────────
 

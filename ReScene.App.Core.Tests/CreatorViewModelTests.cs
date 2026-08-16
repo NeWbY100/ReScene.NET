@@ -81,9 +81,18 @@ public sealed class CreatorViewModelTests : IDisposable
         public event EventHandler<SRSCreationProgressEventArgs>? Progress { add { } remove { } }
         public event EventHandler<SRSScanProgressEventArgs>? ScanProgress { add { } remove { } }
 
+        /// <summary>
+        /// Runs at the START of each SRS creation, before this one's result is recorded — so a test
+        /// can observe how much of the previous work has already landed in the view-model.
+        /// </summary>
+        public Action<string>? OnCreate { get; set; }
+
         // Succeeds without touching disk; the SRS phase only runs when a test opts in via AutoCreateSRS.
         public Task<SRSCreationResult> CreateAsync(string outputPath, string sampleFilePath, SRSCreationOptions options, CancellationToken ct)
-            => Task.FromResult(new SRSCreationResult { Success = true, SRSFileSize = 1 });
+        {
+            OnCreate?.Invoke(sampleFilePath);
+            return Task.FromResult(new SRSCreationResult { Success = true, SRSFileSize = 1 });
+        }
     }
 
     // None of this file's tests exercise folder mode (InputPath is always a file) — an empty-result
@@ -129,11 +138,21 @@ public sealed class CreatorViewModelTests : IDisposable
 
     private FakeFileDialogService _dialog = new();
 
+    private CreatorViewModel CreateVm(out FakeSRRCreationService srr, out FakeSRSCreationService srs, bool autoInclude = false)
+    {
+        CreatorViewModel vm = CreateVm(out srr, autoInclude);
+        srs = _lastSrs!;
+        return vm;
+    }
+
+    private FakeSRSCreationService? _lastSrs;
+
     private CreatorViewModel CreateVm(out FakeSRRCreationService srr, bool autoInclude = false)
     {
         srr = new FakeSRRCreationService();
+        _lastSrs = new FakeSRSCreationService();
         _dialog = new FakeFileDialogService();
-        var vm = new CreatorViewModel(srr, new FakeSRSCreationService(), _dialog,
+        var vm = new CreatorViewModel(srr, _lastSrs, _dialog,
             new FakeTempDirectoryService(_tempPaths), new NoOpAppSettingsService(), new TestUiDispatcher(), new StubReleaseScanner())
         {
             // Keep the build trivial and deterministic: no sample/vobsub/fix phases.
@@ -707,6 +726,45 @@ public sealed class CreatorViewModelTests : IDisposable
         vm.MoveStoredFileDownCommand.Execute(null);
         Assert.Equal(["a.nfo", "c.jpg", "b.sfv"], vm.StoredFiles.Select(f => f.StoredName));
         Assert.Same(vm.StoredFiles[1], vm.SelectedStoredFile);
+    }
+
+    [Fact]
+    public async Task CreateSRR_AppendsStoredFilesIncrementally_NotBatchedAtTheEnd()
+    {
+        // Generation order is storage order, LIVE: each phase appends to StoredFiles as it goes, and
+        // the bound grid fills in while IsCreating is true. Collecting the results into a local list
+        // and adding them all at the end would produce a byte-identical SRR and would still satisfy
+        // CreateSRR_PassesStoredFilesToLibInCollectionOrder - while changing what the user sees.
+        //
+        // The only way to tell the two apart is to look DURING the run: at the moment the second
+        // sample's SRS is generated, the first sample's .srs must ALREADY be in the collection.
+        // Batching would leave the count unchanged across both generations.
+        string dir = CreateTempRelease("movie.sfv");
+        CreatorViewModel vm = CreateVm(out _, out FakeSRSCreationService srs);
+        vm.AutoCreateSRS = true;
+        vm.InputPath = Path.Combine(dir, "movie.sfv");
+        vm.OutputPath = Path.Combine(dir, "movie.srr");
+        vm.ExtraSampleFiles.Add(Path.Combine(dir, "CD1", "sample.mkv"));
+        vm.ExtraSampleFiles.Add(Path.Combine(dir, "CD2", "sample.mkv"));
+
+        List<int> countAtEachGeneration = [];
+        List<bool> creatingAtEachGeneration = [];
+        srs.OnCreate = _ =>
+        {
+            countAtEachGeneration.Add(vm.StoredFiles.Count);
+            creatingAtEachGeneration.Add(vm.IsCreating);
+        };
+
+        vm.CreateSRRCommand.Execute(null);
+        await vm.CreateSRRCommand.ExecutionTask!;
+
+        // Two samples were generated, and the run was in progress throughout.
+        Assert.Equal(2, countAtEachGeneration.Count);
+        Assert.All(creatingAtEachGeneration, Assert.True);
+
+        // The second generation saw exactly one more stored file than the first: the first sample's
+        // .srs had already been appended. Batching would make these two counts equal.
+        Assert.Equal(countAtEachGeneration[0] + 1, countAtEachGeneration[1]);
     }
 
     // ── Cross-instance isolation ─────────────────────────────
