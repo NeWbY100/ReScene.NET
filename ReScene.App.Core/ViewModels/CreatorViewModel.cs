@@ -378,48 +378,9 @@ public partial class CreatorViewModel : OperationViewModelBase
 
     partial void OnIsCreatingChanged(bool value) => UpdateActionHint();
 
-    private void UpdateInputStatus(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            InputStatus = FieldStatus.None;
-            return;
-        }
+    private void UpdateInputStatus(string value) => InputStatus = CreatorFieldGuidance.BuildInputStatus(value);
 
-        if (!File.Exists(value))
-        {
-            InputStatus = FieldStatus.Error("This file does not exist.");
-            return;
-        }
-
-        string releaseDir = Path.GetDirectoryName(value) ?? ".";
-        string releaseName = Path.GetFileName(releaseDir);
-        int archiveCount = FieldGuidance.CountReleaseArchives(releaseDir);
-
-        InputStatus = archiveCount > 0
-            ? FieldStatus.Ok($"Release \"{releaseName}\" — {archiveCount} archive file(s) in this folder.")
-            : FieldStatus.Warning($"No .rar volumes found in \"{releaseName}\". An SRR is built from the release's .rar files — they need to be in this folder next to the .sfv.");
-    }
-
-    private void UpdateActionHint()
-    {
-        if (IsCreating)
-        {
-            ActionHint = string.Empty;
-        }
-        else if (string.IsNullOrWhiteSpace(InputPath))
-        {
-            ActionHint = "Select an input file to continue.";
-        }
-        else if (string.IsNullOrWhiteSpace(OutputPath))
-        {
-            ActionHint = "Choose where to save the SRR to continue.";
-        }
-        else
-        {
-            ActionHint = string.Empty;
-        }
-    }
+    private void UpdateActionHint() => ActionHint = CreatorFieldGuidance.BuildActionHint(IsCreating, InputPath, OutputPath);
 
     [RelayCommand]
     private async Task BrowseOutputAsync()
