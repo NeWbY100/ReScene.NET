@@ -84,9 +84,31 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
             => Task.FromResult(new BruteForceRunResult(true, null));
     }
 
-    private static ReconstructorViewModel CreateVm()
+    /// <summary>
+    /// Queues <see cref="Invoke"/> instead of running it, so a test can hold an async scan's
+    /// completion callback and let something else happen first.
+    /// </summary>
+    private sealed class DeferringInvokeDispatcher : IUiDispatcher
+    {
+        private readonly Queue<Action> _deferred = new();
+
+        public void Invoke(Action action) => _deferred.Enqueue(action);
+        public void Post(Action action) => action();
+        public void Post(Action action, UiDispatcherPriority priority) => action();
+        public bool CheckAccess() => true;
+
+        public void Pump()
+        {
+            while (_deferred.Count > 0)
+            {
+                _deferred.Dequeue()();
+            }
+        }
+    }
+
+    private static ReconstructorViewModel CreateVm(IUiDispatcher? dispatcher = null)
         => new(new InertBruteForceService(), new NoOpFileDialogService(),
-               new InlineUiDispatcher(), new TestUiTimerFactory(), settingsService: null);
+               dispatcher ?? new InlineUiDispatcher(), new TestUiTimerFactory(), settingsService: null);
 
     private static readonly IReadOnlyList<InstalledRARVersion> Installed =
     [
@@ -378,7 +400,7 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
     //                         SelectionChanged arriving mid-rebuild would sync against a
     //                         PARTIALLY-BUILT tree. Removing the flag and forcing that re-entrancy
     //                         produces a spurious Version6=False write, corrected to True a moment
-    //                         later - a bound checkbox would visibly flicker off and back on. The
+    //                         later - an observer receives a transient False then True. The
     //                         test below pins exactly that.
     //
     //   SetAllLeaves          ALSO BEHAVIOURAL, but only visible in the INTERLEAVING. The VersionN
@@ -480,6 +502,97 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
 
         // ...and the major did settle to the new value once the bulk finished.
         Assert.Equal(selectAll, vm.Version5);
+    }
+
+    [Fact]
+    public async Task RescanAfterTheFolderDisappeared_DiscardsTheStillRunningScanOfIt()
+    {
+        // TriggerVersionScan's invalid-path branch bumps the scan token itself, so a scan already
+        // running against the folder cannot land afterwards and mark the tree scanned. Nothing
+        // tested that increment: removing it left all 796 tests passing.
+        //
+        // It matters only on the RESCAN path. Reached through the WinRARPath setter,
+        // InvalidateAndStartScan has already bumped the token, so the branch's own increment is
+        // redundant there - a first version of this test drove the setter and passed with the
+        // increment deleted, i.e. for the wrong reason entirely.
+        //
+        // Deterministic without timing: the scan's completion is marshalled through
+        // IUiDispatcher.Invoke, so a dispatcher that QUEUES Invoke holds it while the folder goes.
+        var dispatcher = new DeferringInvokeDispatcher();
+        ReconstructorViewModel vm = CreateVm(dispatcher);
+
+        string versionsDir = Directory.CreateTempSubdirectory("rescene-versions-").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(versionsDir, "winrar-500"));
+            File.WriteAllText(
+                Path.Combine(versionsDir, "winrar-500", OperatingSystem.IsWindows() ? "rar.exe" : "rar"),
+                string.Empty);
+
+            vm.WinRARPath = versionsDir;
+            await vm.LastVersionScan!;   // the scan finished; its apply is sitting in the queue
+            Assert.False(vm.HasScannedVersions, "the apply must still be queued, not applied");
+
+            // The folder disappears while its scan's result is still pending. WinRARPath is
+            // unchanged, so nothing else bumps the token.
+            Directory.Delete(versionsDir, recursive: true);
+            vm.RescanVersionsCommand.Execute(null);
+
+            dispatcher.Pump();   // the stale completion finally runs
+
+            Assert.False(vm.HasScannedVersions,
+                "a scan of a folder that no longer exists must not mark the tree as scanned");
+            Assert.Empty(vm.VersionGroups);
+        }
+        finally
+        {
+            if (Directory.Exists(versionsDir))
+            {
+                Directory.Delete(versionsDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void MajorSync_InterleavesEachReadWithItsWrite_SoALaterMajorSeesAnEarlierSubscribersEdit()
+    {
+        // SyncMajorsFromTree reads and writes one major at a time, and each write can synchronously
+        // raise PropertyChanged. A subscriber that mutates a LATER major's leaves from an earlier
+        // major's notification is therefore seen by the reads that follow.
+        //
+        // Batching the six predicates and writing them afterwards - which an extraction of this
+        // projection is very tempted to do - produces the same values in the same order while
+        // silently losing that. This pins it.
+        ReconstructorViewModel vm = CreateVm();
+        vm.Version5 = vm.Version6 = true;
+        vm.ApplyScanResult(Installed, folderScanned: true);
+
+        // Clear everything first, so the Select All below genuinely FLIPS Version5 false->true and
+        // raises its notification. Without this the value never changes and nothing fires.
+        vm.SelectNoVersionsCommand.Execute(null);
+        Assert.False(vm.Version5);
+        Assert.False(vm.Version6);
+
+        RARVersionGroup group6 = vm.VersionGroups.Single(g => g.Major == 6);
+        bool untickedDuringTheSync = false;
+        vm.PropertyChanged += (_, e) =>
+        {
+            // Version5 is written BEFORE Version6 is read.
+            if (e.PropertyName == nameof(vm.Version5) && !untickedDuringTheSync)
+            {
+                untickedDuringTheSync = true;
+                foreach (RARVersionLeaf leaf in group6.Leaves)
+                {
+                    leaf.IsChecked = false;
+                }
+            }
+        };
+
+        // Any sync entry point will do; a bulk tick runs one sync at the end.
+        vm.SelectAllVersionsCommand.Execute(null);
+
+        Assert.True(untickedDuringTheSync, "the re-entrant edit never ran, so this test proves nothing");
+        Assert.False(vm.Version6, "the read of major 6 must have seen the edit made while major 5 was written");
     }
 
 }
