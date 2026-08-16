@@ -80,6 +80,21 @@ public class MetadataOutputPathTests
         Assert.StartsWith(expectedRoot, full, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Movie: Part 1.mkv")]
+    [InlineData("Artist - Album: Deluxe.flac")]
+    [InlineData("12:34 timestamp.mkv")]
+    public void TryResolve_ColonInAnOrdinaryName_IsNotTreatedAsADriveQualifier(string name)
+    {
+        // ':' is a legal filename character on POSIX. Refusing it outright — which an earlier
+        // version of this guard did, to catch "C:\..." on Linux — would reject perfectly ordinary
+        // sample names. Only a drive-LETTER prefix ("C:", "D:") is a path qualifier.
+        bool ok = MetadataOutputPath.TryResolve(Root, name, out string full, out string error);
+
+        Assert.True(ok, error);
+        Assert.StartsWith(Path.GetFullPath(Root) + Path.DirectorySeparatorChar, full, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TryResolve_SubdirectoryName_KeepsItsRelativeStructure()
     {

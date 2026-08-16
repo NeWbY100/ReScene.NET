@@ -58,11 +58,18 @@ internal static class MetadataOutputPath
         }
 
         // Rooted names are the sharpest case: Path.Combine would return this verbatim and drop the
-        // chosen directory entirely. Checked before normalization so a drive-qualified Windows
-        // name is caught on every platform, where IsPathRooted alone would not flag "C:\..." when
-        // running on Linux.
+        // chosen directory entirely. Checked before normalization so a Windows-syntax name is
+        // caught on every platform — Path.IsPathRooted recognises neither "C:\x" nor the
+        // drive-relative "D:x" when running on Linux, and this app is cross-platform.
+        //
+        // Only the DRIVE-LETTER position counts. Rejecting a colon anywhere would refuse ordinary
+        // POSIX names like "Movie: Part 1.mkv", where ':' is a perfectly legal character.
+        bool hasDriveQualifier = metadataName.Length >= 2
+            && metadataName[1] == ':'
+            && char.IsAsciiLetter(metadataName[0]);
+
         if (Path.IsPathRooted(metadataName)
-            || metadataName.Contains(':', StringComparison.Ordinal)
+            || hasDriveQualifier
             || metadataName.StartsWith('/')
             || metadataName.StartsWith('\\'))
         {
