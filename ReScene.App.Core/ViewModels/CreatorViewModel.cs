@@ -38,6 +38,10 @@ public partial class CreatorViewModel : OperationViewModelBase
         // can observe/assert on the exact path.
         _workDirFactory = workDirFactory ?? (() => Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")));
 
+        // Shares this view-model's own per-instance creation services, so the artifacts it
+        // writes stream their progress into this instance's log and no other's.
+        _artifacts = new ArtifactFileGenerator(srrService, srsService, Log);
+
         _sRRService.Progress += OnProgress;
 
         // HasDetectedSets/DetectedSetsSummary are derived from DetectedSets.Count; raise their change
@@ -106,6 +110,7 @@ public partial class CreatorViewModel : OperationViewModelBase
     // current is discarded on the UI thread even if it had already finished before the cancellation
     // was seen. FolderScanSession owns that discipline.
     private readonly FolderScanSession _scan = new();
+    private readonly ArtifactFileGenerator _artifacts;
     private bool _isFolderMode;
     private bool _isMusicOnlyFolder;
 
@@ -671,12 +676,12 @@ public partial class CreatorViewModel : OperationViewModelBase
         var materialized = new Dictionary<StoredFileItem, string>();
         List<StoredFileItem> placeholders = [.. StoredFiles.Where(f => f.Kind != StoredFileKind.Regular)];
 
-        await GenerateAndRecordAsync(
+        await ArtifactFileGenerator.GenerateAndRecordAsync(
             placeholders,
             (item, index, token) => item.Kind switch
             {
-                StoredFileKind.GeneratedSRS => GenerateSRSFileAsync(item.GenerateFromPath!, tempDir, index, srsOptions, token),
-                StoredFileKind.GeneratedNestedSRR => GenerateNestedSRRFileAsync(item.GenerateFromPath!, tempDir, index, options, token),
+                StoredFileKind.GeneratedSRS => _artifacts.GenerateSRSFileAsync(item.GenerateFromPath!, tempDir, index, srsOptions, token),
+                StoredFileKind.GeneratedNestedSRR => _artifacts.GenerateNestedSRRFileAsync(item.GenerateFromPath!, tempDir, index, options, token),
                 _ => Task.FromResult<string?>(null),
             },
             (item, generated) => materialized[item] = generated,
@@ -1546,7 +1551,7 @@ public partial class CreatorViewModel : OperationViewModelBase
             // first-RAR basename as the file-name half (create_srr_for_subs), not the SFV's.
             int lastSlash = stem.LastIndexOf('/');
             string dirPrefix = lastSlash < 0 ? string.Empty : stem[..(lastSlash + 1)];
-            result.AddRange(await GenerateNestedSubtitleSrrsAsync(sfv, dirPrefix, workDir, i, options, ct));
+            result.AddRange(await _artifacts.GenerateNestedSubtitleSrrsAsync(sfv, dirPrefix, workDir, i, options, ct));
         }
 
         // Pass 10: append each subtitle SFV's own bytes AFTER all nested SRRs. Store this subtitle
@@ -1582,122 +1587,6 @@ public partial class CreatorViewModel : OperationViewModelBase
         return result;
     }
 
-    /// <summary>
-    /// One nested SRR PER RAR CHAIN the subtitle SFV lists — matching pyrescene's
-    /// <c>create_srr_for_subs</c>, which walks every "first RAR" it finds and makes a dedicated SRR
-    /// named after THAT chain's own basename (e.g. a two-language subtitle SFV listing
-    /// "eng.rar"+"eng.r00" and a separate "jpn.rar" yields "eng.srr" AND "jpn.srr", not one merged
-    /// SRR).
-    ///
-    /// Chain grouping goes through the shared <see cref="SfvVolumeResolver.ResolveOrderedChains"/>
-    /// — the SAME code <c>SRRWriter.ResolveVolumesAsync</c>'s SFV branch runs, so the two can never
-    /// disagree. An earlier hand-rolled copy DIVERGED: <c>SFVFile.ReadFile</c> split every space (so
-    /// it THREW <see cref="InvalidDataException"/> on a spaced RAR name like <c>my movie.rar</c>,
-    /// dropping the whole chain), and a raw <see cref="Path.Combine(string, string)"/> left a
-    /// <c>.\eng.r00</c> continuation keyed apart from its <c>eng.rar</c> head (splitting one chain
-    /// into two same-named <c>eng.srr</c> SRRs — a duplicate logical name the writer then rejects).
-    /// The resolver's space-tolerant parse + <see cref="SrrNameCanonicalizer.ResolveSfvEntry"/>
-    /// fixes both, trusting the SFV's OWN listed entries as each chain's full membership (no fresh
-    /// on-disk chain-walk, same as the writer). Each chain is written via
-    /// <see cref="ISRRCreationService.CreateFromRARAsync"/> directly (not <c>CreateFromSFVAsync</c>)
-    /// since the chain's volumes are already resolved here.
-    /// </summary>
-    private async Task<List<StoredFileEntry>> GenerateNestedSubtitleSrrsAsync(
-        string sfvPath, string dirPrefix, string workDir, int index, SRRCreationOptions options, CancellationToken ct)
-    {
-        string sfvName = Path.GetFileName(sfvPath);
-        string sfvDir = Path.GetDirectoryName(sfvPath) ?? ".";
-
-        IReadOnlyList<IReadOnlyList<string>> chains;
-        try
-        {
-            string[] lines = await File.ReadAllLinesAsync(sfvPath, ct).ConfigureAwait(false);
-            chains = SfvVolumeResolver.ResolveOrderedChains(sfvDir, lines);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
-        {
-            Log($"  Nested SRR error for {sfvName}: {ex.Message}");
-            return [];
-        }
-
-        if (chains.Count == 0)
-        {
-            Log($"  Nested SRR skipped for {sfvName}: no RAR volumes found in SFV.");
-            return [];
-        }
-
-        // pyrescene's create_srr_for_subs HARDCODES its own nested-creation call's options
-        // (`save_paths=False, compressed=True, oso_hash=False`) rather than forwarding whatever the
-        // OUTER SRR's options happen to be — so a user enabling ComputeOSOHashes for the outer SRR
-        // must not leak OSO blocks into a nested subtitle SRR pyrescene never adds them to.
-        // `save_paths=False` needs no explicit handling: CreateFromRARAsync (unlike
-        // CreateFromInputsAsync) has no relative-path mode at all, so it is already flat-name-only
-        // by construction.
-        var nestedOptions = new SRRCreationOptions
-        {
-            AppName = options.AppName,
-            AllowCompressed = true,
-            ComputeOSOHashes = false,
-        };
-
-        var result = new List<StoredFileEntry>();
-        int chainIndex = 0;
-        foreach (IReadOnlyList<string> chain in chains)
-        {
-            ct.ThrowIfCancellationRequested();
-            // SfvVolumeResolver now returns each chain in first-seen LISTING order and no longer
-            // sorts (so the writer's single sort stays byte-identical to base — see
-            // SfvVolumeResolver.ResolveOrderedChains). This path, unlike the writer, needs the TRUE
-            // first volume (volume[0]) for chainStem/naming and passes the volumes to
-            // CreateFromRARAsync, so it applies its OWN single per-chain sort here.
-            var volumes = new List<string>(chain);
-            volumes.Sort(RARVolumeNameComparer.Instance);
-            string firstVolumeName = Path.GetFileName(volumes[0]);
-            string chainStem = firstVolumeName.Length >= 4 ? firstVolumeName[..^4] : firstVolumeName;
-            string storedName = dirPrefix + chainStem + ".srr";
-            string srrPath = Path.Combine(workDir, $"{index}_{chainIndex}_{chainStem}.srr");
-            chainIndex++;
-            Log($"Creating nested SRR for subtitle chain: {chainStem} (from {sfvName})");
-
-            try
-            {
-                SRRCreationResult creation = await _sRRService.CreateFromRARAsync(srrPath, volumes, storedFiles: null, nestedOptions, ct);
-                if (creation.Success)
-                {
-                    Log($"  Nested SRR created: {Path.GetFileName(srrPath)} ({creation.SRRFileSize:N0} bytes)");
-                    result.Add(new StoredFileEntry(storedName, srrPath));
-                }
-                else
-                {
-                    Log($"  Nested SRR failed for {chainStem}: {creation.ErrorMessage}");
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Log($"  Nested SRR error for {chainStem}: {ex.Message}");
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// A nested subtitle SRR is RAR-blocks-ONLY — no embedded SFV, no sibling .nfo files. Confirmed
-    /// against a real pyrescene <c>--vobsub-srr</c> golden: its nested SRR contains only the
-    /// extracted RAR volume block(s); embedding the SFV (and sibling .nfo files) was this app's own
-    /// PRE-EXISTING choice, shared by both the folder-mode staging path above and the
-    /// wizard/Advanced <see cref="GenerateNestedSRRFileAsync"/> — and is also redundant regardless
-    /// of the golden: the subtitle SFV's own bytes are already stored in the OUTER SRR (scanner
-    /// pass-10 stores every SFV; see <see cref="GenerateSubtitleArtifactsAsync"/>'s remarks). Fixed
-    /// globally (both callers), matching the RECOVERY_BLOCKS_REMOVED precedent: a shipped-behavior
-    /// change applied everywhere the shared code path runs, not just the new folder-mode surface.
-    /// </summary>
-    private static List<StoredFileEntry>? BuildNestedSubtitleStoredFiles() => null;
-
     // ── SRS auto-creation (Advanced tab: scan + generate at create time) ──
 
     private async Task CreateSRSForSamplesAsync(string releaseDir, string tempDir, CancellationToken ct)
@@ -1712,9 +1601,9 @@ public partial class CreatorViewModel : OperationViewModelBase
             AppName = string.IsNullOrWhiteSpace(AppName) ? "ReScene Manager" : AppName
         };
 
-        await GenerateAndRecordAsync(
+        await ArtifactFileGenerator.GenerateAndRecordAsync(
             samples,
-            (sample, i, token) => GenerateSRSFileAsync(sample, tempDir, i, srsOptions, token),
+            (sample, i, token) => _artifacts.GenerateSRSFileAsync(sample, tempDir, i, srsOptions, token),
             (sample, srsPath) => StoredFiles.Add(new StoredFileItem
             {
                 FullPath = srsPath,
@@ -1752,7 +1641,7 @@ public partial class CreatorViewModel : OperationViewModelBase
             int lastSlash = generatedName.LastIndexOf('/');
             string dirPrefix = lastSlash < 0 ? string.Empty : generatedName[..(lastSlash + 1)];
 
-            foreach (StoredFileEntry entry in await GenerateNestedSubtitleSrrsAsync(sfv, dirPrefix, tempDir, i, options, ct))
+            foreach (StoredFileEntry entry in await _artifacts.GenerateNestedSubtitleSrrsAsync(sfv, dirPrefix, tempDir, i, options, ct))
             {
                 StoredFiles.Add(new StoredFileItem
                 {
@@ -1764,111 +1653,6 @@ public partial class CreatorViewModel : OperationViewModelBase
     }
 
     // ── Per-file generators (shared by Advanced create-time and wizard placeholder paths) ──
-
-    /// <summary>
-    /// Creates one .srs from <paramref name="samplePath"/> into <paramref name="tempDir"/> and
-    /// returns its path, or null on failure. The index keeps temp filenames unique so two samples
-    /// sharing a basename don't overwrite each other (the prefix never reaches the SRR).
-    /// </summary>
-    private async Task<string?> GenerateSRSFileAsync(string samplePath, string tempDir, int index, SRSCreationOptions srsOptions, CancellationToken ct)
-    {
-        string sampleName = Path.GetFileName(samplePath);
-        string srsPath = Path.Combine(tempDir, $"{index}_{Path.ChangeExtension(sampleName, ".srs")}");
-        Log($"Creating SRS for: {sampleName}");
-
-        try
-        {
-            SRSCreationResult result = await _sRSService.CreateAsync(srsPath, samplePath, srsOptions, ct);
-            if (result.Success)
-            {
-                Log($"  SRS created: {Path.GetFileName(srsPath)} ({result.SRSFileSize:N0} bytes)");
-                return srsPath;
-            }
-
-            Log($"  SRS failed for {sampleName}: {result.ErrorMessage}");
-        }
-        catch (Exception ex)
-        {
-            Log($"  SRS error for {sampleName}: {ex.Message}");
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Creates one nested .srr from the subtitle <paramref name="sfvPath"/> (and any .nfo beside it)
-    /// into <paramref name="tempDir"/> and returns its path, or null on failure. Used only by the
-    /// wizard's placeholder materialization (<see cref="MaterializePlaceholdersAsync"/>).
-    ///
-    /// Unlike the Advanced-tab create-time path (<see cref="CreateVobsubSRRsAsync"/>, which emits
-    /// one nested SRR PER RAR CHAIN via <see cref="GenerateNestedSubtitleSrrsAsync"/>), this
-    /// wizard-placeholder path stays single-merged-SRR: the placeholder→stored-item model is 1:1,
-    /// so a subtitle SFV listing multiple chains still produces ONE merged SRR here. Per-chain
-    /// support here needs a wizard model that can materialize one placeholder into several stored
-    /// items. The oso-off option IS applied below regardless.
-    /// </summary>
-    private async Task<string?> GenerateNestedSRRFileAsync(string sfvPath, string tempDir, int index, SRRCreationOptions options, CancellationToken ct)
-    {
-        string sfvName = Path.GetFileName(sfvPath);
-        string srrPath = Path.Combine(tempDir, $"{index}_{Path.ChangeExtension(sfvName, ".srr")}");
-        Log($"Creating nested SRR for: {sfvName}");
-
-        // Force the nested subtitle SRR's own options (AllowCompressed=true,
-        // ComputeOSOHashes=false) — mirroring the folder-mode nestedOptions in
-        // GenerateNestedSubtitleSrrsAsync — rather than forwarding the outer run's `options`, so a
-        // user enabling ComputeOSOHashes for the outer SRR cannot leak OSO blocks into a nested
-        // subtitle SRR pyrescene never adds them to.
-        var nestedOptions = new SRRCreationOptions
-        {
-            AppName = options.AppName,
-            AllowCompressed = true,
-            ComputeOSOHashes = false,
-        };
-
-        try
-        {
-            SRRCreationResult result = await _sRRService.CreateFromSFVAsync(
-                srrPath, sfvPath, BuildNestedSubtitleStoredFiles(), nestedOptions, ct);
-            if (result.Success)
-            {
-                Log($"  Nested SRR created: {Path.GetFileName(srrPath)} ({result.SRRFileSize:N0} bytes)");
-                return srrPath;
-            }
-
-            Log($"  Nested SRR failed for {sfvName}: {result.ErrorMessage}");
-        }
-        catch (Exception ex)
-        {
-            Log($"  Nested SRR error for {sfvName}: {ex.Message}");
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Shared "enumerate sources → generate file → name it → record it" loop behind the Advanced
-    /// create-time scans and the wizard's placeholder materialization. <paramref name="generate"/>
-    /// produces the file for each source (returning null on failure/skip); <paramref name="record"/>
-    /// is the sink — the Advanced paths add a <see cref="StoredFileItem"/> to the bound
-    /// <see cref="StoredFiles"/> collection, while the wizard path writes into its placeholder→path
-    /// map. The per-source index keeps temp filenames unique.
-    /// </summary>
-    private static async Task GenerateAndRecordAsync<TSource>(
-        IReadOnlyList<TSource> sources,
-        Func<TSource, int, CancellationToken, Task<string?>> generate,
-        Action<TSource, string> record,
-        CancellationToken ct)
-    {
-        for (int i = 0; i < sources.Count; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            string? generated = await generate(sources[i], i, ct);
-            if (generated is not null)
-            {
-                record(sources[i], generated);
-            }
-        }
-    }
 
     // ── Fix release detection ───────────────────────────────
 
