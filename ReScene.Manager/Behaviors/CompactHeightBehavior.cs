@@ -798,9 +798,11 @@ internal static class CompactHeightBehavior
             total += Math.Max(rowDesired, row.MinHeight);
         }
 
-        // Row spacing sits BETWEEN rows and is real height the grid will demand, so leaving it out
-        // pushed the floor the other way: below the actual content floor, letting expanded content
-        // be clipped before compact mode engaged.
+        // Row spacing sits BETWEEN rows and is real height the grid will demand, so a floor that
+        // omits it sits below the true content floor. No view in this app sets Grid.RowSpacing
+        // today — it defaults to 0, so this term is currently always zero and fixes no observed
+        // bug. It is here so the floor stays correct if one ever does, NOT because anything was
+        // seen to clip.
         if (grid.RowDefinitions.Count > 1)
         {
             total += grid.RowSpacing * (grid.RowDefinitions.Count - 1);

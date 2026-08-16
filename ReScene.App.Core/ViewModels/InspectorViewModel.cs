@@ -727,7 +727,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         }
 
         string srrPath = _loadedFilePathInternal!;
-        int generationAtStart = _loadGeneration;
 
         string outcome;
         try
@@ -746,7 +745,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         // otherwise leave the Hex/Text panes blank until close+reopen. The SUCCESS message used to
         // be set before the reload and was therefore wiped by its status summary, exactly as the
         // error was before that was moved after it — reporting both afterwards fixes the pair.
-        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
+        await ReloadAfterEditAsync(srrPath, outcome);
     }
 
     private void ReleaseFileHandles()
@@ -769,7 +768,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         }
 
         string srrPath = LoadedFilePath;
-        int generationAtStart = _loadGeneration;
         ReleaseFileHandles();
 
         string outcome;
@@ -783,7 +781,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             outcome = $"Error moving stored file: {ex.Message}";
         }
 
-        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
+        await ReloadAfterEditAsync(srrPath, outcome);
     }
 
     /// <summary>
@@ -807,9 +805,20 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
     /// belong to.
     /// </para>
     /// </remarks>
-    private async Task ReloadAfterEditAsync(string srrPath, int generationAtStart, string outcome)
+    private async Task ReloadAfterEditAsync(string srrPath, string outcome)
     {
-        if (_disposed || _loadGeneration != generationAtStart)
+        if (_disposed)
+        {
+            return;
+        }
+
+        // "Superseded" means the view has moved to a DIFFERENT file (or closed), which is tested
+        // by the loaded path, NOT by the generation counter. Another edit to the SAME file also
+        // bumps that counter, and an earlier generation check skipped the reload there too —
+        // leaving the tree showing the file as it was BEFORE this edit's write landed, with no
+        // confirmation that anything happened. Two edits in quick succession on a large SRR
+        // (Move Up, then Remove) reproduced it.
+        if (!string.Equals(_loadedFilePathInternal, srrPath, StringComparison.Ordinal))
         {
             return;
         }
@@ -851,7 +860,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         }
 
         string srrPath = LoadedFilePath;
-        int generationAtStart = _loadGeneration;
         ReleaseFileHandles();
 
         string outcome;
@@ -865,7 +873,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             outcome = $"Error renaming stored file: {ex.Message}";
         }
 
-        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
+        await ReloadAfterEditAsync(srrPath, outcome);
     }
 
     [RelayCommand(CanExecute = nameof(CanMoveStoredFileUp))]
@@ -885,7 +893,6 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         }
 
         string srrPath = _loadedFilePathInternal!;
-        int generationAtStart = _loadGeneration;
 
         string outcome;
         try
@@ -902,7 +909,7 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         // Always re-open: ReleaseFileHandles disposed the data source, so a failed edit would
         // otherwise leave the Hex/Text panes blank until close+reopen. As with Add, the SUCCESS
         // message was previously set before the reload and buried by its status summary.
-        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
+        await ReloadAfterEditAsync(srrPath, outcome);
     }
 
     [RelayCommand(CanExecute = nameof(IsImagePreviewAvailable))]

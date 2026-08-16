@@ -131,11 +131,22 @@ internal static class CompactInvariantRig
                     continue;
                 }
 
-                rowDesired = Math.Max(rowDesired,
-                    child.DesiredSize.Height + child.Margin.Top + child.Margin.Bottom);
+                // DesiredSize ALREADY includes the child's margin (Avalonia's Layoutable adds it in
+                // MeasureCore), so adding Margin.Top/Bottom again counted it twice. The production
+                // rule this mirrors was fixed; leaving the mirror behind would have quietly turned
+                // every invariant test into "the double-counted margins happen to fit inside
+                // ThresholdMargin" rather than the equality the summary above promises.
+                rowDesired = Math.Max(rowDesired, child.DesiredSize.Height);
             }
             total += rowDesired;
         }
+
+        // Row spacing is real height between rows; mirrors MeasureExpandedFloor.
+        if (innerRoot.RowDefinitions.Count > 1)
+        {
+            total += innerRoot.RowSpacing * (innerRoot.RowDefinitions.Count - 1);
+        }
+
         return total;
     }
 

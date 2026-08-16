@@ -64,6 +64,13 @@ internal static class MetadataOutputPath
         //
         // Only the DRIVE-LETTER position counts. Rejecting a colon anywhere would refuse ordinary
         // POSIX names like "Movie: Part 1.mkv", where ':' is a perfectly legal character.
+        //
+        // Known false positive: a POSIX name whose FIRST character is a single letter followed by
+        // a colon — "Q: The Winged Serpent.mkv", "M: Eine Stadt sucht einen Mörder.mkv" — is
+        // indistinguishable from a Windows drive-relative path, and is refused. Accepted
+        // deliberately: this app is cross-platform, an SRS authored on Windows can genuinely carry
+        // "D:name", and a false refusal costs the user one rename while a false ACCEPT writes
+        // outside the folder they chose.
         bool hasDriveQualifier = metadataName.Length >= 2
             && metadataName[1] == ':'
             && char.IsAsciiLetter(metadataName[0]);

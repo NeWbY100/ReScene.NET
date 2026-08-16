@@ -79,24 +79,17 @@ public static class ReleaseTraversal
         // the two halves of the same rule disagreed. A linked FILE is the same hazard and a
         // sharper one: its target's bytes are read and stored into the SRR as though they were
         // part of the release, from wherever the link points — outside the selected root
-        // included. Skipped and recorded, rather than dropped silently, because unlike a linked
-        // directory the user can see this file sitting in the release folder.
+        // included. Skipped silently, exactly as a linked directory is: the issue channel is
+        // rendered to the user as "Unreadable: <path> (<message>)", which a deliberate skip is not.
         foreach (string file in dirFiles)
         {
-            FileAttributes fileAttrs;
-            try
+            if (IsLink(file, isDirectory: false, issues, out bool fileFailed))
             {
-                fileAttrs = File.GetAttributes(file);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                issues.Add(new TraversalIssue(file, e.Message));
                 continue;
             }
 
-            if ((fileAttrs & FileAttributes.ReparsePoint) != 0)
+            if (fileFailed)
             {
-                issues.Add(new TraversalIssue(file, "Skipped a linked file (reparse point)."));
                 continue;
             }
 
@@ -105,26 +98,45 @@ public static class ReleaseTraversal
 
         foreach (string sub in subdirs)
         {
-            FileAttributes attrs;
-            try
-            {
-                attrs = File.GetAttributes(sub);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                // A child that disappears or becomes unreadable between GetDirectories and this
-                // call must degrade to an Issue, not crash the whole traversal (class contract).
-                issues.Add(new TraversalIssue(sub, e.Message));
-                continue;
-            }
-
-            // pyrescene's os.walk does not follow directory reparse points by default.
-            if ((attrs & FileAttributes.ReparsePoint) != 0)
+            // pyrescene's os.walk does not follow directory links by default.
+            if (IsLink(sub, isDirectory: true, issues, out _))
             {
                 continue;
             }
 
             Walk(sub, files, issues, ct);
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="path"/> is a symbolic link or junction. Sets
+    /// <paramref name="failed"/> when the entry could not be inspected at all, in which case it
+    /// has already been recorded as an issue.
+    /// </summary>
+    /// <remarks>
+    /// Tests <see cref="FileSystemInfo.LinkTarget"/> rather than
+    /// <see cref="FileAttributes.ReparsePoint"/>. That attribute is set on far more than links:
+    /// OneDrive Files-On-Demand placeholders and Windows Server data-deduplicated files both carry
+    /// it while reading back as perfectly ordinary content. Testing the attribute per FILE would
+    /// therefore yield ZERO files for any release inside a OneDrive-synced folder — and the
+    /// directory half had the same flaw, costing a whole subtree. <c>LinkTarget</c> is non-null
+    /// only for an actual link, which is also what pyrescene's <c>os.walk</c> discriminates on.
+    /// </remarks>
+    private static bool IsLink(string path, bool isDirectory, List<TraversalIssue> issues, out bool failed)
+    {
+        failed = false;
+        try
+        {
+            FileSystemInfo info = isDirectory ? new DirectoryInfo(path) : new FileInfo(path);
+            return info.LinkTarget is not null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // A child that disappears or becomes unreadable between the directory listing and this
+            // call must degrade to an Issue, not crash the whole traversal (class contract).
+            issues.Add(new TraversalIssue(path, e.Message));
+            failed = true;
+            return false;
         }
     }
 
