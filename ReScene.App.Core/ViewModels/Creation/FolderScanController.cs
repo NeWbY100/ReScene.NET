@@ -49,21 +49,28 @@ internal sealed class FolderScanController(
     /// mode uses it too; this controller only calls the folder-mode half.
     /// </param>
     /// <param name="NotifyCanExecuteChanged">
-    /// Raises <c>CreateSRRCommand.NotifyCanExecuteChanged()</c>. Load-bearing and ordering-sensitive:
-    /// <c>IsMusicOnly</c> and <c>IsInvalid</c> have no <c>[NotifyCanExecuteChangedFor]</c> backing, so
-    /// these explicit calls are the ONLY thing that re-evaluates the Create gate after this
-    /// controller changes them. Each call site below keeps its original position relative to the
-    /// status assignment beside it.
+    /// Raises <c>CreateSRRCommand.NotifyCanExecuteChanged()</c>. Ordering-sensitive:
+    /// <c>IsMusicOnly</c> and <c>IsInvalid</c> have no <c>[NotifyCanExecuteChangedFor]</c> backing,
+    /// and the <c>IsScanning</c> notification that fires just before them reports the gate as it was
+    /// BEFORE they were assigned. So on the fault, root-error and success paths this call is the only
+    /// notification carrying the final answer — drop it and a bound view keeps whatever the stale
+    /// one said. Its position after both flags are final is what matters, not the call count.
+    /// The drive-root call in <see cref="Start"/> is the exception: <c>Start</c> only runs inside
+    /// <c>OnInputPathChanged</c>, and <c>InputPath</c>'s own generated notification follows the
+    /// partial hook, so there the final state is announced either way. It is kept for symmetry.
     /// </param>
     /// <param name="NotifyFolderModeChanged">
     /// Raises <c>OnPropertyChanged(nameof(IsFolderMode))</c>. <c>IsFolderMode</c> is a plain
     /// computed property over this controller's state, so nothing raises it automatically.
     /// </param>
-    /// <param name="ClearSelections">
-    /// Nulls the three selection properties that accompany the collections cleared here
-    /// (<c>SelectedStoredFile</c>, <c>SelectedExtraSample</c>, <c>SelectedExtraSubtitle</c>). Separate
-    /// from the collection clears because the selections are view-model properties, not collections.
+    /// <param name="ClearStoredFileSelection">
+    /// Nulls <c>SelectedStoredFile</c>. One hook per selection, rather than a single call that nulls
+    /// all three, so <see cref="ClearFolderScanResults"/> can keep interleaving each reset
+    /// immediately after its own collection's clear exactly as the original did — see that method's
+    /// remarks for why the order is worth preserving.
     /// </param>
+    /// <param name="ClearExtraSampleSelection">Nulls <c>SelectedExtraSample</c>.</param>
+    /// <param name="ClearExtraSubtitleSelection">Nulls <c>SelectedExtraSubtitle</c>.</param>
     /// <param name="UpdateActionHint">Recomputes the hint under the primary button.</param>
     /// <param name="DetectedSetsSummary">
     /// Reads the view-model's <c>DetectedSetsSummary</c>. A live accessor, not a value: the summary
@@ -77,7 +84,9 @@ internal sealed class FolderScanController(
         Action<string> TrySetAutoOutputPath,
         Action NotifyCanExecuteChanged,
         Action NotifyFolderModeChanged,
-        Action ClearSelections,
+        Action ClearStoredFileSelection,
+        Action ClearExtraSampleSelection,
+        Action ClearExtraSubtitleSelection,
         Action UpdateActionHint,
         Func<string> DetectedSetsSummary,
         Action<string> AppendLog);
@@ -162,23 +171,27 @@ internal sealed class FolderScanController(
     }
 
     /// <summary>
-    /// Empties the four scan-populated collections and their selections.
+    /// Empties the four scan-populated collections and their selections, interleaved: each selection
+    /// is reset immediately after its own collection's clear.
     /// </summary>
     /// <remarks>
-    /// The original interleaved each selection reset immediately after its own collection's clear;
-    /// here the four clears run first and the three resets follow. The end state is identical, and
-    /// nothing can observe the intermediate difference: the selection properties have no
-    /// <c>On…Changed</c> partial hooks and no notify attributes, and the view-model's only
-    /// <c>CollectionChanged</c> subscription is on the detected sets, whose handler does not read
-    /// them. Re-check that before adding a hook to any of the three.
+    /// The interleaving is deliberate, and reproduces the original exactly. Clearing all four
+    /// collections first and then resetting the three selections would reach the same end state, but
+    /// it is NOT unobservable: the selection properties are <c>[ObservableProperty]</c>, so each
+    /// setter raises its own <c>PropertyChanged</c>, and the collections and selections are two-way
+    /// bound to a DataGrid and two ListBoxes that can write a null selection back through the
+    /// binding when their source collection empties. Changing the interleaving changes the event
+    /// sequence those bindings see.
     /// </remarks>
     private void ClearFolderScanResults()
     {
         detectedSets.Clear();
         storedFiles.Clear();
+        hooks.ClearStoredFileSelection();
         extraSampleFiles.Clear();
+        hooks.ClearExtraSampleSelection();
         extraSubtitleSfvFiles.Clear();
-        hooks.ClearSelections();
+        hooks.ClearExtraSubtitleSelection();
     }
 
     /// <summary>
@@ -187,6 +200,12 @@ internal sealed class FolderScanController(
     /// recursively, so scanning an entire drive would be both meaningless (no name to derive an SRR
     /// filename from) and dangerously slow.
     /// </summary>
+    /// <remarks>
+    /// PRECONDITION: <see cref="InvalidateInFlight"/> must have been called first. This installs a
+    /// fresh session source without cancelling an existing one, so calling it twice in a row would
+    /// abandon a live scan rather than cancel it. <c>OnInputPathChanged</c> satisfies this by
+    /// invalidating unconditionally before it branches.
+    /// </remarks>
     public void Start(string releaseRoot)
     {
         _isFolderMode = true;

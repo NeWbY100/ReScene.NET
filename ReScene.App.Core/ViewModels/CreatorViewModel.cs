@@ -47,9 +47,11 @@ public partial class CreatorViewModel : OperationViewModelBase
                 SetInputStatus: v => InputStatus = v,
                 SetOutputStatus: v => OutputStatus = v,
                 TrySetAutoOutputPath: v => TrySetAutoOutputPath(v),
-                NotifyCanExecuteChanged: CreateSRRCommand.NotifyCanExecuteChanged,
+                NotifyCanExecuteChanged: RefreshCreateGate,
                 NotifyFolderModeChanged: () => OnPropertyChanged(nameof(IsFolderMode)),
-                ClearSelections: ClearScanSelections,
+                ClearStoredFileSelection: () => SelectedStoredFile = null,
+                ClearExtraSampleSelection: () => SelectedExtraSample = null,
+                ClearExtraSubtitleSelection: () => SelectedExtraSubtitle = null,
                 UpdateActionHint: UpdateActionHint,
                 DetectedSetsSummary: () => DetectedSetsSummary,
                 AppendLog: Log));
@@ -989,16 +991,13 @@ public partial class CreatorViewModel : OperationViewModelBase
     // ── Folder mode (release scan) ────────────────────────────
 
     /// <summary>
-    /// Clears the three selections that accompany the folder-scan collections. Called by
-    /// <see cref="FolderScanController"/>, which owns clearing the collections themselves but not
-    /// these view-model properties.
+    /// Re-evaluates the Create button's enabled state. A named method rather than the
+    /// <c>CreateSRRCommand.NotifyCanExecuteChanged</c> method group: binding that group directly
+    /// would evaluate the generated <c>CreateSRRCommand</c> property while building the hook record
+    /// in the constructor, forcing the command into existence before <c>_folderScan</c> is assigned.
+    /// A lambda would say the same thing, but IDE0200 flags it as removable.
     /// </summary>
-    private void ClearScanSelections()
-    {
-        SelectedStoredFile = null;
-        SelectedExtraSample = null;
-        SelectedExtraSubtitle = null;
-    }
+    private void RefreshCreateGate() => CreateSRRCommand.NotifyCanExecuteChanged();
 
     /// <summary>
     /// Assigns <paramref name="autoValue"/> to <see cref="OutputPath"/> and records it as

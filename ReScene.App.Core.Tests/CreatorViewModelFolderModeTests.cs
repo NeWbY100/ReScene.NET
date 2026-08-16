@@ -135,6 +135,26 @@ public sealed class CreatorViewModelFolderModeTests : TempDirTestBase
     /// <summary>Throws an UNEXPECTED (non-OCE) exception from <c>Scan</c> — the very fault
     /// <c>RarProofInspector.Inspect</c>'s narrow IOException/UnauthorizedAccessException catch (or a
     /// RAR-parser fault) would let escape, to prove the catch-all doesn't strand the busy state.</summary>
+    /// <summary>
+    /// Throws, but only after the test has released it — so the fault completion is guaranteed to
+    /// run AFTER the <c>InputPath</c> setter returned and its generated command notification fired.
+    /// </summary>
+    private sealed class GatedThrowingReleaseScanner(Exception toThrow) : IReleaseScanner
+    {
+        private readonly ManualResetEventSlim _release = new(false);
+
+        public ManualResetEventSlim Entered { get; } = new(false);
+
+        public void Release() => _release.Set();
+
+        public ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default)
+        {
+            Entered.Set();
+            _release.Wait(CancellationToken.None);
+            throw toThrow;
+        }
+    }
+
     private sealed class ThrowingReleaseScanner(Exception toThrow) : IReleaseScanner
     {
         public ReleaseScanResult Scan(string releaseRoot, CancellationToken ct = default) => throw toThrow;
@@ -563,6 +583,139 @@ public sealed class CreatorViewModelFolderModeTests : TempDirTestBase
 
         Assert.False(vm.CreateSRRCommand.CanExecute(null));
         Assert.True(notifications > 0);
+    }
+
+    // ── Create-gate NOTIFICATION (not just the predicate) ────────────────────────
+    //
+    // CanExecute(null) re-evaluates CanCreateSRR on demand, so it is ALWAYS fresh and structurally
+    // cannot detect a missing notification. What repaints the button is CanExecuteChanged, and on the
+    // fault / root-error / success paths the two disagree: IsScanning is cleared FIRST, firing its
+    // [NotifyCanExecuteChangedFor] notification while _folderScanInvalid / _isMusicOnlyFolder still
+    // hold their PREVIOUS values, so that notification reports a stale gate. Only the later explicit
+    // NotifyCanExecuteChanged call carries the final answer.
+    //
+    // These tests therefore record CanExecute at EVERY notification and assert the value a subscriber
+    // obtained at the FINAL re-query — the state the button is left in until something else fires.
+    // They are not sensitive to the notification COUNT or to the exact order, so a refactor that
+    // assigns the flags earlier and lets the automatic IsScanning notification carry the final value
+    // would still pass.
+    //
+    // Each uses a GATED scanner. With an immediate one the completion can run inline on the
+    // background thread BEFORE the InputPath setter returns, letting InputPath's own generated
+    // notification fire last with correct state — which would make these pass even with the explicit
+    // call removed, and would also race two threads onto the recording list.
+
+    /// <summary>Records the gate value at each CanExecuteChanged, once the setter has certainly returned.</summary>
+    private static List<bool> RecordGateNotifications(CreatorViewModel vm)
+    {
+        List<bool> recorded = [];
+        vm.CreateSRRCommand.CanExecuteChanged += (_, _) => recorded.Add(vm.CreateSRRCommand.CanExecute(null));
+        return recorded;
+    }
+
+    [Fact]
+    public async Task RootError_LeavesTheCreateButtonDisabled_NotJustCanExecuteFalse()
+    {
+        string root = CreateFolder();
+        var gated = new GatedReleaseScanner
+        {
+            GatedRoot = root,
+            GatedResult = ReleaseScanResult.RootError(root, "Access to the path is denied."),
+        };
+        CreatorViewModel vm = CreateVm(gated, out _);
+        vm.OutputPath = Path.Combine(TempDir, "out.srr");
+
+        vm.InputPath = root;
+        Assert.True(gated.Entered.Wait(TimeSpan.FromSeconds(5)));
+
+        List<bool> gateAtEachNotification = RecordGateNotifications(vm);
+        gated.Release();
+        await vm.LastFolderScan!;
+
+        Assert.NotEmpty(gateAtEachNotification);
+        Assert.False(gateAtEachNotification[^1]);
+        Assert.False(vm.CreateSRRCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task ScannerFault_LeavesTheCreateButtonDisabled_NotJustCanExecuteFalse()
+    {
+        string root = CreateFolder();
+        var gated = new GatedThrowingReleaseScanner(new InvalidOperationException("kaboom"));
+        CreatorViewModel vm = CreateVm(gated, out _);
+        vm.OutputPath = Path.Combine(TempDir, "out.srr");
+
+        vm.InputPath = root;
+        Assert.True(gated.Entered.Wait(TimeSpan.FromSeconds(5)));
+
+        List<bool> gateAtEachNotification = RecordGateNotifications(vm);
+        gated.Release();
+        await vm.LastFolderScan!;
+
+        Assert.NotEmpty(gateAtEachNotification);
+        Assert.False(gateAtEachNotification[^1]);
+        Assert.False(vm.CreateSRRCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task MusicOnlyScan_LeavesTheCreateButtonDisabled_NotJustCanExecuteFalse()
+    {
+        // The success path's own explicit call. _isMusicOnlyFolder is assigned AFTER IsScanning is
+        // cleared, so the automatic notification reports the gate as still creatable.
+        string root = CreateFolder();
+        var gated = new GatedReleaseScanner
+        {
+            GatedRoot = root,
+            GatedResult = new ReleaseScanResult([], [], [], [], [Path.Combine(root, "album.sfv")], []),
+        };
+        CreatorViewModel vm = CreateVm(gated, out _);
+        vm.OutputPath = Path.Combine(TempDir, "out.srr");
+
+        vm.InputPath = root;
+        Assert.True(gated.Entered.Wait(TimeSpan.FromSeconds(5)));
+
+        List<bool> gateAtEachNotification = RecordGateNotifications(vm);
+        gated.Release();
+        await vm.LastFolderScan!;
+
+        Assert.NotEmpty(gateAtEachNotification);
+        Assert.False(gateAtEachNotification[^1]);
+        Assert.False(vm.CreateSRRCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task SuccessfulScanAfterAnError_LeavesTheCreateButtonEnabled_NotJustCanExecuteTrue()
+    {
+        // The same call in the other direction: recovering from a gated-off state. Here the
+        // automatic IsScanning notification fires while the PREVIOUS scan's invalid flag is still
+        // set, so without the explicit call the button would be left disabled on a folder that
+        // scanned fine. OutputPath is pre-set by the user, so the auto-fill cannot supply a later
+        // notification that masks the omission.
+        string rootA = CreateFolder("A");
+        string rootB = CreateFolder("B");
+        var gated = new GatedReleaseScanner
+        {
+            GatedRoot = rootB,
+            GatedResult = new ReleaseScanResult([new ReleaseSetInput(Path.Combine(rootB, "b.sfv"), "b.sfv")], [], [], [], [], []),
+            OtherResult = ReleaseScanResult.RootError(rootA, "Access to the path is denied."),
+        };
+        CreatorViewModel vm = CreateVm(gated, out _);
+        vm.OutputPath = Path.Combine(TempDir, "out.srr");
+
+        vm.InputPath = rootA;
+        await vm.LastFolderScan!;
+        Assert.False(vm.CreateSRRCommand.CanExecute(null));
+
+        vm.InputPath = rootB;
+        Assert.True(gated.Entered.Wait(TimeSpan.FromSeconds(5)));
+
+        List<bool> gateAtEachNotification = RecordGateNotifications(vm);
+        gated.Release();
+        await vm.LastFolderScan!;
+
+        Assert.NotEmpty(gateAtEachNotification);
+        Assert.True(gateAtEachNotification[^1]);
+        Assert.True(vm.CreateSRRCommand.CanExecute(null));
     }
 
     // ── 12-13. Result paths absolute; StoredNames root-relative ──
