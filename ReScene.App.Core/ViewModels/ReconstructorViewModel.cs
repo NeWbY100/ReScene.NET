@@ -2927,6 +2927,14 @@ public partial class ReconstructorViewModel : ViewModelBase
         Log(LogTarget.System, $"Volume size: {VolumeSize} {VolumeSizeUnits[VolumeSizeUnitIndex]}");
     }
 
+    /// <summary>
+    /// The most recently PARSED verification snapshot. Exposed because the assignment happens at the
+    /// parse point, before the rejections that follow it: a rejected start never reaches the runner,
+    /// so this seam is what observes the snapshot it nonetheless retained. The SUCCESSFUL handoff is
+    /// observed through <see cref="BuildSharedSettingsAsync"/> instead.
+    /// </summary>
+    internal VerificationSnapshot? VerificationSnapshotForTest => _verificationSnapshot;
+
     // Test seam (InternalsVisibleTo ReScene.App.Core.Tests): exposes the auto-extracted-SFV temp dir
     // so a test can assert it was retired (set back to null) without reaching for reflection.
     internal string? SfvTempDirForTest => _sfvTempDir;
