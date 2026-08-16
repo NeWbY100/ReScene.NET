@@ -33,6 +33,20 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
   keep separate progress streams; and nothing pinned that the stored-file list is appended to
   incrementally during a build, or that an option toggled off mid-run takes effect.
 
+- The RAR Reconstructor's view-model has had the same treatment: the batched log buffer, the
+  reserved-output-tree cleanup, the start-validation gauntlet, the version-tree coordinator, the
+  reconstruction run loop and the SRR import decisions are now separate units, with the engine's
+  progress handlers and much of the bound property surface filed into partials. It goes from 3,091
+  lines in one file to 1,840 plus two partials, and behaviour is unchanged — every verbatim move was diffed
+  mechanically against its original rather than retyped, and the decision logic deliberately reshaped into
+  returned values is covered by characterization tests instead. As with the Creator, the
+  characterization tests written to protect the move closed gaps that already existed: the run's
+  completion no longer relied on untested writes to settle the progress readout; the busy-flag clear
+  order and both queued-progress staleness gates are pinned, so a late event cannot re-open a closed
+  progress window; the SRR import's RAR-version and volume-size decisions and the ORDER it applies
+  them in are covered; and the single flag that guards a programmatic bulk change to the version tree is
+  pinned separately at each of the two places it is raised, because they fail in different ways.
+
 ### Fixed
 
 - Repeated in-process `create` invocations no longer accumulate `Console.CancelKeyPress`

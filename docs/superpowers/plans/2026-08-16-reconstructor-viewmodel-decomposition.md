@@ -4,7 +4,7 @@
 
 **Goal:** Split `ReconstructorViewModel.cs` (3,091 lines, 67 private methods) into focused collaborators without changing behaviour, and file its pinned binding surface into a `partial`.
 
-**Architecture:** New units land in the existing `ReScene.App.Core/ViewModels/Reconstruction/` folder alongside the 32 collaborators already there. Bound-state writes travel back through narrow callbacks rather than moving the properties themselves — the 122 `[ObservableProperty]` declarations are the view's contract and cannot move. Two `partial` files (progress handlers, bindings) are filing, not decomposition, and are labelled as such.
+**Architecture:** New units land in the existing `ReScene.App.Core/ViewModels/Reconstruction/` folder alongside the 32 collaborators already there. Bound-state writes travel back through narrow callbacks rather than moving the properties themselves — the 127 `[ObservableProperty]` declarations are the view's contract and cannot move. Two `partial` files (progress handlers, bindings) are filing, not decomposition, and are labelled as such.
 
 **Tech Stack:** .NET 10 / C# 14, Avalonia 11.3.18, CommunityToolkit.Mvvm 8.4.2 source generators, xUnit 2.9.3 with hand-rolled doubles. `AnalysisLevel=latest-All` + `EnforceCodeStyleInBuild`; the build must stay at zero warnings.
 
@@ -105,15 +105,15 @@ Moves: `AppendLog` (2700), `ScheduleLogFlush` (2717), `FlushLogQueue` (2729), `D
 
 `Drain()` is also called **synchronously** from the run's `finally` (1808) as the final drain — it is not only a dispatcher callback.
 
-- [ ] **Step 1: Create the buffer**, transcribing the six members. `LogEntries` is held by reference; it is the bound collection.
-- [ ] **Step 2: Wire the view-model.** `AppendLog(t, m)` stays as a thin private forwarder to `_log.Append` — it has ~40 call sites and changing them is churn this task does not need. `_progress`'s `appendLog:` argument (120) keeps passing `AppendLog`. `BeginNewLogGenerationForTest` (2778) forwards to `_log.BeginNewGeneration()`.
-- [ ] **Step 3: Transcription diff** → all five bodies identical.
-- [ ] **Step 4: Build and both suites** → 0 warnings; 780 / 531.
+- [x] **Step 1: Create the buffer**, transcribing the six members. `LogEntries` is held by reference; it is the bound collection.
+- [x] **Step 2: Wire the view-model.** `AppendLog(t, m)` stays as a thin private forwarder to `_log.Append` — it has ~40 call sites and changing them is churn this task does not need. `_progress`'s `appendLog:` argument (120) keeps passing `AppendLog`. `BeginNewLogGenerationForTest` (2778) forwards to `_log.BeginNewGeneration()`.
+- [x] **Step 3: Transcription diff** → all five bodies identical.
+- [x] **Step 4: Build and both suites** → 0 warnings; 780 / 531.
 
 Guards: `ReconstructorLoggingProgressTests.cs` (12), notably `ManyLogEvents_CoalesceIntoAtMostOneDispatch` (bounds dispatches at `<= 2` for 300 events, so losing the coalescing flag fails it) and the merged-order assertion at line 427.
 
-- [ ] **Step 5: Probe the three invariants** — make each inert in turn (increment before clear; release the flag after the drain; stamp the timestamp in `Drain`) and record which tests catch it. **Any invariant no test catches gets a characterization test in this task, before the commit.** Record all three probe results in the commit message regardless.
-- [ ] **Step 6: Codex review, then commit.**
+- [x] **Step 5: Probe the three invariants** — make each inert in turn (increment before clear; release the flag after the drain; stamp the timestamp in `Drain`) and record which tests catch it. **Any invariant no test catches gets a characterization test in this task, before the commit.** Record all three probe results in the commit message regardless.
+- [x] **Step 6: Codex review, then commit.**
 
 ---
 
@@ -137,14 +137,14 @@ The error callback takes (title, message) so the view-model forwarder passes `_f
 
 **The view-model keeps thin forwarders with their existing names and signatures** — `BeginnerWizardFactory.cs:211,218` calls two from production, and `ReconstructorOutputCleanupTests` calls them from tests.
 
-- [ ] **Step 1: Create the type**, transcribing the three methods.
-- [ ] **Step 2: Replace the bodies with forwarders**, every existing signature unchanged.
-- [ ] **Step 3: Transcription diff** → identical.
-- [ ] **Step 4: Build and both suites** → 0 warnings; counts unchanged.
+- [x] **Step 1: Create the type**, transcribing the three methods.
+- [x] **Step 2: Replace the bodies with forwarders**, every existing signature unchanged.
+- [x] **Step 3: Transcription diff** → identical.
+- [x] **Step 4: Build and both suites** → 0 warnings; counts unchanged.
 
 Guards: `ReconstructorOutputCleanupTests.cs` (4). **If none of them covers the failure path** (log + `ShowError` + `false`), add that test in this task before the commit — the new signature exists specifically to preserve it.
 
-- [ ] **Step 5: Codex review, then commit.**
+- [x] **Step 5: Codex review, then commit.**
 
 ---
 
@@ -157,15 +157,15 @@ Guards: `ReconstructorOutputCleanupTests.cs` (4). **If none of them covers the f
 
 `_verificationSnapshot` is assigned at the **parse point** (1625), *before* the later rejections for missing imported files, declined output cleanup, or cleanup failure. So **a rejected run leaves the newly parsed snapshot in place**, not the previous run's.
 
-- [ ] **Step 1: Write two tests**
+- [x] **Step 1: Write two tests**
   1. **Successful parse → read at 2022.** A run that parses a verification file and reaches the runner uses that snapshot's `VolumeNames`.
   2. **Rejected after parsing.** Drive a first run that parses to snapshot A; then a second run that parses to snapshot B and is rejected afterwards (declining the output-cleanup confirmation is the cheapest rejection). Assert a subsequent read sees **B**.
 
   Read the snapshot through an existing seam; if none exists, add one `internal …ForTest` in the established style rather than exposing the field.
 
-- [ ] **Step 2: Run** → **PASS**.
-- [ ] **Step 3: Prove teeth** — move `_verificationSnapshot = snapshot;` after the rejection branches; test 2 must fail.
-- [ ] **Step 4: Codex review, then commit.**
+- [x] **Step 2: Run** → **PASS**.
+- [x] **Step 3: Prove teeth** — move `_verificationSnapshot = snapshot;` after the rejection branches; test 2 must fail.
+- [x] **Step 4: Codex review, then commit.**
 
 ---
 
@@ -177,7 +177,7 @@ Guards: `ReconstructorOutputCleanupTests.cs` (4). **If none of them covers the f
 - Create: `ReScene.App.Core/ViewModels/Reconstruction/ReconstructorStartValidator.cs`
 - Modify: `ReScene.App.Core/ViewModels/ReconstructorViewModel.cs`
 
-- [ ] **Step 1: Enumerate the boundary.** List every property AND field the gauntlet reads and mark each **live** or **run-scoped snapshot** per *Method*. **`_import` is live**: `SetImportStateForTest` (1825) replaces the holder, and the gauntlet reads it across an awaited confirmation. The gauntlet also reads properties *after awaited confirmations* — `VerificationPath` after the subdirectory warning, `OutputPath` again during cleanup — so those are **live** and become `Func<>` accessors invoked at the original sites. Modal dialogs do not make this unobservable: it is observable programmatically, and the tests drive the dialog through a fake.
+- [x] **Step 1: Enumerate the boundary.** List every property AND field the gauntlet reads and mark each **live** or **run-scoped snapshot** per *Method*. **`_import` is live**: `SetImportStateForTest` (1825) replaces the holder, and the gauntlet reads it across an awaited confirmation. The gauntlet also reads properties *after awaited confirmations* — `VerificationPath` after the subdirectory warning, `OutputPath` again during cleanup — so those are **live** and become `Func<>` accessors invoked at the original sites. Modal dialogs do not make this unobservable: it is observable programmatically, and the tests drive the dialog through a fake.
 
 **Interfaces:**
 - Produces: `internal static class ReconstructorStartValidator` with nested `record Inputs` (accessors per step 1), nested `readonly record struct Result`, and `static Task<Result> ValidateAsync(Inputs inputs, Action<VerificationSnapshot> onParsed)`.
@@ -192,12 +192,12 @@ Guards: `ReconstructorOutputCleanupTests.cs` (4). **If none of them covers the f
 
 The two one-shot `Suppress…Confirm` flags are consumed into locals **before any early return**.
 
-- [ ] **Step 2: Create the validator**, transcribing the gauntlet.
-- [ ] **Step 3: Wire the start command** to call `ValidateAsync` and act on `Result`.
-- [ ] **Step 4: Transcription diff** → identical.
-- [ ] **Step 5: Build and both suites** → 0 warnings; counts unchanged from Task 3.
-- [ ] **Step 6: Re-run Task 3's teeth check** to confirm the pinned behaviour survived the move.
-- [ ] **Step 7: Codex review, then commit.**
+- [x] **Step 2: Create the validator**, transcribing the gauntlet.
+- [x] **Step 3: Wire the start command** to call `ValidateAsync` and act on `Result`.
+- [x] **Step 4: Transcription diff** → identical.
+- [x] **Step 5: Build and both suites** → 0 warnings; counts unchanged from Task 3.
+- [x] **Step 6: Re-run Task 3's teeth check** to confirm the pinned behaviour survived the move.
+- [x] **Step 7: Codex review, then commit.**
 
 ---
 
@@ -211,13 +211,13 @@ The two one-shot `Suppress…Confirm` flags are consumed into locals **before an
 1. **`ElapsedText` is written (1783) before `IsRunning` clears (1784), and `IsRunning` clears before the guarded `IsCopying`/`IsVerifying` clears.** `ModalProgressWindowController` is constructed per busy flag and only ever sees its own flag, never `IsRunning`.
 2. **A late queued progress `Post` is rejected by the staleness gate** (`if (!IsRunning) return;` at 2512 and 2555). Clearing `IsRunning` first is what makes those gates reject a late event that would otherwise re-open a closed dialog — so they must read the **live** flag, never a captured snapshot.
 
-- [ ] **Step 1: Write both tests.** For (1), record the order of property-changed notifications. For (2), queue a progress event that lands after the run's `finally` and assert the bound copy/verify state is untouched.
+- [x] **Step 1: Write both tests.** For (1), record the order of property-changed notifications. For (2), queue a progress event that lands after the run's `finally` and assert the bound copy/verify state is untouched.
 
 Use a **queued** dispatcher fake. If the only available fake posts inline, say so in the commit message and state plainly what the test therefore does *not* prove, rather than overclaiming.
 
-- [ ] **Step 2: Run** → **PASS**.
-- [ ] **Step 3: Prove teeth** — for (1) swap the clear order; for (2) change a gate to read a snapshot captured before the clear. Each must fail its own test.
-- [ ] **Step 4: Codex review, then commit.**
+- [x] **Step 2: Run** → **PASS**.
+- [x] **Step 3: Prove teeth** — for (1) swap the clear order; for (2) change a gate to read a snapshot captured before the clear. Each must fail its own test.
+- [x] **Step 4: Codex review, then commit.**
 
 ---
 
@@ -231,13 +231,13 @@ Use a **queued** dispatcher fake. If the only available fake posts inline, say s
 
 **The `Invoke`-vs-`Post` mix is load-bearing and must be unchanged**: `OnProgress` uses `Invoke`; the copy/verify handlers and the log flush use `Post`; `OnElapsedTimerTick` marshals not at all.
 
-- [ ] **Step 1: Move the four handlers verbatim** — no signature or body changes.
-- [ ] **Step 2: Transcription diff** → identical, comments included.
-- [ ] **Step 3: Build and both suites** → 0 warnings; counts unchanged.
+- [x] **Step 1: Move the four handlers verbatim** — no signature or body changes.
+- [x] **Step 2: Transcription diff** → identical, comments included.
+- [x] **Step 3: Build and both suites** → 0 warnings; counts unchanged.
 
 Guard: **Task 5's queued-progress tests.** Note that after Task 1, `ManyLogEvents_CoalesceIntoAtMostOneDispatch` guards the *log buffer*, not these handlers — do not cite it here.
 
-- [ ] **Step 4: Codex review, then commit.**
+- [x] **Step 4: Codex review, then commit.**
 
 ---
 
@@ -254,7 +254,7 @@ There are **two independent suppression regions**, and a test covering one prove
 
 **Do not assert that the flag is cleared when the body throws.** Both regions use plain assignments with no `try`/`finally`, so an exception between `true` and `false` leaves suppression enabled. That is current behaviour; a test asserting otherwise would fail before any extraction. If exception safety is wanted, it is a separate approved commit.
 
-- [ ] **Step 1: Write one test per region** — a programmatic write must not trigger the group-sync path that a manual leaf toggle does.
+- [x] **Step 1: Write one test per region** — a programmatic write must not trigger the group-sync path that a manual leaf toggle does.
 
 **The `RebuildVersionGroups` region needs a reentrancy mechanism or its test cannot fail.** An
 ordinary rebuild does not raise `SelectionChanged` at all: the old groups are detached, and the new
@@ -267,9 +267,9 @@ until the rebuild finishes. This is expected to be reachable, because
 turns out not to be: stop Task 7 and return for review — Task 8 stays blocked.** Do not fall back to
 recording the region as unguarded; that would contradict this plan's mandatory teeth check and would
 let the extraction proceed over a suppression flag nothing can verify.
-- [ ] **Step 2: Run** → **PASS**.
-- [ ] **Step 3: Prove teeth** — remove **each** `_suppressGroupSync = true;` independently; each removal must fail its own region's test.
-- [ ] **Step 4: Codex review, then commit.**
+- [x] **Step 2: Run** → **PASS**.
+- [x] **Step 3: Prove teeth** — remove **each** `_suppressGroupSync = true;` independently; each removal must fail its own region's test.
+- [x] **Step 4: Codex review, then commit.**
 
 ---
 
@@ -281,7 +281,7 @@ let the extraction proceed over a suppression flag nothing can verify.
 - Create: `ReScene.App.Core/ViewModels/Reconstruction/VersionTreeCoordinator.cs`
 - Modify: `ReScene.App.Core/ViewModels/ReconstructorViewModel.cs`
 
-- [ ] **Step 1: Enumerate the boundary, inside AND outside the moving region.** The owned state is wider than the six `VersionN` bools: `VersionGroups` (by reference), `HasScannedVersions`, `ShowNoVersionsHint`, `WinRARPath`, `IUiDispatcher`, `LastVersionScan`, and the fields `_lastScan`, `_pendingVersionSelection`, `_scanToken`, `_suppressGroupSync`.
+- [x] **Step 1: Enumerate the boundary, inside AND outside the moving region.** The owned state is wider than the six `VersionN` bools: `VersionGroups` (by reference), `HasScannedVersions`, `ShowNoVersionsHint`, `WinRARPath`, `IUiDispatcher`, `LastVersionScan`, and the fields `_lastScan`, `_pendingVersionSelection`, `_scanToken`, `_suppressGroupSync`.
 
 **Enumerating the region is not enough — search every reference to each moved field across the whole
 file.** Doing that finds three consumers *outside* 583-795 that each need a named coordinator API,
@@ -327,14 +327,14 @@ central risk.
 invalid-path branch (644), with its own reason in the comment above it. Two increments on the
 invalid path is current behaviour; do not "simplify" them into one.
 
-- [ ] **Step 2: Create the coordinator**, transcribing the scan/reconcile members.
-- [ ] **Step 3: Wire the view-model**, keeping every forwarder's exact shape.
-- [ ] **Step 4: Transcription diff** → identical.
-- [ ] **Step 5: Build and both suites** → 0 warnings; counts unchanged from Task 7.
+- [x] **Step 2: Create the coordinator**, transcribing the scan/reconcile members.
+- [x] **Step 3: Wire the view-model**, keeping every forwarder's exact shape.
+- [x] **Step 4: Transcription diff** → identical.
+- [x] **Step 5: Build and both suites** → 0 warnings; counts unchanged from Task 7.
 
 Guards: `ReconstructorViewModelVersionsTests.cs` (11 + Task 7's), `VersionSelectionReconcilerTests.cs`, `ReconstructorConfigMapperTests.cs` (11).
 
-- [ ] **Step 6: Codex review, then commit.**
+- [x] **Step 6: Codex review, then commit.**
 
 ---
 
@@ -346,7 +346,7 @@ The runner is ~380 lines and too large for one review gate, so it is split. This
 - Create: `ReScene.App.Core/ViewModels/Reconstruction/ReconstructionRunner.cs`
 - Modify: `ReScene.App.Core/ViewModels/ReconstructorViewModel.cs`
 
-- [ ] **Step 1: Enumerate the boundary mechanically and write it down.** A measured enumeration of the *loop* region (1829-2245) found it touches these private fields: `_bruteForceService`, `_cleanupWorkFilesThisRun`, `_fileMover`, `_import`, `_lastScan`, `_progress`, `_setStageLabel`, `_settingsService`, `_verificationSnapshot`; and reads these view-model properties live: `OutputPath`, `CompleteAllVolumes`, `LastVersionScan`, plus the option toggles consumed by `BuildSharedSettingsAsync` (`WinRARPath`, `ReleasePath`, `HasScannedVersions`, `SelectedLeafFolders`, `FileA`, `FileI`, `DeleteRARFiles`, `DeleteDuplicateCRCFiles`, `StopOnFirstMatch`, `RenameToReleaseNames`, `EnableHostOSPatching`, `UseOldVolumeNaming`). Re-derive this list against the code at implementation time rather than trusting it.
+- [x] **Step 1: Enumerate the boundary mechanically and write it down.** A measured enumeration of the *loop* region (1829-2245) found it touches these private fields: `_bruteForceService`, `_cleanupWorkFilesThisRun`, `_fileMover`, `_import`, `_lastScan`, `_progress`, `_setStageLabel`, `_settingsService`, `_verificationSnapshot`; and reads these view-model properties live: `OutputPath`, `CompleteAllVolumes`, `LastVersionScan`, plus the option toggles consumed by `BuildSharedSettingsAsync` (`WinRARPath`, `ReleasePath`, `HasScannedVersions`, `SelectedLeafFolders`, `FileA`, `FileI`, `DeleteRARFiles`, `DeleteDuplicateCRCFiles`, `StopOnFirstMatch`, `RenameToReleaseNames`, `EnableHostOSPatching`, `UseOldVolumeNaming`). Re-derive this list against the code at implementation time rather than trusting it.
 
 Classify each per *Method* and record the classification in the commit. Known constraints:
 
@@ -384,14 +384,14 @@ rather than becoming sink methods.
 It reads a dozen option toggles plus `_lastScan` and `_verificationSnapshot`; moving it would explode
 all of that into the runner's contract for no benefit.
 
-- [ ] **Step 2: Move the leaf helpers only** — `LoadEmbeddedSfvBytes`, `EmbeddedSfvMatchesSet` (2101), `RelocateVerifiedOutput`, `CleanupWorkRoot`. Keep any existing test-facing static forwarder on the view-model.
+- [x] **Step 2: Move the leaf helpers only** — `LoadEmbeddedSfvBytes`, `EmbeddedSfvMatchesSet` (2101), `RelocateVerifiedOutput`, `CleanupWorkRoot`. Keep any existing test-facing static forwarder on the view-model.
 
 `SetOutcome` and `ReportSetSummary` move in **9b** instead: they are aggregate run-loop members, not
 leaves, and moving the outcome record here would force 9a to expose a private type across the seam
 temporarily for no gain.
-- [ ] **Step 3: Transcription diff** → identical.
-- [ ] **Step 4: Build and both suites** → 0 warnings; counts unchanged from Task 8.
-- [ ] **Step 5: Codex review, then commit.**
+- [x] **Step 3: Transcription diff** → identical.
+- [x] **Step 4: Build and both suites** → 0 warnings; counts unchanged from Task 8.
+- [x] **Step 5: Codex review, then commit.**
 
 ---
 
@@ -414,16 +414,16 @@ Moves `RunArchiveSetsAsync`, `RunSingleSetAsync`, the `SetOutcome` record, and `
 
 **`RunArchiveSetsForTestAsync` (1827) must survive** as a view-model forwarder — many tests call it.
 
-- [ ] **Step 1: Move the two methods**; bound-state writes become sink calls per 9a's contract.
-- [ ] **Step 2: Wire `ExecuteReconstructionAsync`** to call the runner inside its existing, unchanged `try`/`finally`.
-- [ ] **Step 3: Transcription diff** → identical modulo the classified renames.
-- [ ] **Step 4: Build and both suites** → 0 warnings; counts unchanged.
-- [ ] **Step 5: Probe every sink method AND every live accessor**, one at a time. For a sink method, make it inert. For a live accessor, **replace it with a snapshot captured at run start** — that is the mutation that matches this plan's central risk, and an accessor whose snapshot mutation survives the suite is an unguarded live read.
+- [x] **Step 1: Move the two methods**; bound-state writes become sink calls per 9a's contract.
+- [x] **Step 2: Wire `ExecuteReconstructionAsync`** to call the runner inside its existing, unchanged `try`/`finally`.
+- [x] **Step 3: Transcription diff** → identical modulo the classified renames.
+- [x] **Step 4: Build and both suites** → 0 warnings; counts unchanged.
+- [x] **Step 5: Probe every sink method AND every live accessor**, one at a time. For a sink method, make it inert. For a live accessor, **replace it with a snapshot captured at run start** — that is the mutation that matches this plan's central risk, and an accessor whose snapshot mutation survives the suite is an unguarded live read.
 
 **Every non-dead sink write and every surviving live accessor must end this task either covered by a
 test or removed from the interface.** "Recorded as unguarded" is not sufficient here: this is the
 task most able to break a run silently.
-- [ ] **Step 6: Codex review, then commit.**
+- [x] **Step 6: Codex review, then commit.**
 
 ---
 
@@ -434,13 +434,13 @@ task most able to break a run silently.
 **Files:**
 - Modify: `ReScene.App.Core.Tests/ReconstructorViewModelVersionsTests.cs`, and a logging test file for the ordering test.
 
-- [ ] **Step 1: Write the decision tests.** Use `[Theory]` over the **material arms**, not one representative case:
+- [x] **Step 1: Write the decision tests.** Use `[Theory]` over the **material arms**, not one representative case:
   - `SetRARVersionsFromSRR` (method at 2793): the no-value early return, plus each distinct `unpVer` branch and what it selects — and that non-matching leaves are left alone.
   - `ApplyVolumeSize` (method at 2982, called at 1256): the nonpositive early return, plus all seven unit-selection arms. It selects by exact divisibility, not by rounding — do not write the test as if it rounds.
-- [ ] **Step 2: Write the import log-order test.** `ApplySwitchDiff`'s doc comment (2876-2881) states that it emits "the same log lines in the same order as the original inline mapping" — that is **documented, not asserted**, and a repository search finds no view-model-level assertion for these lines. Assert the full ordered sequence of import log lines for a representative SRR.
-- [ ] **Step 3: Run** → **PASS**.
-- [ ] **Step 4: Prove teeth** — perturb the version mapping by one; perturb the volume-size conversion by one unit; **swap two import log lines**. Each must fail its own test.
-- [ ] **Step 5: Codex review, then commit.**
+- [x] **Step 2: Write the import log-order test.** `ApplySwitchDiff`'s doc comment (2876-2881) states that it emits "the same log lines in the same order as the original inline mapping" — that is **documented, not asserted**, and a repository search finds no view-model-level assertion for these lines. Assert the full ordered sequence of import log lines for a representative SRR.
+- [x] **Step 3: Run** → **PASS**.
+- [x] **Step 4: Prove teeth** — perturb the version mapping by one; perturb the volume-size conversion by one unit; **swap two import log lines**. Each must fail its own test.
+- [x] **Step 5: Codex review, then commit.**
 
 ---
 
@@ -458,11 +458,11 @@ Extracts the decisions from `SetRARVersionsFromSRR`, `SetTimestampFlags`, `Apply
 
 **Computing one expanded diff and applying it once at the end would reorder property notifications and log lines even while producing identical final values.** Therefore: **each decision is applied at its original call site.** If an ordered operation list is used instead, the plan for it must be written out explicitly and reviewed before implementation — it is not an implementation detail.
 
-- [ ] **Step 1: Extract the decisions**, leaving each application at its original site.
-- [ ] **Step 2: Transcription diff** on the decision logic → identical.
-- [ ] **Step 3: Build and both suites** → 0 warnings; counts unchanged from Task 10.
-- [ ] **Step 4: Confirm Task 10's log-order test still passes** and re-run its teeth check.
-- [ ] **Step 5: Codex review, then commit.**
+- [x] **Step 1: Extract the decisions**, leaving each application at its original site.
+- [x] **Step 2: Transcription diff** on the decision logic → identical.
+- [x] **Step 3: Build and both suites** → 0 warnings; counts unchanged from Task 10.
+- [x] **Step 4: Confirm Task 10's log-order test still passes** and re-run its teeth check.
+- [x] **Step 5: Codex review, then commit.**
 
 ---
 
@@ -474,16 +474,16 @@ Extracts the decisions from `SetRARVersionsFromSRR`, `SetTimestampFlags`, `Apply
 - Create: `ReScene.App.Core/ViewModels/ReconstructorViewModel.Bindings.cs`
 - Modify: `ReScene.App.Core/ViewModels/ReconstructorViewModel.cs`
 
-Moves the 122 `[ObservableProperty]` declarations, the toggle regions (797-963) with their `On<X>Changed` hooks, and the nested `VersionEntry` bound row.
+Moves the `[ObservableProperty]` declarations, the toggle regions (797-963) with their `On<X>Changed` hooks, and the nested `VersionEntry` bound row.
 
-- [ ] **Step 1: Feasibility probe — move `WinRARPath` only.** It is the right probe because that one move exercises every mechanism at once: the `[ObservableProperty]` in the new partial, `OnWinRARPathChanged` implemented in the old file, a `[NotifyCanExecuteChangedFor]` whose command is generated from a method in the old file, and `NotifyPropertyChangedFor` across the partial. Build; run the path/command tests. **If it fails, stop and report** rather than working around it.
+- [x] **Step 1: Feasibility probe — move `WinRARPath` only.** It is the right probe because that one move exercises every mechanism at once: the `[ObservableProperty]` in the new partial, `OnWinRARPathChanged` implemented in the old file, a `[NotifyCanExecuteChangedFor]` whose command is generated from a method in the old file, and `NotifyPropertyChangedFor` across the partial. Build; run the path/command tests. **If it fails, stop and report** rather than working around it.
 
 There is no meaningful reverse case: this task does not move the command methods.
 
-- [ ] **Step 2: Move the rest** if and only if step 1 passed.
-- [ ] **Step 3: Build and both suites** → 0 warnings; counts unchanged.
-- [ ] **Step 4: Measure** — `wc -l` on both files. **Report the real number; do not force further extraction to hit a target.** The Creator plan projected ~800 and landed at 1,035; stopping at a coherent seam was the right call there and is here.
-- [ ] **Step 5: Codex review, then commit.**
+- [x] **Step 2: Move the rest** if and only if step 1 passed.
+- [x] **Step 3: Build and both suites** → 0 warnings; counts unchanged.
+- [x] **Step 4: Measure** — `wc -l` on both files. **Report the real number; do not force further extraction to hit a target.** The Creator plan projected ~800 and landed at 1,035; stopping at a coherent seam was the right call there and is here.
+- [x] **Step 5: Codex review, then commit.**
 
 ---
 
@@ -506,3 +506,92 @@ The first version of this plan was rejected in review for six defects, all of wh
 6. **Several line numbers were wrong**: `ElapsedText`/`IsRunning` are 1783/1784 not 1781; the second staleness gate is 2555 not 2556; `_setStageLabel` is read at 2685 not 2683; `SetRARVersionsFromSRR` begins at 2793; `ApplyVolumeSize` is called at 1256 but defined at 2982; and 2876-2881 is documentation, not an assertion.
 
 The runner was also split in two, and moved after the version coordinator.
+
+
+---
+
+## Outcome
+
+All twelve tasks implemented and reviewed by Codex; where a commit was made before its review,
+it was amended afterwards.
+`ReconstructorViewModel` went from 3,091 lines in one file to 1,840 plus two partials (321 + 152),
+with six new collaborators in `ViewModels/Reconstruction/`. Release-configuration verification across
+the solution: **4,513 tests pass, 0 warnings.** App.Core's suite grew from 780 to 835.
+
+The plan projected ~1,100 for the primary file. It landed at 1,840, and that is the honest stopping
+point: 64 observable-property declarations remain, scattered among the behaviour they belong beside
+rather than sitting in coherent blocks, and the plan's own instruction was to report the real number
+rather than force further filing.
+
+### What the boundary enumeration was worth
+
+It was mandated after the first draft invented an `IRunSink` that did not match the code. It then
+earned its place repeatedly:
+
+- **Every extraction had external consumers** that would otherwise have surfaced mid-move: the
+  version tree's `_scanToken`, `_pendingVersionSelection` and `_lastScan` each had one, and each
+  became a named API rather than a surprise.
+- **Enumerating by line range instead of by member missed `ReportSetSummary`**, which sits outside
+  the run loop's range and is where the runner's bound writes actually live. Enumerating by member
+  fixed it.
+
+### The seams the suite did not guard
+
+Probing each seam by making it inert found **eleven categories** of gap that 780 passing tests did
+not cover - some rows below aggregate several mutations, such as two handlers or four sink writes.
+Every one is now closed:
+
+| Seam | Failures before | After |
+|---|---|---|
+| Log buffer: generation clear/increment order | 0 | 1 |
+| Log buffer: flush-flag release before drain | 0 | 1 |
+| Output cleanup: the error dialog on failure | 0 | 1 |
+| `OnProgress` marshalling with `Invoke` | 0 | 1 |
+| Copy/CRC marshalling with `Post` | 0 | 2 |
+| Four of the seven run-completion sink writes | 0 | 2 |
+| `OutputPath` read live during relocation | 0 | 1 |
+| `CompleteAllVolumes` read live during relocation | 0 | 1 |
+| Both `_suppressGroupSync` regions | 0 | 1 and 2 |
+| The invalid-path branch's own `_scanToken++` | 0 | 1 |
+| The SRR import's decision ORDER | 0 | 1 |
+
+### Things that were wrong and had to be corrected
+
+Recorded because they are the plan's real risks, not incidental:
+
+1. **A "behaviour-preserving" rewrite that was not.** Replacing the six interleaved
+   read-then-write pairs in `SyncMajorsFromTree` with a compute-all-then-write-all set produced
+   identical values in identical order while losing the fact that a subscriber can mutate a later
+   major from an earlier one's notification. The projection went back to the view-model, byte-identical.
+2. **A conclusion drawn from an incomplete measurement.** `SetAllLeaves`'s suppression looked like a
+   pure optimisation because the `VersionN` write sequence is identical with and without it. What
+   differs is the interleaving with the tree's own `SelectionChanged`.
+3. **Three tests that passed for the wrong reason** and had to be rewritten: the stale-scan test drove
+   the path setter, where an earlier bump already invalidated the token; the mid-run output-path test
+   asserted a file's existence rather than the mover's destination; and a decision-order mutation
+   swapped only the first line of two multi-line calls, changing arguments rather than order.
+4. **A false rationale in a comment.** `Invoke` was described as running the handler on the engine's
+   callback thread. Both `Invoke` and `Post` marshal onto the UI thread; what differs is whether the
+   engine callback waits.
+5. **A verification script that reported three differences that did not exist**, because `^\s*`
+   matched newlines and anchored the match on a preceding blank line.
+6. **A build-warning check that read a cached second build**, reporting 0 while the real build had 26.
+   Counting from a single `tee`'d invocation fixed it.
+7. **An extraction that erased a subscriber's edit.** After the blanket clear, each branch of the
+   version selection writes only the flags it owns - the 7.x branch never touches `Version3`, and no
+   branch writes `Version7 = false`. Returning six plain bools and assigning them all wrote flags the
+   original left alone, which is observable because `PropertyChanged` is synchronous. The selection
+   carries nullable flags, where null means "do not write".
+8. **A task commit that did not build in isolation.** Task 12's feasibility probe deleted a property
+   declaration inside Task 11's commit while its replacement arrived in Task 12's. History was
+   rewritten so each task commit stands alone, as the plan's per-task build gate requires.
+
+### Deviations from the plan, all deliberate
+
+- The start validator is a sealed instance returning `bool`, not a static returning a result struct.
+- `SetStageLabel` was promoted from a nested private record to its own file so both sides of the
+  runner seam can name it.
+- Task 11's scope shrank: `SRRSwitchMapper` already owned the switch decision and `SetTimestampFlags`
+  was already pure, so only two decisions actually moved.
+- `SetRARVersionsFromSRR`'s inputs are synthesised with `UnsafeAccessor` rather than by widening
+  ReScene.Lib's `InternalsVisibleTo` across the submodule boundary.
