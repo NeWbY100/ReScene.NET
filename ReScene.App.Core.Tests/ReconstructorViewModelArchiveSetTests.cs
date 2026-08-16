@@ -191,4 +191,48 @@ public class ReconstructorViewModelArchiveSetTests
         Assert.Contains(sfvDir, temp.Cleaned);
         Assert.False(Directory.Exists(sfvDir));
     }
+    [Fact]
+    public async Task ImportSRR_AppliesItsDecisionsInAFixedOrder()
+    {
+        // ApplySwitchDiff's own doc says it emits "the same log lines in the same order as the
+        // original inline mapping" - but that was DOCUMENTED, never asserted. The import applier
+        // extracted next computes these decisions somewhere else, and its real risk is applying them
+        // at the wrong call site or in the wrong order rather than mis-mapping a value, which no
+        // transcription diff can see. So this pins the sequence, not the membership.
+        ReconstructorViewModel vm = CreateVm("store_little.srr");
+
+        // Seeded so the single-volume fixture observably emits its volume decision; left at the
+        // default it simply says nothing and that family would go unguarded.
+        vm.SwitchV = true;
+
+        await ImportAsync(vm);
+
+        // Strip the timestamp prefix, and drop the two Host OS lines: what they say depends on the
+        // platform the suite runs on, so including them would make this fail on Linux and macOS.
+        string[] decisions =
+        [
+            .. vm.LogEntries
+                .Select(line => line[9..])
+                .Where(line => !line.StartsWith("Host OS", StringComparison.Ordinal))
+                .Where(line => line.Contains(':', StringComparison.Ordinal)
+                            && !line.StartsWith("===", StringComparison.Ordinal)),
+        ];
+
+        Assert.Equal(
+            [
+                "Archive entries: 1 files",
+                "Per-file timestamps: mtime=1, ctime=0, atime=0",
+                "Compression: -m0 (Store)",
+                "Dictionary: 128 KB",
+                "Solid archiving: -s-",
+                "Archive format: RAR4 (-ma4)",
+                "Mtime precision: -tsm1",
+                "Ctime precision: -tsc0",
+                "Atime precision: -tsa0",
+                "Multi-volume: No",
+                "RAR versions: 2.x, 3.x, 5.x, 6.x",
+            ],
+            decisions);
+    }
+
 }
