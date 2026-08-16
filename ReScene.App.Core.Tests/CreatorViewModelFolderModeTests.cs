@@ -838,4 +838,79 @@ public sealed class CreatorViewModelFolderModeTests : TempDirTestBase
         Assert.False(vm.CreateSRRCommand.CanExecute(null));   // fail closed — no empty/header-only SRR
         Assert.Equal(0, srr.InputsCalls);
     }
+    // ── Scan-outcome side effects ────────────────────────────
+
+    [Fact]
+    public async Task LeavingFolderMode_ClearsSelectionsAlongWithTheCollections()
+    {
+        // ClearFolderScanResults clears SelectedStoredFile, SelectedExtraSample and
+        // SelectedExtraSubtitle as well as the collections themselves. Moving the lifecycle behind
+        // setter delegates makes it easy to carry the collections across and forget the selections,
+        // leaving a selection pointing at an item no longer in its list.
+        //
+        // NOTE the path this exercises: a SUCCESSFUL scan clears the collections individually and
+        // deliberately does NOT null the selections (a bound control does that through its own
+        // two-way binding). ClearFolderScanResults — the method that also nulls them — runs when
+        // folder mode is LEFT, and on the root-error and scan-fault paths.
+        string root = CreateFolder();
+        CreatorViewModel vm = CreateVm(new StubReleaseScanner(new ReleaseScanResult([], [], [], [], [], [])), out _);
+
+        vm.InputPath = root;
+        await vm.LastFolderScan!;
+
+        vm.StoredFiles.Add(new CreatorViewModel.StoredFileItem
+        {
+            FullPath = Path.Combine(TempDir, "stale.nfo"),
+            StoredName = "stale.nfo",
+        });
+        vm.SelectedStoredFile = vm.StoredFiles[0];
+        vm.ExtraSampleFiles.Add(Path.Combine(TempDir, "stale-clip.mkv"));
+        vm.SelectedExtraSample = vm.ExtraSampleFiles[0];
+        vm.ExtraSubtitleSfvFiles.Add(Path.Combine(TempDir, "stale-subs.sfv"));
+        vm.SelectedExtraSubtitle = vm.ExtraSubtitleSfvFiles[0];
+
+        // Each selection must be genuinely non-null first, or its assertion below is vacuous.
+        Assert.NotNull(vm.SelectedStoredFile);
+        Assert.NotNull(vm.SelectedExtraSample);
+        Assert.NotNull(vm.SelectedExtraSubtitle);
+
+        vm.InputPath = string.Empty; // leaves folder mode
+
+        Assert.Null(vm.SelectedExtraSample);
+        Assert.Null(vm.SelectedExtraSubtitle);
+        Assert.Null(vm.SelectedStoredFile);
+        Assert.Empty(vm.StoredFiles);
+        Assert.Empty(vm.ExtraSampleFiles);
+        Assert.Empty(vm.ExtraSubtitleSfvFiles);
+    }
+
+    [Fact]
+    public async Task Scan_UpdatesActionHint_OnSuccessfulCompletionToo()
+    {
+        // Every scan outcome calls UpdateActionHint — success included, not only the failure paths.
+        // A refactor that wires the hint update onto the error branches alone would leave the hint
+        // stale after a successful scan.
+        string root = CreateFolder();
+        CreatorViewModel vm = CreateVm(new StubReleaseScanner(new ReleaseScanResult([], [], [], [], [], [])), out _);
+
+        // A USER-owned output path, set first, so the scan's auto-fill does not run. That matters:
+        // auto-filling would change OutputPath, and the resulting OnOutputPathChanged would refresh
+        // the hint by itself — masking whether scan completion refreshes it at all.
+        string userOutput = Path.Combine(TempDir, "chosen-" + Guid.NewGuid().ToString("N") + ".srr");
+        vm.OutputPath = userOutput;
+
+        // A sentinel proves the post-scan value is genuinely recomputed rather than merely still
+        // being whatever the earlier hook left. Setting it BEFORE the input change is safe: for a
+        // FOLDER input, OnInputPathChanged starts the scan and returns without touching the hint.
+        const string sentinel = "sentinel — must be recomputed when the scan completes";
+        vm.ActionHint = sentinel;
+
+        vm.InputPath = root;
+        await vm.LastFolderScan!;
+
+        // With input and output both set and nothing outstanding, the hint must be empty — and the
+        // only thing that can have recomputed it is scan completion, since OutputPath never moved.
+        Assert.Equal(userOutput, vm.OutputPath);
+        Assert.Equal(string.Empty, vm.ActionHint);
+    }
 }
