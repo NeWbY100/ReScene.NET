@@ -172,6 +172,70 @@ public sealed class ReconstructorImportDecisionsTests
         Assert.Equal([false, true, true, true, true, false], Majors(vm));
     }
 
+    [Fact]
+    public void SetRARVersionsFromSRR_ClearsAllSixFirst_ThenSetsTheSelectedOnes()
+    {
+        // The method's shape is "blanket clear, then set", and that is observable in the NOTIFICATION
+        // sequence, not the final flags. A flag already true is written false and then true again -
+        // two notifications - whereas computing the final value and assigning it once would emit
+        // none. Every other test here asserts the resulting flags, so all of them would survive that
+        // change; an extraction that returns a decision and applies it in one pass is exactly the
+        // shape that makes it.
+        ReconstructorViewModel vm = CreateVm();
+        vm.Version7 = true;   // already the value the >= 70 branch will end on
+
+        List<string> writes = [];
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.Version7))
+            {
+                writes.Add($"Version7={vm.Version7}");
+            }
+        };
+
+        vm.SetRARVersionsFromSRRForTest(Srr(rarVersion: 70));
+
+        Assert.Equal(["Version7=False", "Version7=True"], writes);
+        Assert.True(vm.Version7);
+    }
+
+    [Theory]
+    [InlineData(70, true)]    // the 7.x branch never writes Version3, so the edit survives
+    // 37, not 29: at 29 the legacy branch writes Version3 = TRUE, which is what the edit set, so the
+    // two are indistinguishable. At 37 it writes FALSE and genuinely overwrites the edit.
+    [InlineData(37, false)]
+    public void SetRARVersionsFromSRR_OnlyWritesTheFlagsItsBranchOwns(int unpVer, bool editSurvives)
+    {
+        // After the blanket clear, each branch writes ONLY its own flags: 7.x writes Version7 alone,
+        // 5.x/6.x writes Version5 and Version6, and only the legacy branch writes Version2-4. No
+        // branch writes Version7 = false.
+        //
+        // That is observable because PropertyChanged is synchronous: a subscriber that edits a flag
+        // during the clear keeps that edit if the chosen branch does not write it again. Assigning
+        // all six from a computed selection would erase it - the same compute-all/apply-all trap as
+        // the major sync, and every other test here would survive it.
+        ReconstructorViewModel vm = CreateVm();
+        vm.Version2 = true;
+        vm.Version3 = false;
+
+        bool edited = false;
+        vm.PropertyChanged += (_, e) =>
+        {
+            // Version2 is the LAST assignment of the right-to-left clear chain, so this runs once
+            // the clear is complete and before the branch writes anything.
+            if (e.PropertyName == nameof(vm.Version2) && !vm.Version2 && !edited)
+            {
+                edited = true;
+                vm.Version3 = true;
+            }
+        };
+
+        vm.SetRARVersionsFromSRRForTest(Srr(rarVersion: unpVer));
+
+        Assert.True(edited, "the re-entrant edit never ran, so this test proves nothing");
+        Assert.Equal(editSurvives, vm.Version3);
+    }
+
     // ── Volume size units ────────────────────────────────────
 
     [Theory]

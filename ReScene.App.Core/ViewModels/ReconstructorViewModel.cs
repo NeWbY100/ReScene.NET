@@ -1894,75 +1894,49 @@ public partial class ReconstructorViewModel : ViewModelBase, IRunSink
 
     private void SetRARVersionsFromSRR(SRRFile srr)
     {
-        if (!srr.RARVersion.HasValue)
+        if (SRRImportApplier.SelectRARVersions(srr) is not { } selection)
         {
             return;
         }
 
-        int unpVer = srr.RARVersion.Value;
+        // The blanket clear stays, and stays SEPARATE from the writes below: a flag already holding
+        // its final value is written false and then true again, which subscribers see as two
+        // notifications.
         Version2 = Version3 = Version4 = Version5 = Version6 = Version7 = false;
 
-        if (unpVer >= 70)
+        // Only the flags this branch OWNS are written; null means "leave it as the clear left it",
+        // which is not the same as writing false. See RARVersionSelection's remarks.
+        if (selection.Version2 is { } v2)
         {
-            Version7 = true;
-            Log(LogTarget.System, "RAR versions: 7.x");
+            Version2 = v2;
         }
-        else if (unpVer >= 50)
+
+        if (selection.Version3 is { } v3)
         {
-            Version5 = true;
-            Version6 = true;
-            Log(LogTarget.System, "RAR versions: 5.x, 6.x");
+            Version3 = v3;
         }
-        else if (srr.DictionarySize.HasValue && srr.DictionarySize.Value > 4096)
+
+        if (selection.Version4 is { } v4)
         {
-            Version5 = true;
-            Version6 = true;
-            Log(LogTarget.System, $"Large dictionary ({srr.DictionarySize.Value} KB) — RAR 5.x, 6.x");
+            Version4 = v4;
         }
-        else
+
+        if (selection.Version5 is { } v5)
         {
-            bool isRAR2 = unpVer <= 29;
-            bool isRAR3 = unpVer is >= 20 and <= 36;
-            bool isRAR4 = unpVer is >= 26 and <= 36;
-
-            if (srr.HasFirstVolumeFlag == true || srr.HasUnicodeNames == true)
-            {
-                isRAR2 = false;
-            }
-
-            if (unpVer == 36)
-            {
-                isRAR2 = false;
-                isRAR3 = true;
-                isRAR4 = true;
-            }
-
-            Version2 = isRAR2;
-            Version3 = isRAR3;
-            Version4 = isRAR4;
-            Version5 = true; // Can create RAR4 format with -ma4
-            Version6 = true;
-
-            List<string> selected = [];
-            if (isRAR2)
-            {
-                selected.Add("2.x");
-            }
-
-            if (isRAR3)
-            {
-                selected.Add("3.x");
-            }
-
-            if (isRAR4)
-            {
-                selected.Add("4.x");
-            }
-
-            selected.Add("5.x");
-            selected.Add("6.x");
-            Log(LogTarget.System, $"RAR versions: {string.Join(", ", selected)}");
+            Version5 = v5;
         }
+
+        if (selection.Version6 is { } v6)
+        {
+            Version6 = v6;
+        }
+
+        if (selection.Version7 is { } v7)
+        {
+            Version7 = v7;
+        }
+
+        Log(LogTarget.System, selection.LogLine);
     }
 
     private static void SetTimestampFlags(TimestampPrecision precision,
@@ -2083,49 +2057,14 @@ public partial class ReconstructorViewModel : ViewModelBase, IRunSink
 
     private void ApplyVolumeSize(long sizeBytes)
     {
-        if (sizeBytes <= 0)
+        if (SRRImportApplier.SelectVolumeSize(sizeBytes) is not { } selection)
         {
             return;
         }
 
         SwitchV = true;
-
-        if (sizeBytes % 1_000_000_000 == 0)
-        {
-            VolumeSize = (sizeBytes / 1_000_000_000).ToString();
-            VolumeSizeUnitIndex = 3;
-        }
-        else if (sizeBytes % 1_000_000 == 0)
-        {
-            VolumeSize = (sizeBytes / 1_000_000).ToString();
-            VolumeSizeUnitIndex = 2;
-        }
-        else if (sizeBytes % 1_000 == 0)
-        {
-            VolumeSize = (sizeBytes / 1_000).ToString();
-            VolumeSizeUnitIndex = 1;
-        }
-        else if (sizeBytes % (1024L * 1024 * 1024) == 0)
-        {
-            VolumeSize = (sizeBytes / (1024L * 1024 * 1024)).ToString();
-            VolumeSizeUnitIndex = 6;
-        }
-        else if (sizeBytes % (1024L * 1024) == 0)
-        {
-            VolumeSize = (sizeBytes / (1024L * 1024)).ToString();
-            VolumeSizeUnitIndex = 5;
-        }
-        else if (sizeBytes % 1024 == 0)
-        {
-            VolumeSize = (sizeBytes / 1024).ToString();
-            VolumeSizeUnitIndex = 4;
-        }
-        else
-        {
-            VolumeSize = sizeBytes.ToString();
-            VolumeSizeUnitIndex = 0;
-        }
-
+        VolumeSize = selection.Size;
+        VolumeSizeUnitIndex = selection.UnitIndex;
         Log(LogTarget.System, $"Volume size: {VolumeSize} {VolumeSizeUnits[VolumeSizeUnitIndex]}");
     }
 
