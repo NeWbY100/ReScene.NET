@@ -26,13 +26,29 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
         public event EventHandler<BruteForceProgressEventArgs>? Progress;
         public event EventHandler<BruteForceStatusChangedEventArgs>? StatusChanged;
         public event EventHandler<LogEventArgs>? LogMessage;
-        public event EventHandler<FileCopyProgressEventArgs>? FileCopyProgress { add { } remove { } }
-        public event EventHandler<CRCValidationProgressEventArgs>? CRCValidationProgress { add { } remove { } }
+        /// <summary>
+        /// A REAL event, not a discarding accessor: the busy-flag tests drive the copy handler
+        /// through it. <see cref="CRCValidationProgress"/> below is real for the same reason. Neither
+        /// fires unless a test calls its raiser, so the rest of this file is unaffected.
+        /// </summary>
+        public event EventHandler<FileCopyProgressEventArgs>? FileCopyProgress;
+        public event EventHandler<CRCValidationProgressEventArgs>? CRCValidationProgress;
         public event EventHandler<TimestampPreservationFailedEventArgs>? TimestampPreservationFailed;
 
         public Func<BruteForceOptions, BruteForceRunResult>? OnRun { get; set; }
 
         public void RaiseProgress(BruteForceProgressEventArgs e) => Progress?.Invoke(this, e);
+        public void RaiseFileCopyProgress(string fileName) =>
+            FileCopyProgress?.Invoke(this, new FileCopyProgressEventArgs { FileName = fileName, FilesCopied = 1, TotalFiles = 2 });
+        public void RaiseCrcProgress(string fileName) =>
+            CRCValidationProgress?.Invoke(this, new CRCValidationProgressEventArgs
+            {
+                FileName = fileName,
+                FilesVerified = 1,
+                TotalFiles = 2,
+                BytesVerified = 1,
+                TotalBytes = 2,
+            });
         public void RaiseStatusCompleted() => StatusChanged?.Invoke(this, new BruteForceStatusChangedEventArgs(OperationStatus.Completed));
         public void RaiseLog(LogTarget target, string message) => LogMessage?.Invoke(this, new LogEventArgs(message, target));
         public void RaiseTimestampFailure(string dest, string error) =>
@@ -104,6 +120,179 @@ public sealed class ReconstructorLoggingProgressTests : TempDirTestBase
 
     private static ReconstructorViewModel CreateVm(RaisingBruteForceService brute, IUiDispatcher dispatcher, IFileDialogService? dialog = null) =>
         new(brute, dialog ?? new NoOpFileDialogService(), dispatcher, new TestUiTimerFactory(), settingsService: null);
+
+    // ── Busy-flag clear order and the staleness gate ─────────
+    //
+    // Two halves of one invariant, and neither was tested. ModalProgressWindowController is
+    // constructed per busy flag and only ever sees its own IsCopying/IsVerifying - never IsRunning.
+    // So clearing IsRunning FIRST is what makes the `if (!IsRunning) return;` gates in the queued
+    // progress handlers reject a late event that would otherwise re-raise IsCopying and re-open a
+    // window the user just watched close.
+    //
+    // That means the gates must read the LIVE flag, never a snapshot captured before the clear, and
+    // the finally's clears must stay in their order. Task 9b moves the run loop out from under this,
+    // which is why these are pinned first.
+
+    [Fact]
+    public async Task RunFinally_WritesElapsedThenClearsIsRunning_BeforeBothGuardedBusyFlags()
+    {
+        // Records the property VALUE at each notification, not just the name, so the assertions are
+        // about "the clear" rather than "the last time this name appeared". IsRunning is set true
+        // BEFORE subscribing so its setup notification never enters the sequence.
+        //
+        // Both busy flags are raised during the run and both are asserted: covering only IsCopying
+        // would let an IsVerifying = false inserted above IsRunning = false survive untouched.
+        var brute = new RaisingBruteForceService();
+        ReconstructorViewModel vm = CreateVm(brute, new InlineUiDispatcher());
+        ConfigureRunnablePaths(vm);
+        vm.SetImportStateForTest(ImportWith(MakeSet("a", "a.rar")));
+
+        brute.OnRun = o =>
+        {
+            brute.RaiseFileCopyProgress("a.rar");
+            brute.RaiseCrcProgress("a.rar");
+            return WriteBruteSuccess(o, "a.rar");
+        };
+
+        vm.IsRunning = true;
+
+        List<string> order = [];
+        vm.PropertyChanged += (_, e) =>
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(vm.ElapsedText):
+                    order.Add("ElapsedText");
+                    break;
+                case nameof(vm.IsRunning):
+                    order.Add($"IsRunning={vm.IsRunning}");
+                    break;
+                case nameof(vm.IsCopying):
+                    order.Add($"IsCopying={vm.IsCopying}");
+                    break;
+                case nameof(vm.IsVerifying):
+                    order.Add($"IsVerifying={vm.IsVerifying}");
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        await vm.ExecuteReconstructionForTestAsync(CancellationToken.None);
+
+        string seq = string.Join(", ", order);
+
+        // Both guarded clears must actually have run, or the ordering assertions are vacuous.
+        Assert.False(vm.IsCopying, seq);
+        Assert.False(vm.IsVerifying, seq);
+
+        int elapsed = order.LastIndexOf("ElapsedText");
+        int runningCleared = order.IndexOf("IsRunning=False");
+        int copyingCleared = order.IndexOf("IsCopying=False");
+        int verifyingCleared = order.IndexOf("IsVerifying=False");
+        Assert.True(elapsed >= 0 && runningCleared >= 0 && copyingCleared >= 0 && verifyingCleared >= 0,
+            $"missing notifications: [{seq}]");
+
+        // ElapsedText is written before IsRunning clears...
+        Assert.True(elapsed < runningCleared, $"ElapsedText must precede the IsRunning clear: [{seq}]");
+
+        // ...and IsRunning clears before EITHER guarded busy flag, which is what lets the staleness
+        // gates reject a late queued event instead of re-opening a closed progress window.
+        Assert.True(runningCleared < copyingCleared, $"IsRunning must clear before IsCopying: [{seq}]");
+        Assert.True(runningCleared < verifyingCleared, $"IsRunning must clear before IsVerifying: [{seq}]");
+    }
+
+    [Fact]
+    public async Task LateQueuedCopyProgress_IsRejectedByTheStalenessGate_AndCannotReopenTheWindow()
+    {
+        // The queued handler lands AFTER the run's finally cleared IsRunning. The gate must reject
+        // it: re-raising IsCopying here re-opens a progress window with no run behind it.
+        var brute = new RaisingBruteForceService();
+        var dispatcher = new CountingUiDispatcher(deferPosts: true);
+        ReconstructorViewModel vm = CreateVm(brute, dispatcher);
+        ConfigureRunnablePaths(vm);
+        vm.SetImportStateForTest(ImportWith(MakeSet("a", "a.rar")));
+
+        brute.OnRun = o =>
+        {
+            brute.RaiseFileCopyProgress("a.rar");   // deferred, not run
+            return WriteBruteSuccess(o, "a.rar");
+        };
+
+        vm.IsRunning = true;   // ExecuteReconstructionForTestAsync enters below StartAsync's IsRunning = true
+        await vm.ExecuteReconstructionForTestAsync(CancellationToken.None);
+
+        Assert.False(vm.IsRunning);
+        Assert.False(vm.IsCopying);
+
+        dispatcher.Pump();   // the copy handler finally runs, after the run is over
+
+        Assert.False(vm.IsCopying, "a late queued copy event must not re-raise IsCopying");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ProgressDuringALiveRun_DoesRaiseTheBusyFlag(bool copyNotVerify)
+    {
+        // The POSITIVE CONTROL for the two staleness-gate tests below. Without it, asserting that a
+        // late event leaves the flag false would pass even if the gate were deleted and the handler
+        // could never raise the flag at all - the assertion would be true for the wrong reason.
+        var brute = new RaisingBruteForceService();
+        ReconstructorViewModel vm = CreateVm(brute, new InlineUiDispatcher());
+        ConfigureRunnablePaths(vm);
+        vm.SetImportStateForTest(ImportWith(MakeSet("a", "a.rar")));
+
+        bool sawFlagRaised = false;
+        brute.OnRun = o =>
+        {
+            if (copyNotVerify)
+            {
+                brute.RaiseFileCopyProgress("a.rar");
+                sawFlagRaised = vm.IsCopying;
+            }
+            else
+            {
+                brute.RaiseCrcProgress("a.rar");
+                sawFlagRaised = vm.IsVerifying;
+            }
+
+            return WriteBruteSuccess(o, "a.rar");
+        };
+
+        vm.IsRunning = true;
+        await vm.ExecuteReconstructionForTestAsync(CancellationToken.None);
+
+        Assert.True(sawFlagRaised, "a progress event during a LIVE run must raise its busy flag");
+    }
+
+    [Fact]
+    public async Task LateQueuedCrcProgress_IsRejectedByTheStalenessGate_AndCannotReopenTheWindow()
+    {
+        // The verify gate is the copy gate's twin and is asserted separately: they are two distinct
+        // `if (!IsRunning) return;` sites, and a change to one does not touch the other.
+        var brute = new RaisingBruteForceService();
+        var dispatcher = new CountingUiDispatcher(deferPosts: true);
+        ReconstructorViewModel vm = CreateVm(brute, dispatcher);
+        ConfigureRunnablePaths(vm);
+        vm.SetImportStateForTest(ImportWith(MakeSet("a", "a.rar")));
+
+        brute.OnRun = o =>
+        {
+            brute.RaiseCrcProgress("a.rar");   // deferred, not run
+            return WriteBruteSuccess(o, "a.rar");
+        };
+
+        vm.IsRunning = true;
+        await vm.ExecuteReconstructionForTestAsync(CancellationToken.None);
+
+        Assert.False(vm.IsRunning);
+        Assert.False(vm.IsVerifying);
+
+        dispatcher.Pump();
+
+        Assert.False(vm.IsVerifying, "a late queued CRC event must not re-raise IsVerifying");
+    }
 
     /// <summary>The merged log flattened to one string — for contains/order asserts and diagnostics.</summary>
     private static string JoinedLog(ReconstructorViewModel vm) => string.Join(Environment.NewLine, vm.LogEntries);
