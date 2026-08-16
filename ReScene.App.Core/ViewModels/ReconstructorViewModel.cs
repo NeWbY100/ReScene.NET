@@ -590,7 +590,13 @@ public partial class ReconstructorViewModel : ViewModelBase
     /// <summary>Latest-wins guard for overlapping async scans.</summary>
     private int _scanToken;
 
-    /// <summary>Suppresses tree→major sync while the VM is programmatically rebuilding the tree.</summary>
+    /// <summary>
+    /// Suppresses the tree→major sync during a programmatic bulk change, so no sync ever observes a
+    /// half-finished tree. Raised by BOTH kinds: <see cref="RebuildVersionGroups"/>, where a sync
+    /// would otherwise run against a partially-built group list, and <see cref="SetAllLeaves"/>,
+    /// where it keeps the bulk tick/untick atomic to any subscriber of the tree's own
+    /// SelectionChanged. Each is pinned separately in ReconstructorViewModelVersionsTests.
+    /// </summary>
     private bool _suppressGroupSync;
 
     /// <summary>The currently-ticked leaf versions, ascending. Snapshotted at Start and by config Capture.</summary>

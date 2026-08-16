@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
 using ReScene.App.Core.ViewModels.Reconstruction;
@@ -367,4 +368,118 @@ public sealed class ReconstructorViewModelVersionsTests : IDisposable
         int[] expectedAfterScan = [390, 560];
         Assert.Equal(expectedAfterScan, Ticked(vm)); // proves the completed (not stale) scan landed
     }
+    // ── _suppressGroupSync ───────────────────────────────────
+    //
+    // The flag guards OnGroupSelectionChanged, which mirrors "any leaf in this major is ticked" onto
+    // the six coarse VersionN bools. Two regions raise it, and they are NOT equivalent - measured,
+    // not assumed:
+    //
+    //   RebuildVersionGroups  BEHAVIOURAL. The rebuild adds groups one at a time, so a
+    //                         SelectionChanged arriving mid-rebuild would sync against a
+    //                         PARTIALLY-BUILT tree. Removing the flag and forcing that re-entrancy
+    //                         produces a spurious Version6=False write, corrected to True a moment
+    //                         later - a bound checkbox would visibly flicker off and back on. The
+    //                         test below pins exactly that.
+    //
+    //   SetAllLeaves          ALSO BEHAVIOURAL, but only visible in the INTERLEAVING. The VersionN
+    //                         write sequence alone is byte-for-byte identical with the flag and
+    //                         without it, which is what a first measurement here wrongly concluded
+    //                         meant "performance only". What differs is when those writes happen
+    //                         RELATIVE to the tree's own SelectionChanged notifications: without the
+    //                         flag a subscriber invoked during the bulk update already sees the
+    //                         major bool updated, with it the major changes only after every leaf
+    //                         has. The theory below pins that.
+    //
+    // Neither region's notifications are bound in AXAML today - the view binds VersionGroups, not
+    // the six bools - so the consequence is stated as what an observer receives, not as UI flicker.
+
+    [Fact]
+    public void RebuildVersionGroups_SuppressesMajorSync_SoNoSyncEverSeesAPartiallyBuiltTree()
+    {
+        ReconstructorViewModel vm = CreateVm();
+        vm.Version5 = vm.Version6 = true;
+
+        List<string> majorWrites = [];
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(vm.Version5) or nameof(vm.Version6))
+            {
+                majorWrites.Add($"{e.PropertyName}={(e.PropertyName == nameof(vm.Version5) ? vm.Version5 : vm.Version6)}");
+            }
+        };
+
+        // Force the re-entrancy the flag exists for. ObservableCollection raises CollectionChanged
+        // SYNCHRONOUSLY from Add, so this runs in the middle of the rebuild, with only some groups
+        // in place; flipping a leaf there raises its group's SelectionChanged.
+        bool reentered = false;
+        vm.VersionGroups.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add && !reentered)
+            {
+                reentered = true;
+                var group = (RARVersionGroup)e.NewItems![0]!;
+                group.Leaves[0].IsChecked = !group.Leaves[0].IsChecked;
+            }
+        };
+
+        vm.ApplyScanResult(Installed, folderScanned: true);
+
+        Assert.True(reentered, "the re-entrant hook never ran, so this test proves nothing");
+        // Version5/Version6 were seeded to the values the rebuild will settle on, so the legitimate
+        // post-rebuild sync writes nothing. Any recorded write is therefore transient evidence of a
+        // sync that ran against a partially-built tree.
+
+        // No major bool was written DURING the rebuild. Without the flag the mid-rebuild sync sees a
+        // tree that has no major-6 group yet and writes Version6=False, then corrects it.
+        Assert.Empty(majorWrites);
+        Assert.True(vm.Version5);
+        Assert.True(vm.Version6);
+    }
+
+    [Theory]
+    [InlineData(false)]   // Select None: every callback must still see the pre-bulk true
+    [InlineData(true)]    // Select All:  every callback must still see the pre-bulk false
+    public void BulkLeafUpdate_DefersTheMajorSync_UntilEveryLeafHasChanged(bool selectAll)
+    {
+        // The view-model subscribes each group's SelectionChanged when it BUILDS the group, so it is
+        // always the first subscriber; a test subscriber added afterwards therefore observes the
+        // state its handler left behind.
+        //
+        // With the flag, that handler returns immediately during a bulk update, so every callback
+        // sees the major bool as it was before the bulk started. Without it, the callback for the
+        // last leaf sees the major already flipped - the bulk operation stops being atomic to any
+        // observer of the tree.
+        ReconstructorViewModel vm = CreateVm();
+        vm.Version5 = vm.Version6 = true;
+        vm.ApplyScanResult(Installed, folderScanned: true);
+
+        // Put the tree in the state the bulk command will move it AWAY from.
+        if (selectAll)
+        {
+            vm.SelectNoVersionsCommand.Execute(null);
+        }
+
+        bool major5Before = vm.Version5;
+        Assert.Equal(!selectAll, major5Before);
+
+        RARVersionGroup group5 = vm.VersionGroups.Single(g => g.Major == 5);
+        List<bool> version5SeenDuringSelectionChanged = [];
+        group5.SelectionChanged += (_, _) => version5SeenDuringSelectionChanged.Add(vm.Version5);
+
+        if (selectAll)
+        {
+            vm.SelectAllVersionsCommand.Execute(null);
+        }
+        else
+        {
+            vm.SelectNoVersionsCommand.Execute(null);
+        }
+
+        Assert.NotEmpty(version5SeenDuringSelectionChanged);
+        Assert.All(version5SeenDuringSelectionChanged, seen => Assert.Equal(major5Before, seen));
+
+        // ...and the major did settle to the new value once the bulk finished.
+        Assert.Equal(selectAll, vm.Version5);
+    }
+
 }
