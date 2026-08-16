@@ -36,7 +36,7 @@ The legacy CAV verification block (`Manager.cs:1399-1438`) is executed by **no e
 - Consumes: `AssemblyTestHost` (`AssemblyTestHost.cs`), `FakeRunner`, and this file's existing private helpers `CarrierBytes`, `TriggerBytes`, `CarrierCrc()`, `SecondVolumePath(string)`, `NewHost()`, `WithTimeoutAsync(...)`.
 - Produces: nothing consumed by later tasks; these are pure regression pins.
 
-- [ ] **Step 1: Write the two failing tests**
+- [x] **Step 1: Write the two failing tests**
 
 Append to `ReScene.Tests/ManagerProducerLifecycleTests.cs`, immediately before the class's closing brace:
 
@@ -114,7 +114,7 @@ Append to `ReScene.Tests/ManagerProducerLifecycleTests.cs`, immediately before t
     }
 ```
 
-- [ ] **Step 2: Run the tests to verify they pass against current behavior**
+- [x] **Step 2: Run the tests to verify they pass against current behavior**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj --filter "FullyQualifiedName~LegacyCav"`
 
@@ -122,7 +122,7 @@ Expected: **PASS on both TFMs.** These are characterization tests — they pin b
 
 If either FAILS, stop and investigate: it means the block behaves differently from what its code reads like, which is exactly the kind of surprise this task exists to surface. Do not "fix" the test to match; report the discrepancy.
 
-- [ ] **Step 3: Prove the tests have teeth**
+- [x] **Step 3: Prove the tests have teeth**
 
 Temporarily change `Manager.cs:1400` from
 `if (options.RAROptions.CompleteAllVolumes && expectedInOrder.Count > 0)` to `if (false)`.
@@ -131,7 +131,7 @@ Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj --filter "FullyQualifiedNam
 
 Expected: `LegacyCav_SecondVolumeCrcMismatch_IsNoMatch_AndLogsTheMismatch` **FAILS** (the run now reports success). This proves the test reaches the block. Revert the edit and re-run to confirm both pass again.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.Tests/ManagerProducerLifecycleTests.cs
@@ -159,7 +159,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Consumes: same helpers as Task 1, plus `AssemblyTestHost.AddSecondVersion()`.
 - Produces: nothing consumed later.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to the same class:
 
@@ -196,7 +196,7 @@ Append to the same class:
     }
 ```
 
-- [ ] **Step 2: Run the test**
+- [x] **Step 2: Run the test**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj --filter "FullyQualifiedName~Legacy_DuplicateHashAcrossCandidates"`
 
@@ -204,11 +204,11 @@ Expected: **PASS on both TFMs** (characterization).
 
 If it fails because both files still exist, the duplicate arm is not reached — read `Manager.cs:1227-1253` and adjust the *test setup* (not the assertion) until the arm is genuinely exercised, then re-verify with Step 3.
 
-- [ ] **Step 3: Prove it has teeth**
+- [x] **Step 3: Prove it has teeth**
 
 Temporarily change the `DeleteDuplicateCRCFiles` condition at `Manager.cs:1244` to `if (false)`. Re-run: the test must **FAIL** on the second assertion. Revert and confirm PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene.Tests/ManagerProducerLifecycleTests.cs
@@ -233,7 +233,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Consumes: nothing.
 - Produces: `internal sealed record CandidateContext` with the members listed below. Tasks 4-9 all take `CandidateContext ctx` as their first parameter.
 
-- [ ] **Step 1: Create the record**
+- [x] **Step 1: Create the record**
 
 Create `ReScene/Core/CandidateContext.cs`:
 
@@ -291,12 +291,12 @@ internal sealed record CandidateContext(
 context is what lets Task 4's row factory take no extra arguments. Do **not** promote them to
 `Manager` fields; the loop must stay free of new mutable run state.
 
-- [ ] **Step 2: Build to verify it compiles on both TFMs**
+- [x] **Step 2: Build to verify it compiles on both TFMs**
 
 Run: `dotnet build ReScene/ReScene.csproj`
 Expected: succeeds, 0 warnings. (`RARCommandLineArgument` lives in `ReScene.Core.Diagnostics`; add the `using` if the build reports it missing.)
 
-- [ ] **Step 3: Compose the record in the loop and switch every reference to it**
+- [x] **Step 3: Compose the record in the loop and switch every reference to it**
 
 In `Manager.cs`, after the existing `ComposeInputFileArguments` call and `BuildFinalArguments` call (~line 941), introduce:
 
@@ -315,12 +315,12 @@ Then replace the loop body's uses of the individual locals with `ctx.` members. 
 
 **Do not move** the `File.WriteAllText` list-file materialization (929-936) or the RAR 6.x timestamp skip (906-915) — their position in the candidate sequence is documented and load-bearing. **Do not** move the `_cts.IsCancellationRequested` early return (893-896); it must stay before the record is composed.
 
-- [ ] **Step 4: Run the full suite**
+- [x] **Step 4: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs**, same totals as before this task, 0 warnings.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ReScene/Core/CandidateContext.cs ReScene/Core/Manager.cs
@@ -346,7 +346,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Consumes: `CandidateContext` (Task 3).
 - Produces: `private BruteForceProgressEventArgs NewRow(CandidateContext ctx, string releaseDirectoryPath, int currentProgress, bool combinationFailed = false)`.
 
-- [ ] **Step 1: Add the factory**
+- [x] **Step 1: Add the factory**
 
 Add near `FireBruteForceProgress` in `Manager.cs`:
 
@@ -376,7 +376,7 @@ the `BruteForceOptions` property. They are the same object today only by convent
 list notes that `RARCompressDirectoryAsync` reads the *property* while the CAV branch reads the
 *parameter*, and this factory must not deepen that coupling.
 
-- [ ] **Step 2: Replace the six sites**
+- [x] **Step 2: Replace the six sites**
 
 Replace the initializers at (pre-refactor lines) 951-958, 962-969, 1042-1049, 1080-1088, 1497-1505, and the one inside `FireAssemblyErrorRow` (1548-1557) with `NewRow(...)` calls.
 
@@ -392,12 +392,12 @@ them would need `ref` locals (`combinationCounted` is written in the `try` and r
 and `throw;` must stay lexically inside `catch (OperationCanceledException)` to preserve rethrow
 semantics and the stack trace.
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** `ManagerHelpersTests` asserts exact `ExecutedArguments` strings and four lifecycle tests assert `Assert.Single(progressEvents, e => e.CombinationFailed)` — if any fails, a site's ordering or its `combinationFailed` flag was changed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene/Core/Manager.cs
@@ -424,7 +424,7 @@ This is the task the plan exists for. It removes the duplication the source itse
 - Consumes: `CandidateContext` (Task 3).
 - Produces: `private bool VerifyVolumeSet(Func<IReadOnlyList<string>> volumesFactory, BruteForceOptions options, string label)` — returns `true` when the set verifies **or** when verification is not configured; `false` when it mismatches (the caller then applies its own retention and continues).
 
-- [ ] **Step 1: Add the helper**
+- [x] **Step 1: Add the helper**
 
 ```csharp
     /// <summary>
@@ -469,7 +469,7 @@ This is the task the plan exists for. It removes the duplication the source itse
     }
 ```
 
-- [ ] **Step 2: Rewrite the assembly call site**
+- [x] **Step 2: Rewrite the assembly call site**
 
 Replace pre-refactor lines 1329-1349 with:
 
@@ -482,7 +482,7 @@ Replace pre-refactor lines 1329-1349 with:
                 }
 ```
 
-- [ ] **Step 3: Rewrite the legacy call site**
+- [x] **Step 3: Rewrite the legacy call site**
 
 Replace pre-refactor lines 1399-1438 with:
 
@@ -519,12 +519,12 @@ Replace pre-refactor lines 1399-1438 with:
                 }
 ```
 
-- [ ] **Step 4: Run the full suite**
+- [x] **Step 4: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** The Task 1 tests are the ones that prove the legacy site still behaves identically; `Cav_EndToEnd_ExtTimeScenario_MatchesAndVerifiesAllVolumes`, `Cav_FullVerifyMismatch_IsNoMatch_NotSuccess` and `NoCrcMap_FirstHashOnly_ParityPreserved` prove the assembly site does.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ReScene/Core/Manager.cs
@@ -554,7 +554,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Consumes: `CandidateContext` (Task 3).
 - Produces: `private async Task<(bool Matched, string Hash)> TryLegacyGateAsync(CandidateContext ctx, string actualRARFilePath, HashSet<string> fileHashes, Task<int>? runningProcessTask, CancellationTokenSource? processCts, BruteForceOptions options)`. Returns `Matched: false` to mean "continue to the next candidate". Task 10 collapses the two producer parameters into a single `CandidateProducer`.
 
-- [ ] **Step 1: Extract the method**
+- [x] **Step 1: Extract the method**
 
 Move the body of pre-refactor lines 1215-1254 **verbatim** into a private method with the signature above, changing only local names that now come from `ctx`. It must:
 - patch volume 1 only (`allVolumes: false`),
@@ -563,7 +563,7 @@ Move the body of pre-refactor lines 1215-1254 **verbatim** into a private method
 - on mismatch: observe the producer quietly **before** any deletion, apply `DeleteRARFiles` / `DeleteDuplicateCRCFiles && isDuplicateHash`, and return `(false, hash)`,
 - on match: return `(true, hash)`.
 
-- [ ] **Step 2: Rewrite the call site**
+- [x] **Step 2: Rewrite the call site**
 
 ```csharp
             else
@@ -579,12 +579,12 @@ Move the body of pre-refactor lines 1215-1254 **verbatim** into a private method
             }
 ```
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** Task 2's duplicate-retention test and `QuickMismatch_ObservesProducer_BeforeNextCandidateLaunch` are the primary guards.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene/Core/Manager.cs
@@ -608,13 +608,13 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Consumes: `CandidateContext`, `VerifyVolumeSet`.
 - Produces: `private CommittedMatch? TryFinalizeLegacyWin(CandidateContext ctx, string hash, string actualRARFilePath, BruteForceOptions options)` — `null` means "continue to the next candidate". Synchronous: this range contains no `await`.
 
-- [ ] **Step 1: Extract the method**
+- [x] **Step 1: Extract the method**
 
 Body order must stay: verify (Task 5 call) → `LogMatchDetails` → `RenameMatchedOutput` → if incomplete, `_logger.Warning` and return `null` → otherwise build `WinningCombo` and return the `CommittedMatch`.
 
 Note the log-before-finalize ordering here is the opposite of the assembly path's finalize-before-log. That asymmetry is deliberate and stays.
 
-- [ ] **Step 2: Rewrite the call site**
+- [x] **Step 2: Rewrite the call site**
 
 ```csharp
                 CommittedMatch? legacyMatch = TryFinalizeLegacyWin(ctx, hash, actualRARFilePath, options);
@@ -626,12 +626,12 @@ Note the log-before-finalize ordering here is the opposite of the assembly path'
                 return (true, currentProgress, legacyMatch);
 ```
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** Task 1's match test plus `RenameMatchedOutputTests` guard this.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene/Core/Manager.cs
@@ -657,11 +657,11 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 This block touches **no** producer state: the producer was already joined unconditionally at pre-refactor line 1275, before this range. That is what makes it cleanly extractable.
 
-- [ ] **Step 1: Extract the method**
+- [x] **Step 1: Extract the method**
 
 Preserve in order: the CAV full-set re-assembly with its `Error`/`SourceExhausted` classification → `VerifyVolumeSet` (finalization runs **outside** that gate) → `FinalizeAssembledSet` → on incomplete, `FireAssemblyErrorRow` and return `null` → the five match log lines → carrier deletion when `DeleteRARFiles` → best-effort recursive removal of the now-empty assembly directory, keeping its `catch (IOException or UnauthorizedAccessException)` so a cleanup failure never converts a committed match into a failure.
 
-- [ ] **Step 2: Rewrite the call site**
+- [x] **Step 2: Rewrite the call site**
 
 ```csharp
                 CommittedMatch? assemblyMatch = await FinalizeAssemblyWinAsync(
@@ -674,12 +674,12 @@ Preserve in order: the CAV full-set re-assembly with its `Error`/`SourceExhauste
                 return (true, currentProgress, assemblyMatch);
 ```
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** `NonCav_QuickMatch_NeverCommitsCarrierUnderOriginalName` and `Cav_QualifiedSetNames_FinalizeAndCleanupHandleSubdirectories` are the byte-level and cleanup guards; `ManagerAssemblyFinalizeTests.RetentionMatrix` covers retention.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ReScene/Core/Manager.cs
@@ -713,7 +713,7 @@ and
 
 The hoisted `quick` and `isDuplicateAssemblyHash` locals become return values — which is exactly what the pre-refactor comment at 1106-1108 wished for.
 
-- [ ] **Step 1: Add the enum**
+- [x] **Step 1: Add the enum**
 
 Create `ReScene/Core/GateOutcome.cs` (one top-level type per file):
 
@@ -731,7 +731,7 @@ internal enum GateOutcome
 }
 ```
 
-- [ ] **Step 2: Extract the method**
+- [x] **Step 2: Extract the method**
 
 Critical orderings that must survive verbatim:
 - `retryEligible` is sampled **before** the first `AssembleCandidateAsync`, never after.
@@ -741,7 +741,7 @@ Critical orderings that must survive verbatim:
 - `ObserveProducerQuietlyAsync` runs **before** the retention deletion.
 - `skipRetentionCleanup` is `true` only for the persistent `Error` case.
 
-- [ ] **Step 3: Rewrite the call site**
+- [x] **Step 3: Rewrite the call site**
 
 ```csharp
             if (_useAssembly)
@@ -760,12 +760,12 @@ Critical orderings that must survive verbatim:
             }
 ```
 
-- [ ] **Step 4: Run the full suite**
+- [x] **Step 4: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** `Cav_IncompleteSnapshot_RetriesOnceWithFreshSource`, `Cav_ProducerCompletesDuringAttempt_RetryStillTriggers`, the pack-order once-per-run tests, and the `RetentionMatrix` rows are the guards.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ReScene/Core/GateOutcome.cs ReScene/Core/Manager.cs
@@ -795,7 +795,7 @@ Last, because it is the only seam touching the producer-observation invariant.
 - Consumes: `CandidateContext`.
 - Produces: `internal sealed class CandidateProducer : IDisposable` with the four operations below. Tasks 6 and 9's two `Task<int>? / CancellationTokenSource?` parameters collapse into one `CandidateProducer` parameter.
 
-- [ ] **Step 1: Create the type**
+- [x] **Step 1: Create the type**
 
 ```csharp
 namespace ReScene.Core;
@@ -836,7 +836,7 @@ internal sealed class CandidateProducer : IDisposable
 
 `AwaitLaunchOrSecondVolumeAsync`, `ObserveQuietlyAsync` and `JoinForWinAsync` are added as methods in Step 2, moving the existing bodies verbatim.
 
-- [ ] **Step 2: Move the four operations**
+- [x] **Step 2: Move the four operations**
 
 - `AwaitLaunchOrSecondVolumeAsync` — the `Task.WhenAny(runningProcessTask, monitorTask)` plus the immediate `if (runningProcessTask.IsFaulted) await runningProcessTask` rethrow (pre-refactor 1009-1027). The rethrow must stay, so a faulted producer still reaches the generic catch.
 - `ObserveQuietlyAsync(bool cancelFirst)` — wraps the existing `ObserveProducerQuietlyAsync`.
@@ -845,17 +845,17 @@ internal sealed class CandidateProducer : IDisposable
 
 **Dispose only in the existing `finally`.** Disposing anywhere else makes the later `Cancel()` inside `ObserveProducerQuietlyAsync` (line 687, which sits outside its own `try`) throw `ObjectDisposedException` and propagate.
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
 
 Run: `dotnet test ReScene.Tests/ReScene.Tests.csproj`
 Expected: **PASS on both TFMs.** All nine `ManagerProducerLifecycleTests` are the guards; `AssertBlockedAsync` polls for 250 ms to prove the invariant genuinely blocks rather than merely not having raced yet.
 
-- [ ] **Step 4: Verify the loop hit its size target**
+- [x] **Step 4: Verify the loop hit its size target**
 
 Run: `awk '/private async Task<\(bool|int|CommittedMatch\)> TryProcessCommandLinesAsync/,/^    }$/' ReScene/Core/Manager.cs | wc -l`
 Expected: roughly 180 lines (down from 656), nesting no deeper than 4 levels. If it is materially larger, note which phase did not extract and why in the commit message rather than forcing it.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ReScene/Core/CandidateProducer.cs ReScene/Core/Manager.cs
@@ -880,3 +880,52 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 2. Add a `[Unreleased] / ### Changed` entry to `ReScene.Lib/CHANGELOG.md` noting the internal restructuring and that behavior is unchanged.
 3. Bump the parent gitlink in a `chore: lib pointer` commit — **after** the lib commits are pushed, or CI cannot fetch the submodule SHA.
 4. The two twin-path asymmetries (legacy `DeleteDuplicateCRCFiles` retention; legacy incomplete-finalization progress row) are fixed next, as their own commits with their own tests. They are **behavior changes** and must not be folded into any task above.
+
+
+---
+
+## Outcome
+
+All ten tasks implemented, each reviewed by Codex before commit, and pushed on `fix/analysis-issues`
+(`672097a` … `a6d86a7`, plus `81292f6` for a changelog heading fix).
+
+`TryProcessCommandLinesAsync` went from **656 lines at nesting depth 7 to 334 at depth 5** — 185 of
+those code lines, against a projected ~180. So the *code* is the size the plan aimed for; the raw
+line count is nearly double it, because the rationale comments were preserved verbatim rather than
+trimmed. Depth 5 rather than the projected 4: the remaining nesting is the loop's own
+try/foreach/if structure, which no further extraction removes without inventing a collaborator per
+`if`.
+
+Three units came out of it: `CandidateContext` (the per-candidate identity record), `GateOutcome`,
+and `CandidateProducer` (the producer handle carrying the observation invariant).
+
+### What this plan established that the later two inherited
+
+This was the first of the three targets, and the working discipline came from it:
+
+- **Characterization tests before the extraction they guard**, as their own commits. Tasks 1 and 2
+  exist purely to cover the legacy complete-all-volumes path and the duplicate-hash retention arm,
+  neither of which any test touched.
+- **Mandatory teeth checks.** Task 2's first attempt was worthless: the mutation script printed
+  "perturbation applied" unconditionally without verifying the replacement matched, and
+  `OperationProgressEventArgs` clamps its progress value, so a `+99` perturbation on a
+  denominator-1 run was invisible. Every later mutation script asserts the target was found.
+- **Claims that cannot be proven are documented as unproven.** The eager-token-capture behaviour in
+  Task 2's sibling work could not be made to fail under mutation; the commit says so rather than
+  implying coverage.
+
+### Two things that went wrong here and shaped everything after
+
+1. **A BOM was introduced and pushed.** Python scripts read with `utf-8-sig` and wrote with
+   `utf-8-sig`, adding a BOM to `Manager.cs` and `ManagerProducerLifecycleTests.cs`. Caught by
+   Codex after it had already reached the remote. Fixed by a census of every tracked `.cs` in both
+   repositories, then committed and pushed separately (`a6d86a7`). Every later script writes plain
+   UTF-8 and the census is part of the pre-push check.
+2. **A `sed` pass corrupted prose comments** — "for a given version;" became "ctx.Version;". After
+   that, every rename operated on code lines only, with comment lines passed through untouched.
+
+### The twin-path asymmetries
+
+Fixed after the decomposition landed, as their own commits with their own tests
+(`b34b886`, `2cb0700`), exactly as the plan required: they are behaviour changes and were never
+folded into a refactor commit.
