@@ -518,9 +518,20 @@ public partial class SRSReconstructorViewModel : OperationViewModelBase
 
             if (string.IsNullOrWhiteSpace(OutputPath))
             {
+                // sampleName is metadata from the SRS being opened. Auto-filling it through
+                // Path.Combine would silently accept an absolute name (discarding the SRS's own
+                // directory) or one climbing out via "..", and Rebuild writes wherever this
+                // lands.
                 string dir = Path.GetDirectoryName(value) ?? ".";
-                OutputPath = Path.Combine(dir, sampleName);
-                OutputStatus = FieldStatus.Info("Auto-filled from the SRS sample name. Change it if needed.");
+                if (MetadataOutputPath.TryResolve(dir, sampleName, out string autoPath, out string pathError))
+                {
+                    OutputPath = autoPath;
+                    OutputStatus = FieldStatus.Info("Auto-filled from the SRS sample name. Change it if needed.");
+                }
+                else
+                {
+                    OutputStatus = FieldStatus.Error($"Could not auto-fill an output path — {pathError}");
+                }
             }
         }
         catch (Exception ex)

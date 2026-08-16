@@ -184,7 +184,18 @@ public partial class SampleRestorerViewModel : OperationViewModelBase
                     continue;
                 }
 
-                string outputPath = Path.Combine(OutputDirectoryPath, entry.SampleFileName);
+                // SampleFileName comes verbatim from the embedded SRS's metadata, and this loop
+                // computes a destination per entry with nothing shown to the user. Path.Combine
+                // would hand back an absolute name unchanged and would not reject "..", so a
+                // crafted SRR could direct the write anywhere this process can write.
+                if (!MetadataOutputPath.TryResolve(
+                        OutputDirectoryPath, entry.SampleFileName, out string outputPath, out string pathError))
+                {
+                    entry.Status = "Failed: unsafe file name in SRS";
+                    Log($"  [{current}/{total}] {entry.SRSFileName} — {pathError}");
+                    continue;
+                }
+
                 Log($"  [{current}/{total}] {entry.SRSFileName} → {entry.SampleFileName}");
 
                 try

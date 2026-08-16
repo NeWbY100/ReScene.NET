@@ -74,7 +74,34 @@ public static class ReleaseTraversal
     {
         Array.Sort(dirFiles, StringComparer.Ordinal);
         Array.Sort(subdirs, StringComparer.Ordinal);
-        files.AddRange(dirFiles);
+
+        // Files were emitted unconditionally while the loop below skipped linked DIRECTORIES, so
+        // the two halves of the same rule disagreed. A linked FILE is the same hazard and a
+        // sharper one: its target's bytes are read and stored into the SRR as though they were
+        // part of the release, from wherever the link points — outside the selected root
+        // included. Skipped and recorded, rather than dropped silently, because unlike a linked
+        // directory the user can see this file sitting in the release folder.
+        foreach (string file in dirFiles)
+        {
+            FileAttributes fileAttrs;
+            try
+            {
+                fileAttrs = File.GetAttributes(file);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                issues.Add(new TraversalIssue(file, e.Message));
+                continue;
+            }
+
+            if ((fileAttrs & FileAttributes.ReparsePoint) != 0)
+            {
+                issues.Add(new TraversalIssue(file, "Skipped a linked file (reparse point)."));
+                continue;
+            }
+
+            files.Add(file);
+        }
 
         foreach (string sub in subdirs)
         {

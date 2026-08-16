@@ -261,6 +261,13 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
 
     public async Task LoadFileAsync(string filePath)
     {
+        // A disposed Inspector must not load: everything below allocates a MemoryMappedDataSource
+        // that only Dispose releases, and Dispose has already run.
+        if (_disposed)
+        {
+            return;
+        }
+
         // Bump the generation so any in-flight load (or a CloseFile) is superseded: when this
         // load's off-thread parse returns, it applies its result only if it is still the latest.
         // Without this, two overlapping loads race — the loser's continuation would overwrite the
@@ -302,7 +309,10 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
 
             // A newer load (or CloseFile) started while we were parsing — discard this stale
             // result so we don't clobber the current file's state or leak its data source.
-            if (loadGeneration != _loadGeneration)
+            // _disposed is checked alongside it: Dispose now advances the generation too, so this
+            // comparison alone would catch it, but reading the flag directly states the intent and
+            // holds even if the generation is ever reset rather than incremented.
+            if (loadGeneration != _loadGeneration || _disposed)
             {
                 return;
             }
@@ -377,7 +387,8 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         {
             // A newer load (or CloseFile) superseded this one — don't clobber the current state
             // or pop a spurious error dialog for a file the user has already moved on from.
-            if (loadGeneration != _loadGeneration)
+            // Disposal counts as superseding for the same reason.
+            if (loadGeneration != _loadGeneration || _disposed)
             {
                 return;
             }
@@ -715,31 +726,27 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             return;
         }
 
-        string? error = null;
+        string srrPath = _loadedFilePathInternal!;
+        int generationAtStart = _loadGeneration;
+
+        string outcome;
         try
         {
             ReleaseFileHandles();
             string storedName = Path.GetFileName(filePath);
-            _sRREditingService.AddStoredFiles(_loadedFilePathInternal!,
-                [(storedName, filePath)]);
-
-            StatusMessage = $"Added stored file: {storedName}";
+            _sRREditingService.AddStoredFiles(srrPath, [(storedName, filePath)]);
+            outcome = $"Added stored file: {storedName}";
         }
         catch (Exception ex)
         {
-            error = $"Error adding stored file: {ex.Message}";
+            outcome = $"Error adding stored file: {ex.Message}";
         }
-        finally
-        {
-            // Always re-open: ReleaseFileHandles disposed the data source, so a failed edit would
-            // otherwise leave the Hex/Text panes blank until close+reopen (Rename/Move already reload
-            // here). Restore the error AFTER the reload so its status summary doesn't bury it.
-            await LoadFileAsync(_loadedFilePathInternal!);
-            if (error is not null)
-            {
-                StatusMessage = error;
-            }
-        }
+
+        // Always re-open: ReleaseFileHandles disposed the data source, so a failed edit would
+        // otherwise leave the Hex/Text panes blank until close+reopen. The SUCCESS message used to
+        // be set before the reload and was therefore wiped by its status summary, exactly as the
+        // error was before that was moved after it — reporting both afterwards fixes the pair.
+        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
     }
 
     private void ReleaseFileHandles()
@@ -762,19 +769,56 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         }
 
         string srrPath = LoadedFilePath;
+        int generationAtStart = _loadGeneration;
         ReleaseFileHandles();
 
+        string outcome;
         try
         {
             await _sRREditingService.MoveStoredFileAsync(srrPath, stored.FileName, offset);
+            outcome = $"Moved stored file: {stored.FileName}";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error moving stored file: {ex.Message}";
+            outcome = $"Error moving stored file: {ex.Message}";
         }
-        finally
+
+        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
+    }
+
+    /// <summary>
+    /// Reloads the edited SRR and reports <paramref name="outcome"/> — but only if nothing has
+    /// superseded this edit in the meantime.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two defects live here, and both came from treating <see cref="LoadFileAsync"/> as a
+    /// harmless "refresh". It is a NAVIGATION primitive: it bumps <c>_loadGeneration</c> and
+    /// claims latest-writer-wins. Calling it unconditionally from an edit's <c>finally</c> meant a
+    /// slow rename started before the user opened another file finished LAST, made itself the
+    /// newest generation, invalidated the file the user actually asked for, and pulled the
+    /// Inspector back to the old one.
+    /// </para>
+    /// <para>
+    /// The second defect is that the reload writes <c>StatusMessage</c> on every path, so setting
+    /// the outcome BEFORE it — as the old <c>try</c>/<c>catch</c> did — meant the user never saw
+    /// either the confirmation or the error. Reporting after the reload fixes that; reporting only
+    /// when still current keeps a stale edit from overwriting the status of a file it does not
+    /// belong to.
+    /// </para>
+    /// </remarks>
+    private async Task ReloadAfterEditAsync(string srrPath, int generationAtStart, string outcome)
+    {
+        if (_disposed || _loadGeneration != generationAtStart)
         {
-            await LoadFileAsync(srrPath);
+            return;
+        }
+
+        await LoadFileAsync(srrPath);
+
+        if (!_disposed)
+        {
+            StatusMessage = outcome;
         }
     }
 
@@ -807,21 +851,21 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
         }
 
         string srrPath = LoadedFilePath;
+        int generationAtStart = _loadGeneration;
         ReleaseFileHandles();
 
+        string outcome;
         try
         {
             await _sRREditingService.RenameStoredFileAsync(srrPath, stored.FileName, newName);
-            StatusMessage = $"Renamed stored file: {stored.FileName} → {newName}";
+            outcome = $"Renamed stored file: {stored.FileName} → {newName}";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error renaming stored file: {ex.Message}";
+            outcome = $"Error renaming stored file: {ex.Message}";
         }
-        finally
-        {
-            await LoadFileAsync(srrPath);
-        }
+
+        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
     }
 
     [RelayCommand(CanExecute = nameof(CanMoveStoredFileUp))]
@@ -840,30 +884,25 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
             return;
         }
 
-        string? error = null;
+        string srrPath = _loadedFilePathInternal!;
+        int generationAtStart = _loadGeneration;
+
+        string outcome;
         try
         {
             ReleaseFileHandles();
-            _sRREditingService.RemoveStoredFiles(_loadedFilePathInternal!,
-                [stored.FileName]);
-
-            StatusMessage = $"Removed stored file: {stored.FileName}";
+            _sRREditingService.RemoveStoredFiles(srrPath, [stored.FileName]);
+            outcome = $"Removed stored file: {stored.FileName}";
         }
         catch (Exception ex)
         {
-            error = $"Error removing stored file: {ex.Message}";
+            outcome = $"Error removing stored file: {ex.Message}";
         }
-        finally
-        {
-            // Always re-open: ReleaseFileHandles disposed the data source, so a failed edit would
-            // otherwise leave the Hex/Text panes blank until close+reopen (Rename/Move already reload
-            // here). Restore the error AFTER the reload so its status summary doesn't bury it.
-            await LoadFileAsync(_loadedFilePathInternal!);
-            if (error is not null)
-            {
-                StatusMessage = error;
-            }
-        }
+
+        // Always re-open: ReleaseFileHandles disposed the data source, so a failed edit would
+        // otherwise leave the Hex/Text panes blank until close+reopen. As with Add, the SUCCESS
+        // message was previously set before the reload and buried by its status summary.
+        await ReloadAfterEditAsync(srrPath, generationAtStart, outcome);
     }
 
     [RelayCommand(CanExecute = nameof(IsImagePreviewAvailable))]
@@ -1281,6 +1320,16 @@ public partial class InspectorViewModel(IFileDialogService fileDialog, ISRREditi
 
         if (disposing)
         {
+            // Advance the generation FIRST. LoadFileAsync captures it before its off-thread parse
+            // and compares afterwards; disposal used to leave it untouched, so a load still in
+            // flight when the Inspector closed passed that check and went on to construct a fresh
+            // MemoryMappedDataSource on an already-disposed view-model. Nothing could ever release
+            // it — this method returns early on the next call because _disposed is set — so the
+            // mapping and its file handle leaked, keeping the file locked on Windows. The comment
+            // on LoadFileAsync's own bump describes exactly this leak; the guard simply did not
+            // cover the disposal path.
+            _loadGeneration++;
+
             // dispose managed resources
             _fileDataSource?.Dispose();
             _fileDataSource = null;
