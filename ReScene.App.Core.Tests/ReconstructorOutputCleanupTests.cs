@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using ReScene.App.Core.Services;
 using ReScene.App.Core.ViewModels;
 using ReScene.App.Core.ViewModels.Reconstruction;
@@ -42,7 +43,15 @@ public sealed class ReconstructorOutputCleanupTests : TempDirTestBase
     private sealed class RecordingDialog : NoOpFileDialogService
     {
         public List<(string Title, string Message)> Errors { get; } = [];
-        public override void ShowError(string title, string message) => Errors.Add((title, message));
+
+        /// <summary>Optional side-channel so a test can order this against other effects.</summary>
+        public Action? OnShowError { get; set; }
+
+        public override void ShowError(string title, string message)
+        {
+            Errors.Add((title, message));
+            OnShowError?.Invoke();
+        }
     }
 
     private static ReconstructorViewModel CreateVm(IBruteForceService? brute = null, IFileDialogService? dialog = null) =>
@@ -94,6 +103,44 @@ public sealed class ReconstructorOutputCleanupTests : TempDirTestBase
         Assert.False(Directory.Exists(Path.Combine(TempDir, "output")));
         Assert.False(Directory.Exists(Path.Combine(TempDir, ".rescene-work")));
         Assert.True(File.Exists(keep)); // unrelated root file survives
+    }
+
+    [Fact]
+    public void ClearReservedSubtrees_WhenCleanupFails_LogsThenShowsAnError_AndReturnsFalse()
+    {
+        // The failure path does THREE things, in this order: it logs, it shows an error dialog, and
+        // it returns false. Only the success path was tested, so an extraction could have dropped the
+        // dialog - collapsing the log and the error into one callback, say - with nothing objecting.
+        //
+        // The failure is forced by an EMPTY output path, so ResolveReservedRoots throws
+        // ArgumentException out of Path.GetFullPath. That is deterministic on every platform, unlike
+        // holding an open handle to make the delete itself fail: POSIX happily unlinks an open file,
+        // so that fixture would pass on Windows and fail on Linux and macOS. The catch does not
+        // distinguish a resolution failure from a delete failure, so either exercises the same path.
+        List<string> effects = [];
+        var dialog = new RecordingDialog { OnShowError = () => effects.Add("dialog") };
+        ReconstructorViewModel vm = CreateVm(dialog: dialog);
+        vm.LogEntries.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                effects.Add("log");
+            }
+        };
+
+        vm.OutputPath = string.Empty;
+
+        bool result = vm.ClearReservedSubtrees();
+
+        Assert.False(result);
+        Assert.Contains(vm.LogEntries, l => l.Contains("Failed to clean output directory", StringComparison.Ordinal));
+        Assert.Contains(dialog.Errors, e => e.Title == "Error"
+            && e.Message.Contains("Failed to clean output directory", StringComparison.Ordinal));
+
+        // The ORDER, not merely that both happened: swapping the two production calls passes every
+        // assertion above. The dispatcher runs posted work inline, so the log line lands
+        // synchronously and the two effects interleave in real call order.
+        Assert.Equal(["log", "dialog"], effects);
     }
 
     [Fact]

@@ -2210,60 +2210,26 @@ public partial class ReconstructorViewModel : ViewModelBase
     /// root files. Shared verbatim by the Start command and the Beginner wizard so the two never drift.
     /// </summary>
     public static string OutputCleanupConfirmText(string outputPath) =>
-        $"The output directory already contains reconstruction output:\n\n{outputPath}\n\n" +
-        $"Its '{ReconstructionPathGuard.OutputDirName}' and '{ReconstructionPathGuard.ScratchDirName}' subfolders " +
-        "— including any kept work files — will be cleared before starting (other files are left untouched). Continue?";
+        ReservedOutputTreeManager.ConfirmText(outputPath);
 
     /// <summary>
     /// Whether either reserved subtree under <c>OutputPath</c> currently holds content the pre-run
     /// cleanup would clear. Shared by Start and the Beginner wizard so both prompt on the same
     /// condition. Fails closed (returns true → prompt) if the roots cannot be resolved.
     /// </summary>
-    public bool OutputHasReconstructionArtifacts()
-    {
-        try
-        {
-            (string outputRoot, string scratchRoot) = ReconstructionPathGuard.ResolveReservedRoots(OutputPath);
-            return HasContent(outputRoot) || HasContent(scratchRoot);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            return true;
-        }
-
-        static bool HasContent(string dir) => Directory.Exists(dir) && Directory.EnumerateFileSystemEntries(dir).Any();
-    }
+    public bool OutputHasReconstructionArtifacts() =>
+        ReservedOutputTreeManager.HasReconstructionArtifacts(OutputPath);
 
     /// <summary>
     /// Clears the two reserved subtrees (<c>output</c> + <c>.rescene-work</c>) under <c>OutputPath</c>,
     /// resolved through the path guard so a junction cannot redirect the delete. Unrelated files at the
     /// OutputPath root are untouched (#4). Returns false (after surfacing the error) if the delete fails.
     /// </summary>
-    internal bool ClearReservedSubtrees()
-    {
-        try
-        {
-            (string outputRoot, string scratchRoot) = ReconstructionPathGuard.ResolveReservedRoots(OutputPath);
-            DeleteIfExists(outputRoot);
-            DeleteIfExists(scratchRoot);
-            Log(LogTarget.System, "Output directory cleaned.");
-            return true;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            Log(LogTarget.System, $"Failed to clean output directory: {ex.Message}");
-            _fileDialog.ShowError("Error", $"Failed to clean output directory:\n{ex.Message}");
-            return false;
-        }
-
-        static void DeleteIfExists(string dir)
-        {
-            if (Directory.Exists(dir))
-            {
-                Directory.Delete(dir, recursive: true);
-            }
-        }
-    }
+    internal bool ClearReservedSubtrees() =>
+        ReservedOutputTreeManager.ClearReservedSubtrees(
+            OutputPath,
+            message => Log(LogTarget.System, message),
+            _fileDialog.ShowError);
 
     /// <summary>
     /// Logs a per-set pass/fail/skip/cancelled summary and sets the overall progress message and
