@@ -62,6 +62,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     private readonly ReconstructionLogBuffer _log;
     private readonly ReconstructorStartValidator _startValidator;
     private readonly VersionTreeCoordinator _versions;
+    private readonly ReconstructionRunner _runner;
 
     // The active set/attempt label prepended to progress messages (#24), so a seed→full progress reset
     // within one set reads as a labelled stage change rather than an unexplained rewind. Volatile: it is
@@ -102,6 +103,14 @@ public partial class ReconstructorViewModel : ViewModelBase
             v => ShowNoVersionsHint = v,
             EnabledMajors,
             SyncMajorsFromTree);
+
+        _runner = new ReconstructionRunner(
+            _fileMover,
+            () => _import,
+            () => OutputPath,
+            () => CompleteAllVolumes,
+            () => _cleanupWorkFilesThisRun,
+            message => Log(LogTarget.System, message));
 
         _bruteForceService.Progress += OnProgress;
         _bruteForceService.LogMessage += OnLogMessage;
@@ -1516,6 +1525,13 @@ public partial class ReconstructorViewModel : ViewModelBase
     // relocation; these let a test inject that state and drive the loop with a file-writing fake service.
     internal void SetImportStateForTest(ReconstructionImportState import) => _import = import;
 
+    /// <summary>
+    /// Test-facing forwarder for the embedded-SFV name match. ArchiveSetEmbeddedSfvTests calls this
+    /// through the view-model, so the surface stays here even though the logic moved to the runner.
+    /// </summary>
+    internal static bool EmbeddedSfvMatchesSet(string storedName, SRRArchiveSet set) =>
+        ReconstructionRunner.EmbeddedSfvMatchesSet(storedName, set);
+
     internal Task RunArchiveSetsForTestAsync(CancellationToken token) => RunArchiveSetsAsync(token);
 
     private async Task RunArchiveSetsAsync(CancellationToken token)
@@ -1558,7 +1574,7 @@ public partial class ReconstructorViewModel : ViewModelBase
                 Log(LogTarget.System, $"=== Set {i + 1}/{sets.Count}: {label} ===");
             }
 
-            byte[]? embedded = LoadEmbeddedSfvBytes(set);
+            byte[]? embedded = _runner.LoadEmbeddedSfvBytes(set);
             Dictionary<string, string> expected = ArchiveSetPlanner.BuildExpectedVolumeCrcs(set, embedded, shared.Verification);
 
             // Full-volume verification needs a per-volume CRC for every volume; without them we
@@ -1646,7 +1662,7 @@ public partial class ReconstructorViewModel : ViewModelBase
                 // Relocate the verified volumes out of the guarded scratch work-root into the real
                 // output tree. Only a successful relocation counts as a committed set; a relocation
                 // failure whose rollback could not complete preserves the scratch for recovery.
-                (bool relocated, preserveScratch) = RelocateVerifiedOutput(workRoot, set, sets.Count, result);
+                (bool relocated, preserveScratch) = _runner.RelocateVerifiedOutput(workRoot, set, sets.Count, result);
                 committed = relocated;
                 _progress.CompleteActiveVersion(relocated ? "Match" : "No Match");
                 outcomes.Add(new SetOutcome(set, label, relocated, Skipped: false));
@@ -1659,7 +1675,7 @@ public partial class ReconstructorViewModel : ViewModelBase
                 // through the same setting-gated CleanupWorkRoot here.
                 if (!committed && !preserveScratch)
                 {
-                    CleanupWorkRoot(workRoot, set);
+                    _runner.CleanupWorkRoot(workRoot, set);
                 }
             }
         }
@@ -1756,148 +1772,6 @@ public partial class ReconstructorViewModel : ViewModelBase
             DirectoryCreationTimes = _import.DirCreationTimes,
             DirectoryAccessTimes = _import.DirAccessTimes,
         };
-    }
-
-    /// <summary>
-    /// Reads the embedded SFV bytes for a set from the imported SRR's stored files. For a single
-    /// flat set (empty key) any stored .sfv matches. Otherwise a stored .sfv matches this set when
-    /// either its archive-set key equals the set key (handles directory-prefixed stored names such
-    /// as "DVD1\aln-re4a.sfv" → key "DVD1/aln-re4a"), OR its base name equals the set's base name
-    /// (handles a flat "aln-re4a.sfv" matched to key "DVD1/aln-re4a"). Returns null when no SRR
-    /// was imported or no stored .sfv matches.
-    /// </summary>
-    private byte[]? LoadEmbeddedSfvBytes(SRRArchiveSet set)
-    {
-        string? srrPath = _import.SRRFilePath;
-        if (string.IsNullOrWhiteSpace(srrPath) || !File.Exists(srrPath))
-        {
-            return null;
-        }
-
-        try
-        {
-            var srr = SRRFile.Load(srrPath);
-            return srr.ReadStoredFile(srrPath, name => EmbeddedSfvMatchesSet(name, set));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
-        {
-            Log(LogTarget.System, $"Could not read embedded SFV for {set.Key}: {ex.Message}");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Whether a stored file is the .sfv for the given set. See <see cref="LoadEmbeddedSfvBytes"/>
-    /// for the matching rules. Shared with the embedded-SFV resolution test so both use one predicate.
-    /// </summary>
-    internal static bool EmbeddedSfvMatchesSet(string storedName, SRRArchiveSet set)
-    {
-        if (!storedName.EndsWith(".sfv", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        // Single flat set: any stored .sfv is its SFV.
-        if (string.IsNullOrEmpty(set.Key))
-        {
-            return true;
-        }
-
-        // Key match: handles a directory-prefixed stored name (e.g. "DVD1\aln-re4a.sfv").
-        if (RARVolumeIdentifier.GetArchiveSetKey(storedName).Equals(set.Key, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        // Base-name match: handles a flat stored name (e.g. "aln-re4a.sfv") whose set key carries a
-        // directory prefix. The set's base name is the last '/'-segment of its key.
-        string setBaseName = set.Key[(set.Key.LastIndexOf('/') + 1)..];
-        string storedBaseName = Path.GetFileNameWithoutExtension(storedName);
-        return storedBaseName.Equals(setBaseName, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Relocates a set's verified volumes out of its guarded scratch work-root into the real output
-    /// tree (<c>OutputPath\output\…</c>) via <see cref="VerifiedOutputRelocator"/>, then clears the
-    /// now-emptied scratch — or keeps it, per the work-files setting (see
-    /// <see cref="CleanupWorkRoot"/>). The legacy single-root set (empty key, work dir == OutputPath) is a no-op:
-    /// its output already sits at <c>OutputPath\output\</c>, byte-identical to before.
-    /// </summary>
-    /// <returns>
-    /// <c>Relocated</c> is true when the verified volumes reached their final location (or for the
-    /// legacy no-op set); <c>ScratchPreserved</c> is true when a failed relocation could not fully roll
-    /// back, so the caller must NOT delete the scratch work-root (recoverable output still lives there).
-    /// </returns>
-    private (bool Relocated, bool ScratchPreserved) RelocateVerifiedOutput(
-        string workRoot, SRRArchiveSet set, int setCount, BruteForceRunResult result)
-    {
-        // Legacy single-root set: its brute-force output is already at OutputPath\output — nothing to move.
-        if (string.IsNullOrEmpty(set.Key))
-        {
-            return (true, false);
-        }
-
-        bool custom = result.CustomPackerFiles.Count > 0;
-        VerifiedOutputRelocator.Branch branch = custom
-            ? VerifiedOutputRelocator.Branch.CustomPacker
-            : VerifiedOutputRelocator.Branch.BruteForce;
-        IReadOnlyList<string> files = custom
-            ? result.CustomPackerFiles
-            : (result.Matches.Count > 0 ? result.Matches[0].Files : []);
-
-        VerifiedOutputRelocator.RelocationOutcome outcome = VerifiedOutputRelocator.Relocate(
-            OutputPath, workRoot, set, setCount, branch, CompleteAllVolumes, files, _fileMover,
-            message => Log(LogTarget.System, message));
-
-        if (outcome.Success)
-        {
-            CleanupWorkRoot(workRoot, set); // clear or keep the now-emptied scratch per the work-files setting
-            return (true, false);
-        }
-
-        return (false, outcome.ScratchPreserved);
-    }
-
-    /// <summary>
-    /// Removes a set's guarded scratch work-root (a strict descendant of the reserved
-    /// <c>.rescene-work</c> tree) — but only when the user opted into clearing work files
-    /// (<see cref="AppSettings.CleanupReconstructionWorkFiles"/>, captured at run start); by default
-    /// the work-root is KEPT for diagnostics and its path is logged. No-op for the legacy single-root
-    /// set (empty key) whose work dir is <c>OutputPath</c> itself, and for a work-root a junction
-    /// would redirect outside the reserved scratch tree (fail-closed).
-    /// </summary>
-    private void CleanupWorkRoot(string workRoot, SRRArchiveSet set)
-    {
-        if (string.IsNullOrEmpty(set.Key))
-        {
-            return;
-        }
-
-        if (!_cleanupWorkFilesThisRun)
-        {
-            // Only log a path that actually exists: a set can fail before its scratch is ever created
-            // (e.g. an unsatisfiable per-set version requirement throws in BuildOptionsForSet), and
-            // pointing the user at a non-existent diagnostics folder would mislead.
-            if (Directory.Exists(workRoot))
-            {
-                Log(LogTarget.System, $"Work files kept: {workRoot}");
-            }
-
-            return;
-        }
-
-        try
-        {
-            string scratchRoot = ReconstructionPathGuard.ResolveScratchRoot(OutputPath);
-            if (Directory.Exists(workRoot) && ReconstructionPathGuard.IsStrictDescendant(scratchRoot, workRoot))
-            {
-                Directory.Delete(workRoot, recursive: true);
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            Log(LogTarget.System, $"Failed to clean up work dir for {set.Key}: {ex.Message}");
-        }
     }
 
     /// <summary>
