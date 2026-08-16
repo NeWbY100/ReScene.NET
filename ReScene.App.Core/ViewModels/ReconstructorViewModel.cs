@@ -60,6 +60,7 @@ public partial class ReconstructorViewModel : ViewModelBase
     // Owned by ReconstructionLogBuffer, which holds the queue, the generation token and the flush
     // flag along with the three orderings between them.
     private readonly ReconstructionLogBuffer _log;
+    private readonly ReconstructorStartValidator _startValidator;
 
     // The active set/attempt label prepended to progress messages (#24), so a seed→full progress reset
     // within one set reads as a labelled stage change rather than an unexplained rewind. Volatile: it is
@@ -86,6 +87,11 @@ public partial class ReconstructorViewModel : ViewModelBase
         // Constructed here rather than as a field initializer: it needs the injected dispatcher.
         // LogEntries is a field-initialized collection, so it already exists.
         _log = new ReconstructionLogBuffer(uiDispatcher, LogEntries);
+        _startValidator = new ReconstructorStartValidator(
+            fileDialog,
+            message => Log(LogTarget.System, message),
+            EvaluateRunPreflight,
+            SubdirTimestampWarningText);
 
         _bruteForceService.Progress += OnProgress;
         _bruteForceService.LogMessage += OnLogMessage;
@@ -1474,223 +1480,26 @@ public partial class ReconstructorViewModel : ViewModelBase
         SuppressSubdirTimestampConfirm = false;
         SuppressOutputNotEmptyConfirm = false;
 
-        // ── Path validation ──
-
-        if (string.IsNullOrWhiteSpace(WinRARPath))
-        {
-            Log(LogTarget.System, "Invalid WinRAR directory.");
-            _fileDialog.ShowError("Validation Error", "Invalid WinRAR directory.");
-            return;
-        }
-
-        if (!Directory.Exists(WinRARPath))
-        {
-            Log(LogTarget.System, "WinRAR directory does not exist.");
-            _fileDialog.ShowError("Validation Error", "WinRAR directory does not exist.");
-            return;
-        }
-
-        // A real scan that found zero valid version subfolders — block with a clear message so the
-        // user knows to add a version subfolder. The no-scan fallback (HasScannedVersions == false)
-        // still uses the broad major-version range and must not be blocked here.
-        if (HasScannedVersions && VersionGroups.Count == 0)
-        {
-            Log(LogTarget.System, "No WinRAR versions found in the selected folder.");
-            _fileDialog.ShowError("Validation Error",
-                $"No WinRAR versions were found in the WinRAR versions folder. Add a version subfolder containing {RarExecutable.FileName}, then click Rescan.");
-            return;
-        }
-
-        // A materialised tree with nothing ticked would brute-force zero versions — block it with a
-        // clear message. The no-scan case (empty tree) is unaffected and uses the broad fallback.
-        if (VersionGroups.Count > 0 && VersionGroups.SelectMany(g => g.Leaves).All(l => !l.IsChecked))
-        {
-            Log(LogTarget.System, "No WinRAR versions selected.");
-            _fileDialog.ShowError("Validation Error", "Select at least one WinRAR version.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(ReleasePath))
-        {
-            Log(LogTarget.System, "Invalid release directory.");
-            _fileDialog.ShowError("Validation Error", "Invalid release directory.");
-            return;
-        }
-
-        if (!Directory.Exists(ReleasePath))
-        {
-            Log(LogTarget.System, "Release directory does not exist.");
-            _fileDialog.ShowError("Validation Error", "Release directory does not exist.");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(OutputPath))
-        {
-            Log(LogTarget.System, "Invalid output directory.");
-            _fileDialog.ShowError("Validation Error", "Invalid output directory.");
-            return;
-        }
-
-        // ── Plan before mutate ──
-        //
-        // Make every reject-the-run decision (multi-set custom packer, reserved-root distinctness,
-        // live-input overlap, and — with no archive file list — release/output self-inclusion) BEFORE
-        // the destructive output cleanup below and before any confirm dialog, so an already-known
-        // unsupported run never erases existing output (#3, #1, #17).
-        if (EvaluateRunPreflight() is { } rejection)
-        {
-            Log(LogTarget.System, $"Cannot start: {rejection}");
-            _fileDialog.ShowError("Validation Error", rejection);
-            return;
-        }
-
-        // ── Subdirectory timestamp warning ──
-
-        bool releaseHasSubdirectories;
-        try
-        {
-            releaseHasSubdirectories = Directory.EnumerateDirectories(ReleasePath).Any();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Log(LogTarget.System, $"Could not inspect the release directory: {ex.Message}");
-            _fileDialog.ShowError("Validation Error", $"Could not inspect the release directory:\n{ex.Message}");
-            return;
-        }
-
-        if (releaseHasSubdirectories && _import.DirTimestamps.Count == 0)
-        {
-            bool proceed = subdirTimestampsConfirmed || await _fileDialog.ShowConfirmAsync("Warning: modified date",
-                SubdirTimestampWarningText);
-            if (!proceed)
+        if (!await _startValidator.ValidateAsync(
+            new ReconstructorStartValidator.Inputs
             {
-                Log(LogTarget.System, "Cancelled: subdirectory timestamp warning.");
-                return;
-            }
-        }
-
-        // ── Verification file validation ──
-        //
-        // Parsed once, here, into an immutable snapshot — BEFORE the output-directory cleanup below
-        // (which deletes the file if it happens to sit inside OutputPath) and before any per-set
-        // work-dir cleanup. Every downstream verification read (per-set CRCs, first-volume gate
-        // hashes, flat-set fallback names) draws from this snapshot; the file itself is never
-        // re-read after this point (#14).
-
-        if (string.IsNullOrWhiteSpace(VerificationPath))
+                WinRARPath = () => WinRARPath,
+                HasScannedVersions = () => HasScannedVersions,
+                VersionGroups = VersionGroups,
+                ReleasePath = () => ReleasePath,
+                OutputPath = () => OutputPath,
+                VerificationPath = () => VerificationPath,
+                Import = () => _import,
+                SubdirTimestampsConfirmed = subdirTimestampsConfirmed,
+                OutputNotEmptyConfirmed = outputNotEmptyConfirmed,
+            },
+            // The snapshot lands at the PARSE point, not on acceptance - a rejected start still
+            // replaces it. See ReconstructorStartValidationTests.
+            snapshot => _verificationSnapshot = snapshot))
         {
-            Log(LogTarget.System, "Invalid verification file path.");
-            _fileDialog.ShowError("Validation Error", "Invalid verification file path.");
             return;
         }
 
-        if (!File.Exists(VerificationPath))
-        {
-            Log(LogTarget.System, "Verification file does not exist.");
-            _fileDialog.ShowError("Validation Error", "Verification file does not exist.");
-            return;
-        }
-
-        string verificationExt = Path.GetExtension(VerificationPath).ToLowerInvariant();
-        if (verificationExt is not ".sfv" and not ".sha1")
-        {
-            Log(LogTarget.System, "Invalid verification file type.");
-            _fileDialog.ShowError("Validation Error", "Invalid verification file type. Use .sfv or .sha1 files.");
-            return;
-        }
-
-        VerificationSnapshot snapshot;
-        try
-        {
-            snapshot = VerificationSnapshot.Load(VerificationPath);
-        }
-        catch (Exception ex)
-        {
-            Log(LogTarget.System, $"Failed to parse verification file: {ex.Message}");
-            _fileDialog.ShowError("Validation Error", $"Failed to parse verification file:\n{ex.Message}");
-            return;
-        }
-
-        if (snapshot.Entries.Count == 0)
-        {
-            Log(LogTarget.System, "No hashes found in verification file.");
-            _fileDialog.ShowError("Validation Error", "No hashes found in verification file.");
-            return;
-        }
-
-        _verificationSnapshot = snapshot;
-
-        // ── Input file existence check ──
-        //
-        // The verify file (.sfv/.sha1) lists the OUTPUT archives we're trying to produce,
-        // so it isn't useful as an input check. The imported SRR's archived files ARE the
-        // expected input contents — verify those exist in the release directory. If no SRR
-        // has been imported, skip this pre-flight; Manager.ValidateInputFiles will run later.
-        if (_import.ArchiveFiles.Count > 0)
-        {
-            try
-            {
-                var missingFiles = new List<string>();
-                foreach (string archiveFile in _import.ArchiveFiles)
-                {
-                    string fullPath = Path.Combine(ReleasePath, archiveFile);
-                    if (!File.Exists(fullPath))
-                    {
-                        missingFiles.Add(archiveFile);
-                    }
-                }
-
-                if (missingFiles.Count > 0)
-                {
-                    string fileList = string.Join("\n", missingFiles);
-                    Log(LogTarget.System, $"Missing {missingFiles.Count} input file(s) in release directory.");
-                    _fileDialog.ShowWarning(
-                        "Missing Input Files",
-                        $"The following {missingFiles.Count} file(s) listed in the imported SRR are missing from the release directory:\n\n{fileList}\n\nThe release directory should contain the unpacked archive contents (the files that originally went into the RARs).");
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log(LogTarget.System, $"Failed to validate input files: {ex.Message}");
-            }
-        }
-
-        // ── Output directory validation & cleanup ──
-        //
-        // Reconstruction only ever writes into (and only ever clears) the two reserved subtrees under
-        // OutputPath — the final `output` tree and the `.rescene-work` scratch tree. Unrelated files at
-        // the OutputPath root are preserved (#4).
-
-        if (!Directory.Exists(OutputPath))
-        {
-            try
-            {
-                Directory.CreateDirectory(OutputPath);
-                Log(LogTarget.System, $"Created output directory: {OutputPath}");
-            }
-            catch (Exception ex)
-            {
-                Log(LogTarget.System, $"Failed to create output directory: {ex.Message}");
-                _fileDialog.ShowError("Validation Error", $"Failed to create output directory:\n{ex.Message}");
-                return;
-            }
-        }
-        else if (OutputHasReconstructionArtifacts())
-        {
-            bool proceed = outputNotEmptyConfirmed || await _fileDialog.ShowConfirmAsync("Output Directory Not Empty",
-                OutputCleanupConfirmText(OutputPath));
-            if (!proceed)
-            {
-                Log(LogTarget.System, "Cancelled: output directory not empty.");
-                return;
-            }
-
-            if (!ClearReservedSubtrees())
-            {
-                return;
-            }
-        }
 
         // ── Start brute-force ──
 
