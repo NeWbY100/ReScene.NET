@@ -150,8 +150,6 @@ public class SmallWindowBoardTests
             // exactly like ReconstructorCompactTests' own Help-open cases open it first.
             if (isReconstructor)
             {
-                Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-                helpDisclosure.IsExpanded = true;
                 Dispatcher.UIThread.RunJobs();
             }
 
@@ -278,7 +276,6 @@ public class SmallWindowBoardTests
         try
         {
             Assert.Contains("compactHeight", root.Classes);
-            Assert.False(CompactHeightBehavior.GetHelpOpen(root));
 
             OverrideRenderScaling(window, scaling);
 

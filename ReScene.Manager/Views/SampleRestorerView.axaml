@@ -7,47 +7,26 @@
 
   <Grid Margin="{DynamicResource PageMargin}" x:Name="RootGrid">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />                 <!-- 0: Help chrome -->
+      <RowDefinition Height="Auto" />                 <!-- 0: Help -->
       <RowDefinition Height="Auto" />                 <!-- 1: config (AutoToStar) -->
       <RowDefinition Height="Auto" />                 <!-- 2: pinned action band -->
       <RowDefinition Height="*" MinHeight="80" />     <!-- 3: log band -->
     </Grid.RowDefinitions>
 
-    <!-- ── Help disclosure (small-window degradation) ── Single instance, always in
-         the tree: normal mode renders FLAT (header hidden, body force-expanded by
-         CompactHeightBehavior) so the page is pixel-identical to the pre-disclosure layout;
-         compact mode shows the header and starts collapsed. This view has no links (like
-         SRSCreator/SRSReconstructor, unlike Reconstructor) — the intro TextBlock is the whole
-         body. Margin is NOT a local value here (house rule: local values beat unconditional
-         styles, so a local "0,0,0,6" would defeat the compact-mode margin-tightening override) —
-         the base value lives in the helpDisclosure style instead.
-         HorizontalAlignment/HorizontalContentAlignment ARE local values (the hug-bug fix):
-         Fluent's Expander defaults to Left, so without this it hugs its own content's width
-         instead of filling the Grid column. -->
-    <controls:HelpDisclosure Grid.Row="0" x:Name="HelpDisclosure" Classes="helpDisclosure"
-              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-              AutomationProperties.Name="Help">
-      <Expander.Header>
-        <TextBlock Text="Help" FontSize="{DynamicResource FontSizeCaption}" />
-      </Expander.Header>
-      <!-- Body scroller: keyboard route for the text-only body —
-           Classes="helpBody" is focusable IN COMPACT ONLY via the class-scoped style. Hosts
-           the former tab-description TextBlock verbatim, minus its old DockPanel.Dock/margin
-           (margin moved to the Expander). NO right inset here (deviation from the house rule's
-           usual 4px content-panel inset): MEASURED — this view's own
-           intro sentence is long enough that narrowing its available width by even 4px shifts a
-           word-wrap point on the first line, producing a genuine pixel difference from today's
-           markup (frame-rig red at (660,10): old byte 0x9A vs new byte 0x00), not just a narrower
-           right margin. Normal-mode pixel-parity is treated as the stricter,
-           must-preserve requirement; the 4px inset was a scrollbar-clearance nicety for compact mode
-           only, and this view's compact body has ample width (676 DIPs) to spare regardless. -->
-      <ScrollViewer Classes="helpBody" VerticalScrollBarVisibility="Auto"
-                    ScrollViewer.AllowAutoHide="False">
-        <TextBlock Text="Restore media files using SRS data embedded in an SRR file. Select a directory containing the media files to restore — metadata and structure will be reconstructed and CRC-verified."
-                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                   TextWrapping="Wrap" />
-      </ScrollViewer>
-    </controls:HelpDisclosure>
+    <!-- ── Help ── A flat, always-visible section: one body scroller, no disclosure. It was an
+         Expander until compact mode's habit of force-collapsing it made whichever view went
+         compact first look like the only tab that hid its help behind a dropdown. Compact mode
+         still bounds the body via CompactHeightBehavior.HelpBodyMaxHeight, set in the code-behind.
+         Margin is NOT a local value (house rule: local values beat unconditional styles, so a
+         local "0,0,0,6" would defeat the compact-mode margin tightening) — it lives in the
+         helpSection style. -->
+    <ScrollViewer Grid.Row="0" x:Name="HelpBody" Classes="helpSection helpBody"
+                  VerticalScrollBarVisibility="Auto"
+                  ScrollViewer.AllowAutoHide="False">
+      <TextBlock Text="Restore media files using SRS data embedded in an SRR file. Select a directory containing the media files to restore — metadata and structure will be reconstructed and CRC-verified."
+                 Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                 TextWrapping="Wrap" />
+    </ScrollViewer>
 
     <!-- ── Config band (always-present; squeezes + scrolls in compact via AutoToStar) ──
          Content renders at natural height at normal size (row is Auto), no scrollbar shown.

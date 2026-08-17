@@ -17,68 +17,54 @@
       <RowDefinition Height="1*" MinHeight="80" />
     </Grid.RowDefinitions>
 
-    <!-- ── Help disclosure (small-window degradation) ──
-         Single instance, always in the tree: normal mode renders FLAT (header hidden, body
-         force-expanded by CompactHeightBehavior) so the page is pixel-identical to the
-         pre-disclosure layout; compact mode shows the header and starts collapsed. -->
-    <!-- Margin is NOT a local value here (house rule: local values beat unconditional styles,
-         so a local "0,0,0,6" would defeat the compact-mode margin-tightening override) — the
-         base value lives in the helpDisclosure style instead. HorizontalAlignment/
-         HorizontalContentAlignment ARE local values (the hug-bug fix): Fluent's
-         Expander defaults to Left, so without this it hugs its own content's width instead of
-         filling the Grid column — the root cause of an ~19-DIP gap this task's own frame-rig
-         pixel comparison exposed, previously mis-attributed entirely to "scrollbar track
-         reservation" (see the test's own note). Deliberately scoped to Reconstructor's
-         OWN Expander instance rather than the shared helpDisclosure style, since a shared-style
-         change would also alter SRSCreator's Expander and its own already-approved
-         frame-rig numbers — no compact-mode override ever touches these two properties, so a
-         local value here carries no house-rule risk. -->
-    <controls:HelpDisclosure Grid.Row="0" x:Name="HelpDisclosure" Classes="helpDisclosure"
-              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-              AutomationProperties.Name="Help &amp; links">
-      <Expander.Header>
-        <TextBlock Text="Help &amp; links" FontSize="{DynamicResource FontSizeCaption}" />
-      </Expander.Header>
+    <!-- ── Help ── A flat, always-visible section: one body scroller, no disclosure. It was an
+         Expander until compact mode's habit of force-collapsing it made whichever view went
+         compact first look like the only tab that hid its help behind a dropdown. Compact mode
+         still bounds the body via CompactHeightBehavior.HelpBodyMaxHeight, set in the code-behind.
+         Margin is NOT a local value (house rule: local values beat unconditional styles, so a
+         local "0,0,0,6" would defeat the compact-mode margin tightening) — it lives in the
+         helpSection style. -->
       <!-- The BODY ScrollViewer is the HelpBodyMaxHeight target. NO helpBody class and never
            focusable — the Reconstructor's links are the keyboard route (the
            class-pair would make it compact-focusable). Inset on the content panel per house rule. -->
-      <ScrollViewer VerticalScrollBarVisibility="Auto"
-                    ScrollViewer.AllowAutoHide="False">
-        <StackPanel Margin="0,0,4,0">
-          <TextBlock Text="Reconstruct original RAR archives from an SRR file by brute-forcing WinRAR compression settings. Provide the source files and a WinRAR executable, then configure which RAR versions and switches to try."
+    <ScrollViewer Grid.Row="0" x:Name="HelpBody" Classes="helpSection"
+                  AutomationProperties.Name="Help &amp; links"
+                  VerticalScrollBarVisibility="Auto"
+                  ScrollViewer.AllowAutoHide="False">
+      <StackPanel Margin="0,0,4,0">
+        <TextBlock Text="Reconstruct original RAR archives from an SRR file by brute-forcing WinRAR compression settings. Provide the source files and a WinRAR executable, then configure which RAR versions and switches to try."
+                   Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                   TextWrapping="Wrap" />
+        <!-- WPF inline Hyperlinks have no Avalonia equivalent; the "download from … or …" line becomes a
+             caption plus link-class Buttons that open through the SystemLauncherService (see code-behind).
+             Every link carries its platform qualifier — the FTP-originals archive contains only the
+             Windows binaries. The comma TextBlock carries the gap so it renders flush against the first
+             link. -->
+        <WrapPanel Margin="0,2,0,0">
+          <TextBlock Text="WinRAR versions needed for reconstruction can be downloaded from:"
                      Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                     TextWrapping="Wrap" />
-          <!-- WPF inline Hyperlinks have no Avalonia equivalent; the "download from … or …" line becomes a
-               caption plus link-class Buttons that open through the SystemLauncherService (see code-behind).
-               Every link carries its platform qualifier — the FTP-originals archive contains only the
-               Windows binaries. The comma TextBlock carries the gap so it renders flush against the first
-               link. -->
-          <WrapPanel Margin="0,2,0,0">
-            <TextBlock Text="WinRAR versions needed for reconstruction can be downloaded from:"
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       VerticalAlignment="Center" Margin="0,0,4,0" />
-            <Button x:Name="WindowsPackLink" Classes="link" Content="Extracted files for Windows (ready to use)"
-                    Tag="https://drive.google.com/file/d/1of053kS2Wxk-foHN_ALRu-u6Tcck58yn/view?usp=drive_link"
-                    Click="OnResourceLinkClick"
-                    FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center" />
-            <TextBlock Text=","
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       VerticalAlignment="Center" Margin="0,0,4,0" />
-            <Button Classes="link" Content="Extracted files for Linux (ready to use)"
-                    Tag="https://drive.google.com/file/d/1TcpA7RXoTUEr3pHZ8-4YTcQFRGZYP7v_/view?usp=drive_link"
-                    Click="OnResourceLinkClick"
-                    FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0" />
-            <TextBlock Text="or"
-                       Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
-                       VerticalAlignment="Center" Margin="0,0,4,0" />
-            <Button Classes="link" Content="Original files from RAR FTP (Windows)"
-                    Tag="https://drive.google.com/file/d/1hvgzSY6YH_ZS3cpy7bHcw2zpjiwuP_Xi/view?usp=drive_link"
-                    Click="OnResourceLinkClick"
-                    FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center" />
-          </WrapPanel>
-        </StackPanel>
-      </ScrollViewer>
-    </controls:HelpDisclosure>
+                     VerticalAlignment="Center" Margin="0,0,4,0" />
+          <Button x:Name="WindowsPackLink" Classes="link" Content="Extracted files for Windows (ready to use)"
+                  Tag="https://drive.google.com/file/d/1of053kS2Wxk-foHN_ALRu-u6Tcck58yn/view?usp=drive_link"
+                  Click="OnResourceLinkClick"
+                  FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center" />
+          <TextBlock Text=","
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                     VerticalAlignment="Center" Margin="0,0,4,0" />
+          <Button Classes="link" Content="Extracted files for Linux (ready to use)"
+                  Tag="https://drive.google.com/file/d/1TcpA7RXoTUEr3pHZ8-4YTcQFRGZYP7v_/view?usp=drive_link"
+                  Click="OnResourceLinkClick"
+                  FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0" />
+          <TextBlock Text="or"
+                     Foreground="{DynamicResource ForegroundSecondary}" FontSize="{DynamicResource FontSizeCaption}"
+                     VerticalAlignment="Center" Margin="0,0,4,0" />
+          <Button Classes="link" Content="Original files from RAR FTP (Windows)"
+                  Tag="https://drive.google.com/file/d/1hvgzSY6YH_ZS3cpy7bHcw2zpjiwuP_Xi/view?usp=drive_link"
+                  Click="OnResourceLinkClick"
+                  FontSize="{DynamicResource FontSizeCaption}" VerticalAlignment="Center" />
+        </WrapPanel>
+      </StackPanel>
+    </ScrollViewer>
 
     <!-- ── Persistent action bar ─────────────────────────────
          Margin is NOT a local value (same reason as the Expander above: a compact-mode

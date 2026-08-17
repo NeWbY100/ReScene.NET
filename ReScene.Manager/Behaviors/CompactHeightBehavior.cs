@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
-using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -72,10 +71,20 @@ internal static class CompactHeightBehavior
         AvaloniaProperty.RegisterAttached<Control, double>("Threshold", typeof(CompactHeightBehavior), double.NaN);
     public static readonly AttachedProperty<IReadOnlyList<CompactRowSize>?> RowSizesProperty =
         AvaloniaProperty.RegisterAttached<Control, IReadOnlyList<CompactRowSize>?>("RowSizes", typeof(CompactHeightBehavior));
-    public static readonly AttachedProperty<bool> HelpOpenProperty =
-        AvaloniaProperty.RegisterAttached<Control, bool>("HelpOpen", typeof(CompactHeightBehavior));
-    public static readonly AttachedProperty<Expander?> HelpExpanderProperty =
-        AvaloniaProperty.RegisterAttached<Control, Expander?>("HelpExpander", typeof(CompactHeightBehavior));
+    /// <summary>
+    /// The Help body scroller, so compact mode can cap its height via
+    /// <see cref="HelpBodyMaxHeightProperty"/>.
+    /// </summary>
+    /// <remarks>
+    /// Replaces the former <c>HelpExpander</c>. Help used to be an <see cref="Expander"/> that
+    /// compact mode force-collapsed to reclaim its height, which had a side effect nobody wanted:
+    /// the collapse toggle only appeared in compact mode, so whichever view went compact first at
+    /// a given window height — the tallest one — was the only tab where Help had to be clicked
+    /// open, while every other tab showed the same text plainly. Help is now a flat section in
+    /// every mode; compact still caps its height, it just no longer takes it away.
+    /// </remarks>
+    public static readonly AttachedProperty<Control?> HelpBodyProperty =
+        AvaloniaProperty.RegisterAttached<Control, Control?>("HelpBody", typeof(CompactHeightBehavior));
     public static readonly AttachedProperty<Control?> RestoreFocusTargetProperty =
         AvaloniaProperty.RegisterAttached<Control, Control?>("RestoreFocusTarget", typeof(CompactHeightBehavior));
     public static readonly AttachedProperty<double> HelpBodyMaxHeightProperty =
@@ -108,13 +117,9 @@ internal static class CompactHeightBehavior
 
     public static void SetRowSizes(Control obj, IReadOnlyList<CompactRowSize>? value) => obj.SetValue(RowSizesProperty, value);
 
-    public static bool GetHelpOpen(Control obj) => obj.GetValue(HelpOpenProperty);
+    public static Control? GetHelpBody(Control obj) => obj.GetValue(HelpBodyProperty);
 
-    public static void SetHelpOpen(Control obj, bool value) => obj.SetValue(HelpOpenProperty, value);
-
-    public static Expander? GetHelpExpander(Control obj) => obj.GetValue(HelpExpanderProperty);
-
-    public static void SetHelpExpander(Control obj, Expander? value) => obj.SetValue(HelpExpanderProperty, value);
+    public static void SetHelpBody(Control obj, Control? value) => obj.SetValue(HelpBodyProperty, value);
 
     public static Control? GetRestoreFocusTarget(Control obj) => obj.GetValue(RestoreFocusTargetProperty);
 
@@ -135,8 +140,6 @@ internal static class CompactHeightBehavior
     {
         EnabledProperty.Changed.AddClassHandler<Control>(OnThresholdChanged);
         ThresholdProperty.Changed.AddClassHandler<Control>(OnThresholdChanged);
-        HelpOpenProperty.Changed.AddClassHandler<Control>(OnHelpOpenChanged);
-        HelpExpanderProperty.Changed.AddClassHandler<Control>(OnHelpExpanderChanged);
     }
 
     private static State GetOrCreateState(Control control) => _states.GetValue(control, static _ => new State());
@@ -351,12 +354,6 @@ internal static class CompactHeightBehavior
         bool isTransition = wantCompact != state.IsCompact;
         bool establishing = !state.Established;
 
-        // A fresh control's very first evaluation must establish the expander/HelpOpen state
-        // for whatever mode it starts in even when that mode matches state.IsCompact's false
-        // default (so isTransition is false) — otherwise a view that starts, and stays, at
-        // normal height never runs ApplyHelpExpanderDirection at all, and its Help expander
-        // just keeps its OWN IsExpanded=false default forever instead of the required
-        // flat-mode force-expanded state.
         if (!isTransition && state.Established)
         {
             // Nothing to APPLY (no mode change, and the rows/class already match this mode) — but
@@ -401,7 +398,7 @@ internal static class CompactHeightBehavior
 
         // (2) apply styles/rows.
         state.IsCompact = wantCompact;
-        ApplyHelpExpanderDirection(control, state, wantCompact);
+        QueueApplyHelpBodyMaxHeight(control, state);
         ApplyRowsEverywhere(control, state);
         ToggleClass(control, wantCompact);
 
@@ -697,13 +694,10 @@ internal static class CompactHeightBehavior
     /// the same, because an invariant a caller can decline is not one.
     /// </para>
     /// <para>
-    /// Help state does not enter into it. The donation rule (<see cref="CompactRowSize"/>'s
-    /// HelpOpen minimums) is a compact-mode mechanism, and <see cref="GetHelpOpen"/> is false
-    /// throughout expanded mode by construction — <see cref="RecomputeHelpOpen"/> requires
-    /// <see cref="State.IsCompact"/>. Expanded mode instead renders the Help body flat, expanded
-    /// and unconstrained, which is the LARGEST it ever is, and the floor already carries that cost
-    /// as measured chrome. So the expanded floor is both Help-state-correct and conservative
-    /// without a second set of minimums.
+    /// Help does not enter into it. <see cref="CompactRowSize.CompactMinHeight"/> is a compact-mode
+    /// value and never reaches this floor. Expanded mode renders the Help body flat and
+    /// unconstrained, which is the LARGEST it ever is, and the floor already carries that cost as
+    /// measured chrome — so the expanded floor stays conservative without a second set of minimums.
     /// </para>
     /// </summary>
     private static double EffectiveThreshold(Control control, State state)
@@ -894,19 +888,18 @@ internal static class CompactHeightBehavior
     private static void ApplyRowsEverywhere(Control root, State state)
     {
         bool isCompact = state.IsCompact;
-        bool helpOpen = GetHelpOpen(root);
 
-        ApplyGridRows(root, isCompact, helpOpen, state);
+        ApplyGridRows(root, isCompact, state);
         foreach (Visual descendant in root.GetVisualDescendants())
         {
             if (descendant is Grid grid)
             {
-                ApplyGridRows(grid, isCompact, helpOpen, state);
+                ApplyGridRows(grid, isCompact, state);
             }
         }
     }
 
-    private static void ApplyGridRows(Control control, bool isCompact, bool helpOpen, State state)
+    private static void ApplyGridRows(Control control, bool isCompact, State state)
     {
         if (control is not Grid grid || GetRowSizes(grid) is not { } rows)
         {
@@ -915,11 +908,11 @@ internal static class CompactHeightBehavior
 
         foreach (CompactRowSize rowSize in rows)
         {
-            ApplyOneRow(grid, rowSize, isCompact, helpOpen, state);
+            ApplyOneRow(grid, rowSize, isCompact, state);
         }
     }
 
-    private static void ApplyOneRow(Grid grid, CompactRowSize rowSize, bool isCompact, bool helpOpen, State state)
+    private static void ApplyOneRow(Grid grid, CompactRowSize rowSize, bool isCompact, State state)
     {
         if (rowSize.RowIndex >= grid.RowDefinitions.Count)
         {
@@ -938,7 +931,10 @@ internal static class CompactHeightBehavior
             state.CapturedMinHeight[minKey] = originalMinHeight;
         }
 
-        double compactValue = helpOpen ? rowSize.HelpOpenMinHeight : rowSize.CompactMinHeight;
+        // One compact minimum, not two. Rows used to carry a second, smaller value that applied
+        // only while the Help body was open — Help is now always open, so that value IS the
+        // compact minimum and the choice disappeared with the state it depended on.
+        double compactValue = rowSize.CompactMinHeight;
 
         switch (rowSize.Mode)
         {
@@ -969,124 +965,10 @@ internal static class CompactHeightBehavior
         }
     }
 
-    private static void OnHelpOpenChanged(Control control, AvaloniaPropertyChangedEventArgs e)
-    {
-        State state = GetOrCreateState(control);
-        if (!state.IsCompact)
-        {
-            return;
-        }
-
-        // Donation swap only: ApplyRowsEverywhere never captures, so replaying it here
-        // (whether HelpOpen was flipped directly, as in the unit tests, or indirectly via
-        // the expander wiring below) is always safe to repeat.
-        ApplyRowsEverywhere(control, state);
-        QueueApplyHelpBodyMaxHeight(control, state);
-    }
-
-    // ── Help expander wiring ─────────────────────────────────────────
-
-    private static void ApplyHelpExpanderDirection(Control control, State state, bool enteringCompact)
-    {
-        Expander? expander = GetHelpExpander(control);
-        // Entering compact: collapsed by default (condition-5 reset — re-entering a
-        // compact session never resumes a previous session's open Help). Leaving:
-        // flat mode always renders the body expanded.
-        expander?.IsExpanded = !enteringCompact;
-
-        RecomputeHelpOpen(control, expander, state);
-
-        // Queued directly (not left to OnHelpOpenChanged's cascade alone): when LEAVING
-        // compact with Help open, state.IsCompact is already false by the time SetHelpOpen's
-        // Changed handler runs, so its "if (!state.IsCompact) return;" guard would otherwise
-        // skip resetting the body's MaxHeight, leaving normal/flat mode wrongly constrained
-        // by the last donated budget.
-        QueueApplyHelpBodyMaxHeight(control, state);
-    }
-
-    private static void OnHelpExpanderChanged(Control control, AvaloniaPropertyChangedEventArgs e)
-    {
-        State state = GetOrCreateState(control);
-        if (e.OldValue is Expander oldExpander && state.ExpanderIsExpandedHandler is { } oldHandler)
-        {
-            oldExpander.PropertyChanged -= oldHandler;
-            state.ExpanderIsExpandedHandler = null;
-        }
-
-        if (e.NewValue is Expander expander)
-        {
-            void Handler(object? _, AvaloniaPropertyChangedEventArgs args)
-            {
-                if (args.Property != Expander.IsExpandedProperty)
-                {
-                    return;
-                }
-
-                // Flat mode's invariant — "leaving compact renders the body expanded", declared by
-                // ApplyHelpExpanderDirection — enforced CONTINUOUSLY, not only at the transition that
-                // establishes it. At normal size the header toggle is hidden by the app styles and
-                // its automation peer is pruned with it, so a collapse there produces a state the
-                // visual design says cannot exist: Help hidden with no affordance, in ANY modality,
-                // to bring it back short of resizing the window. Nothing in the UI offers that
-                // collapse — but the Expander's stock peer still carries the ExpandCollapse pattern,
-                // and an assistive technology can invoke Collapse() on it directly — non-focusable
-                // is not non-actionable. Suppressing the pattern itself would take a
-                // custom peer, which Expander only permits through a subclass — so the invariant is
-                // held where it is actually owned instead, which makes that call a no-op.
-                // Re-entrant exactly once: the assignment re-enters with IsExpanded already true.
-                if (!state.IsCompact && !expander.IsExpanded)
-                {
-                    expander.IsExpanded = true;
-                    return;
-                }
-
-                RecomputeHelpOpen(control, expander, state);
-            }
-
-            expander.PropertyChanged += Handler;
-            state.ExpanderIsExpandedHandler = Handler;
-
-            // Synchronize the JUST-ATTACHED expander to whatever mode already holds. The
-            // production wiring order (Threshold/HelpExpander both set in a view's ctor, before
-            // the control is ever attached) means the control's first real Evaluate() would
-            // normally do this anyway — but a HelpExpander attached to a control that has ALREADY
-            // been through at least one Evaluate() (state.Established) would otherwise be left at
-            // its own IsExpanded=false default forever, since nothing else re-synchronizes an
-            // already-settled mode to a newly-arriving expander.
-            //
-            // On an ALREADY-established control this can genuinely collapse focused content: if
-            // state.IsCompact is true, ApplyHelpExpanderDirection forces IsExpanded=false exactly
-            // as a real compact-entry transition would, and anything focused inside that
-            // about-to-collapse body must be recovered through the SAME staged capture/apply/
-            // relocate transaction Evaluate() uses — a bare apply would strand it instead.
-            // Pre-attachment (!state.Established) there is nothing live to capture, and the
-            // upcoming real first Evaluate() re-applies whatever mode actually computes
-            // regardless, so the bare apply there remains correct and side-effect-free.
-            if (state.Established)
-            {
-                Control? captured = CaptureFocusedElement(control);
-                ApplyHelpExpanderDirection(control, state, state.IsCompact);
-
-                if (captured is not null)
-                {
-                    ++state.Generation;
-                    Dispatcher.UIThread.Post(
-                        CreateRecoveryCallback(control, captured, state.IsCompact, state),
-                        DispatcherPriority.Loaded);
-                }
-            }
-            else
-            {
-                ApplyHelpExpanderDirection(control, state, state.IsCompact);
-            }
-        }
-    }
-
-    // Runs whenever anything that feeds HelpOpen changes: the behavior's own forced
-    // IsExpanded set on a transition, OR the user toggling the header while compact.
-    private static void RecomputeHelpOpen(Control control, Expander? expander, State state) =>
-        SetHelpOpen(control, state.IsCompact && expander is { IsExpanded: true });
-
+    // Queued rather than applied inline: the class/row changes that precede it drive a layout
+    // pass, and the body's own measurement is only settled after it. Loaded is lower priority
+    // than the layout-driving priorities, so by the time this runs the body has had a chance to
+    // realize at its natural size and the cap lands on a real measurement.
     // The body's ContentPresenter realizes its child lazily, tied to layout: while IsExpanded
     // is false the wrapping content area is never measured, so the ScrollViewer never attaches
     // to the visual tree at all. IsExpanded has already been SET by the time ApplyHelpBodyMaxHeight
@@ -1098,19 +980,14 @@ internal static class CompactHeightBehavior
 
     private static void ApplyHelpBodyMaxHeight(Control control, State state)
     {
-        if (GetHelpExpander(control) is not { } expander)
+        if (GetHelpBody(control) is not { } body)
         {
             return;
         }
 
-        expander.UpdateLayout();
-        if (expander.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault() is not { } body)
-        {
-            return;
-        }
-
-        bool donating = state.IsCompact && GetHelpOpen(control);
-        body.MaxHeight = donating ? GetHelpBodyMaxHeight(control) : double.PositiveInfinity;
+        // Capped whenever compact, with no Help-open condition: the body is always showing now,
+        // so compact mode bounds its height rather than reclaiming it wholesale.
+        body.MaxHeight = state.IsCompact ? GetHelpBodyMaxHeight(control) : double.PositiveInfinity;
     }
 
     // ── Staged focus ──────────────────────────────────────────────────
@@ -1387,8 +1264,14 @@ internal static class CompactHeightBehavior
     /// </summary>
     private static void FocusFallbackChain(Control root, Control captured, bool enteringCompact)
     {
+        // Entering compact, the preferred landing spot is the top of the view. That used to be the
+        // Help header toggle; with Help now a flat section the body scroller is its nearest
+        // equivalent, and it is focusable in compact for exactly the views that route the keyboard
+        // through it. The Reconstructor's body deliberately is not focusable (its links are the
+        // route), so TryFocus rejects it there and the descendant walk below takes over — the same
+        // graceful degradation the toggle lookup relied on.
         Control? resolved = enteringCompact
-            ? GetHelpExpander(root)?.GetVisualDescendants().OfType<ToggleButton>().FirstOrDefault()
+            ? GetHelpBody(root)
             : GetRestoreFocusTarget(root);
 
         if (TryFocus(resolved, captured))

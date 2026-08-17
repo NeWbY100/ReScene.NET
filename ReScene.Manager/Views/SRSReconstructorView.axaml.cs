@@ -33,13 +33,13 @@ public partial class SRSReconstructorView : UserControl
         // here (same as every other ported view in this project — see SRSCreatorView's own
         // note); resolved once via FindControl instead.
         var root = (Grid)Content!;
-        Expander helpDisclosure = this.FindControl<Expander>("HelpDisclosure")!;
+        ScrollViewer helpBody = this.FindControl<ScrollViewer>("HelpBody")!;
         TextBox srsFileTextBox = this.FindControl<TextBox>("SRSFileTextBox")!;
         Behaviors.CompactHeightBehavior.SetEnabled(root, true);
         Behaviors.CompactHeightBehavior.SetRowSizes(root,
             [new Behaviors.CompactRowSize(RowIndex: 1, NormalHeight: double.NaN,
-                CompactMinHeight: 110, HelpOpenMinHeight: 80, Mode: Behaviors.CompactRowMode.AutoToStar)]);
-        Behaviors.CompactHeightBehavior.SetHelpExpander(root, helpDisclosure);
+                CompactMinHeight: 80, Mode: Behaviors.CompactRowMode.AutoToStar)]);
+        Behaviors.CompactHeightBehavior.SetHelpBody(root, helpBody);
         Behaviors.CompactHeightBehavior.SetHelpBodyMaxHeight(root, 40);
         Behaviors.CompactHeightBehavior.SetRestoreFocusTarget(root, srsFileTextBox);
     }

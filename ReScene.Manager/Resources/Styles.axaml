@@ -51,77 +51,16 @@
     <Setter Property="VerticalAlignment" Value="Top" />
   </Style>
 
-  <!-- Small-window chrome: the Help disclosure renders FLAT at normal
-       size — header hidden, body pinned expanded by CompactHeightBehavior — so the page
-       is pixel-identical to the pre-disclosure layout. Under .compactHeight the header
-       shows and the body obeys the behavior (collapsed on entry, donation while open).
-
-       CUSTOM RE-TEMPLATE: Fluent's stock Expander
-       carries several hardcoded floors that keep a COLLAPSED header well above the
-       ~24-DIP compact-header budget regardless of style overrides layered on individual template parts —
-       measured: the Expander control itself defaults MinHeight 48, and its header's own
-       chevron cell reserves 32 DIPs, both independent of (and un-reachable through) the
-       Expander's own Padding/the header ToggleButton's own Padding/MinHeight. Overriding
-       template parts one at a time chases an increasingly fragile, Avalonia-version-
-       dependent target; this re-template (mirroring the EXISTING Expander.versionGroup
-       re-template's own proven structure/pattern below — same chevron Path, same TwoWay
-       IsChecked TemplateBinding, same visibility-gated content wrapper) gives deterministic
-       control instead. Zero chrome (no border/background/padding/corner radius) in either
-       mode — a plain collapsible section, never a bordered card — so normal/flat mode stays
-       pixel-identical to the pre-disclosure StackPanel. -->
-  <Style Selector=":is(Expander).helpDisclosure">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="MinHeight" Value="0" />
+  <!-- Help is a flat, always-visible section on every task view: a bare body scroller, with no
+       header, chevron or disclosure of any kind. It used to be a re-templated Expander whose
+       toggle appeared only in compact mode, where the behavior also force-collapsed it to reclaim
+       its height. The visible effect was a per-tab inconsistency nobody intended: whichever view
+       went compact first at a given window height — the tallest one — was the only tab where help
+       had to be clicked open, while every other tab showed the same text plainly. Compact mode
+       still tightens the margin below and caps the body via HelpBodyMaxHeight; it no longer takes
+       the help away. -->
+  <Style Selector="ScrollViewer.helpSection">
     <Setter Property="Margin" Value="0,0,0,6" />
-    <Setter Property="Template">
-      <ControlTemplate>
-        <StackPanel x:CompileBindings="False">
-          <!-- Header: content sized only, no theme-imposed floor. The toggle's OWN
-               accessible name mirrors whatever AutomationProperties.Name the CALLER put on
-               the Expander itself (every helpDisclosure caller sets one — "Help & links" on
-               Reconstructor, "Help" elsewhere) — Tab lands on THIS element, a
-               separate focusable peer from the Expander's own, so it needs its own name. -->
-          <ToggleButton IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
-                        AutomationProperties.Name="{TemplateBinding (AutomationProperties.Name)}"
-                        Background="Transparent" BorderThickness="0"
-                        Padding="0" MinHeight="0"
-                        Cursor="Hand"
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Path Name="HelpChevron" Data="M 1 1 L 5 5 L 1 9"
-                    Stroke="{DynamicResource ForegroundSecondary}" StrokeThickness="1.3"
-                    StrokeLineCap="Round" StrokeJoin="Round"
-                    Width="10" Height="10" Stretch="Uniform"
-                    VerticalAlignment="Center" />
-              <ContentPresenter Content="{TemplateBinding Header}"
-                                ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                VerticalAlignment="Center" />
-            </StackPanel>
-          </ToggleButton>
-          <!-- Body: visibility-gated exactly like versionGroup's own content Border, so the
-               collapsed body realizes nothing and contributes zero to the floor. -->
-          <Border IsVisible="{TemplateBinding IsExpanded}">
-            <ContentPresenter Name="PART_ContentPresenter"
-                              Content="{TemplateBinding Content}"
-                              ContentTemplate="{TemplateBinding ContentTemplate}" />
-          </Border>
-        </StackPanel>
-      </ControlTemplate>
-    </Setter>
-  </Style>
-  <Style Selector=":is(Expander).helpDisclosure /template/ ToggleButton">
-    <Setter Property="IsVisible" Value="False" />
-  </Style>
-  <Style Selector="Grid.compactHeight :is(Expander).helpDisclosure /template/ ToggleButton">
-    <Setter Property="IsVisible" Value="True" />
-  </Style>
-  <Style Selector=":is(Expander).helpDisclosure:expanded /template/ Path#HelpChevron">
-    <Setter Property="RenderTransform">
-      <RotateTransform Angle="90" />
-    </Setter>
   </Style>
   <!-- Compact-mode-ONLY margin tightening (never touches normal mode, so
        pixel-parity for TODAY's rendering is untouched — these rows' base margins
@@ -131,7 +70,7 @@
   <Style Selector="DockPanel.actionBar">
     <Setter Property="Margin" Value="0,0,0,4" />
   </Style>
-  <Style Selector="Grid.compactHeight :is(Expander).helpDisclosure">
+  <Style Selector="Grid.compactHeight ScrollViewer.helpSection">
     <Setter Property="Margin" Value="0" />
   </Style>
   <Style Selector="Grid.compactHeight DockPanel.actionBar">

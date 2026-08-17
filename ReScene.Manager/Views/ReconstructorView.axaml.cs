@@ -42,13 +42,13 @@ public partial class ReconstructorView : UserControl
         // here (same as every other ported view in this project — see BruteForceProgressWindow's
         // own note); resolved once via FindControl instead.
         var root = (Grid)Content!;
-        Expander helpDisclosure = this.FindControl<Expander>("HelpDisclosure")!;
+        ScrollViewer helpBody = this.FindControl<ScrollViewer>("HelpBody")!;
         Button windowsPackLink = this.FindControl<Button>("WindowsPackLink")!;
         Behaviors.CompactHeightBehavior.SetEnabled(root, true);
         Behaviors.CompactHeightBehavior.SetRowSizes(root,
             [new Behaviors.CompactRowSize(RowIndex: 4, NormalHeight: double.NaN,
-                CompactMinHeight: 96, HelpOpenMinHeight: 60, Mode: Behaviors.CompactRowMode.MinOnly)]);
-        Behaviors.CompactHeightBehavior.SetHelpExpander(root, helpDisclosure);
+                CompactMinHeight: 60, Mode: Behaviors.CompactRowMode.MinOnly)]);
+        Behaviors.CompactHeightBehavior.SetHelpBody(root, helpBody);
         Behaviors.CompactHeightBehavior.SetHelpBodyMaxHeight(root, 38);
         Behaviors.CompactHeightBehavior.SetRestoreFocusTarget(root, windowsPackLink);
     }

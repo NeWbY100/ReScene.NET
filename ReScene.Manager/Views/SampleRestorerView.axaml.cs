@@ -61,14 +61,14 @@ public partial class SampleRestorerView : UserControl
         // the derived switch point lands where the constant used to, while now moving with the
         // platform's own font metrics instead of pretending they are the Windows ones.
         var root = (Grid)Content!;
-        Expander helpDisclosure = this.FindControl<Expander>("HelpDisclosure")!;
+        ScrollViewer helpBody = this.FindControl<ScrollViewer>("HelpBody")!;
         TextBox srrFileTextBox = this.FindControl<TextBox>("SRRFileTextBox")!;
         Behaviors.CompactHeightBehavior.SetEnabled(root, true);
         Behaviors.CompactHeightBehavior.SetRowSizes(root,
             [new Behaviors.CompactRowSize(RowIndex: 1, NormalHeight: double.NaN,
-                CompactMinHeight: 110, HelpOpenMinHeight: 80, Mode: Behaviors.CompactRowMode.AutoToStar,
+                CompactMinHeight: 80, Mode: Behaviors.CompactRowMode.AutoToStar,
                 ExpandedMinHeight: 320)]);
-        Behaviors.CompactHeightBehavior.SetHelpExpander(root, helpDisclosure);
+        Behaviors.CompactHeightBehavior.SetHelpBody(root, helpBody);
         Behaviors.CompactHeightBehavior.SetHelpBodyMaxHeight(root, 40);
         Behaviors.CompactHeightBehavior.SetRestoreFocusTarget(root, srrFileTextBox);
 

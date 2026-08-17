@@ -138,8 +138,9 @@ public class SRSReconstructorCompactTests
     public void Invariant_ActiveModeFits_AtEveryHeightAroundTheSwitchPoint() =>
         CompactInvariantRig.AssertActiveModeFitsAroundSwitchPoint("SRSReconstructor", BuildWorstCase);
 
+
     [AvaloniaFact]
-    public void Invariant_CompactFloor_HelpClosed_WithinCiBound()
+    public void Invariant_CompactFloor_WithinCiBound_AndPinnedBandRowSane()
     {
         SRSReconstructorViewModel vm = CreateVm();
         ForceWorstCase(vm);
@@ -149,35 +150,12 @@ public class SRSReconstructorCompactTests
         try
         {
             Assert.Contains("compactHeight", root.Classes);
-            Assert.False(CompactHeightBehavior.GetHelpOpen(root));
-            double floor = CompactInvariantRig.MeasureFloor(root);
-            Assert.True(floor <= CompactInvariantRig.CiBound,
-                $"compact floor {floor:F1} must be <= {CompactInvariantRig.CiBound}");
-        }
-        finally { window.Close(); }
-    }
-
-    [AvaloniaFact]
-    public void Invariant_CompactFloor_HelpOpen_WithinCiBound_AndPinnedBandRowSane()
-    {
-        SRSReconstructorViewModel vm = CreateVm();
-        ForceWorstCase(vm);
-        var view = new SRSReconstructorView { DataContext = vm };
-
-        (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
-        try
-        {
-            Assert.Contains("compactHeight", root.Classes);
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(CompactHeightBehavior.GetHelpOpen(root));
 
             // One sum: donation row applied (config row min -> 80) AND the body's own MaxHeight
             // (40) both spend the same 307-DIP budget — never checked independently.
             double floor = CompactInvariantRig.MeasureFloor(root);
             Assert.True(floor <= CompactInvariantRig.CiBound,
-                $"compact+HelpOpen floor {floor:F1} must be <= {CompactInvariantRig.CiBound}");
+                $"compact floor {floor:F1} must be <= {CompactInvariantRig.CiBound}");
 
             // Pinned band (row 2) is never the budget donor — its natural height stays small
             // and positive regardless of mode, and within CompactInvariantRig.PinnedBandCeiling even with the
@@ -389,9 +367,9 @@ public class SRSReconstructorCompactTests
 
         if (compact)
         {
-            ToggleButton helpToggle = window.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure")
-                .GetVisualDescendants().OfType<ToggleButton>().Single();
-            order.Insert(0, helpToggle);
+            ScrollViewer helpBody = window.GetVisualDescendants().OfType<ScrollViewer>()
+                .Single(sv => sv.Name == "HelpBody");
+            order.Insert(0, helpBody);
         }
 
         return order;
@@ -556,23 +534,17 @@ public class SRSReconstructorCompactTests
             .Count(t => t.Text is not null && t.Text.StartsWith("Reconstruct a sample file from an SRS file", StringComparison.Ordinal));
 
     [AvaloniaFact]
-    public void CompactEntry_HelpStartsCollapsed_BodyReachable_ExpanderResetsOnReentry()
+    public void CompactEntry_HelpBodyIsReachable_AndRestoringRelocatesFocus()
     {
         SRSReconstructorViewModel vm = CreateVm();
         var view = new SRSReconstructorView { DataContext = vm };
         (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            Assert.False(helpDisclosure.IsExpanded); // condition 5: compact entry starts collapsed
-
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-
             // "Invocable" is proven by REACHABILITY/usability (focusable, enabled, unobscured, a
             // real Tab lands on it) — this body has no interactive children (plain prose), so
             // its own compact-only-focusable ScrollViewer IS the route.
-            ScrollViewer body = helpDisclosure.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            ScrollViewer body = root.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "HelpBody");
             Assert.True(body.Focusable);
             Assert.True(body.IsEffectivelyEnabled);
             CompactViewRig.AssertReachableByKeyboard(window, body);
@@ -586,7 +558,7 @@ public class SRSReconstructorCompactTests
             window.Height += restoreDelta;
             Dispatcher.UIThread.RunJobs();
             Assert.DoesNotContain("compactHeight", root.Classes);
-            Assert.True(helpDisclosure.IsExpanded); // flat mode: force-expanded
+            Assert.False(body.Focusable, "flat mode drops the compact-only Tab stop on the Help body");
 
             // The staged-focus guard's actual point: restoring from a focus captured on the
             // body (which just went non-focusable — flat mode's base style, not the
@@ -605,7 +577,7 @@ public class SRSReconstructorCompactTests
             window.Height -= restoreDelta;
             Dispatcher.UIThread.RunJobs();
             Assert.Contains("compactHeight", root.Classes);
-            Assert.False(helpDisclosure.IsExpanded, "re-entering compact must reset Help to collapsed, not resume the prior session's open state");
+            Assert.True(body.Focusable, "re-entering compact restores the Help body's keyboard route");
         }
         finally { window.Close(); }
     }
@@ -618,15 +590,11 @@ public class SRSReconstructorCompactTests
         (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(CompactHeightBehavior.GetHelpOpen(root));
 
             int configRow = Grid.GetRow(window.GetVisualDescendants().OfType<ScrollViewer>().Single(sv => Grid.GetRow(sv) == 1));
             Assert.Equal(80, root.RowDefinitions[configRow].MinHeight);
 
-            ScrollViewer body = helpDisclosure.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            ScrollViewer body = root.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "HelpBody");
             Assert.Equal(40, body.MaxHeight);
 
             TextBox outputTextBox = window.GetVisualDescendants().OfType<TextBox>().Single(t => t.Name == "OutputTextBox");
@@ -645,8 +613,8 @@ public class SRSReconstructorCompactTests
         {
             // Flat mode force-expands the body (so this scroller IS realized/attached even
             // though the header stays hidden) — criterion F requires it NOT be a new Tab stop.
-            ScrollViewer body = normalRoot.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure")
-                .GetVisualDescendants().OfType<ScrollViewer>().Single();
+            ScrollViewer body = normalRoot.GetVisualDescendants().OfType<ScrollViewer>()
+                .Single(sv => sv.Name == "HelpBody");
             Assert.False(body.Focusable);
         }
         finally { normalWindow.Close(); }
@@ -656,11 +624,9 @@ public class SRSReconstructorCompactTests
         (Window compactWindow, Grid compactRoot) = CompactViewRig.HostAt(compactView, CompactInner);
         try
         {
-            Expander helpDisclosure = compactRoot.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
             Dispatcher.UIThread.RunJobs();
 
-            ScrollViewer body = helpDisclosure.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            ScrollViewer body = compactRoot.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "HelpBody");
             Assert.True(body.Focusable);
             Assert.Equal("Help content", AutomationProperties.GetName(body));
         }
@@ -686,11 +652,9 @@ public class SRSReconstructorCompactTests
         (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
             Dispatcher.UIThread.RunJobs();
 
-            ScrollViewer body = helpDisclosure.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            ScrollViewer body = root.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "HelpBody");
             TextBlock introText = body.GetVisualDescendants().OfType<TextBlock>().Single();
             introText.Text = string.Concat(Enumerable.Repeat("Reconstruct a sample from an SRS file and the original media. ", 20));
             Dispatcher.UIThread.RunJobs();
@@ -1358,7 +1322,7 @@ public class SRSReconstructorCompactTests
     /// </summary>
     private static readonly IReadOnlyList<string> CompactModeTabOrderFixture =
     [
-        "ToggleButton name=\"Help\" id=\"\"",
+        "ScrollViewer name=\"Help content\" id=\"HelpBody\"",
         "TextBox name=\"SRS file path\" id=\"SRSFileTextBox\"",
         "Button name=\"Browse for SRS file\" id=\"\"",
         "TextBox name=\"Media file path\" id=\"MediaFileTextBox\"",

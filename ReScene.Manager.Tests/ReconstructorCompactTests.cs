@@ -168,8 +168,9 @@ public class ReconstructorCompactTests
         finally { window.Close(); }
     }
 
+
     [AvaloniaFact]
-    public void Invariant_CompactFloor_HelpClosed_WithinCiBound()
+    public void Invariant_CompactFloor_WithinCiBound_AndPinnedToolbarRowSane()
     {
         ReconstructorViewModel vm = CreateVm();
         vm.CustomPackerWarning = "Custom packer detected.";
@@ -179,35 +180,12 @@ public class ReconstructorCompactTests
         try
         {
             Assert.Contains("compactHeight", root.Classes);
-            Assert.False(CompactHeightBehavior.GetHelpOpen(root));
-            double floor = CompactInvariantRig.MeasureFloor(root);
-            Assert.True(floor <= CompactInvariantRig.CiBound,
-                $"compact floor {floor:F1} must be <= {CompactInvariantRig.CiBound}");
-        }
-        finally { window.Close(); }
-    }
-
-    [AvaloniaFact]
-    public void Invariant_CompactFloor_HelpOpen_WithinCiBound_AndPinnedToolbarRowSane()
-    {
-        ReconstructorViewModel vm = CreateVm();
-        vm.CustomPackerWarning = "Custom packer detected.";
-        var view = new ReconstructorView { DataContext = vm };
-
-        (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
-        try
-        {
-            Assert.Contains("compactHeight", root.Classes);
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(CompactHeightBehavior.GetHelpOpen(root));
 
             // One sum: donation rows applied (TabControl min -> 60) AND the body's own MaxHeight
             // (38) both spend the same 307-DIP budget — never checked independently.
             double floor = CompactInvariantRig.MeasureFloor(root);
             Assert.True(floor <= CompactInvariantRig.CiBound,
-                $"compact+HelpOpen floor {floor:F1} must be <= {CompactInvariantRig.CiBound}");
+                $"compact floor {floor:F1} must be <= {CompactInvariantRig.CiBound}");
 
             // 4. Pinned/action row (the persistent toolbar, row 1) is never the budget donor —
             // its natural height stays small and positive regardless of mode.
@@ -490,9 +468,8 @@ public class ReconstructorCompactTests
         // fixture VM, not of the view, and is recorded in the fixtures' own doc comments too.
         if (compact)
         {
-            ToggleButton helpToggle = window.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure")
-                .GetVisualDescendants().OfType<ToggleButton>().Single();
-            order.Insert(0, helpToggle);
+            // No leading Help stop in compact: this view's Help body is deliberately not
+            // focusable (its links are the keyboard route).
         }
         else
         {
@@ -799,8 +776,8 @@ public class ReconstructorCompactTests
         try
         {
             Assert.Contains("compactHeight", root.Classes);
-            ToggleButton headerToggle = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure")
-                .GetVisualDescendants().OfType<ToggleButton>().Single();
+            Control headerToggle = root.GetVisualDescendants().OfType<ScrollViewer>()
+                .Single(sv => sv.Name == "HelpBody");
             headerToggle.Focus();
             Dispatcher.UIThread.RunJobs();
 
@@ -878,10 +855,6 @@ public class ReconstructorCompactTests
             TextBlock tip = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("tipLine"));
             double heightClosed = tip.Bounds.Height;
 
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(CompactHeightBehavior.GetHelpOpen(root));
 
             double heightOpen = tip.Bounds.Height;
             Assert.Equal(heightClosed, heightOpen, precision: 1);
@@ -890,19 +863,13 @@ public class ReconstructorCompactTests
     }
 
     [AvaloniaFact]
-    public void CompactEntry_HelpStartsCollapsed_LinksReachable_ExpanderResetsOnReentry()
+    public void CompactEntry_HelpLinksAreReachable_AndRestoringRelocatesFocus()
     {
         ReconstructorViewModel vm = CreateVm();
         var view = new ReconstructorView { DataContext = vm };
         (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            Assert.False(helpDisclosure.IsExpanded); // condition 5: compact entry starts collapsed
-
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-
             // "Invocable" is proven by REACHABILITY/usability (focusable, enabled, unobscured, a
             // real Tab lands on it) rather than actually raising Click — a genuine click on these
             // buttons opens a real OS browser via SystemLauncherService (ResourceLink.cs), which
@@ -912,16 +879,13 @@ public class ReconstructorCompactTests
             Assert.True(windowsLink.IsEffectivelyEnabled);
             CompactViewRig.AssertReachableByKeyboard(window, windowsLink);
 
-            // The staged-focus guard's actual point (mirroring the identical fix in SRSCreator's
-            // help disclosure): focus the header TOGGLE — visible and focusable ONLY in compact
-            // mode (Styles.axaml's Grid.compactHeight ... /template/ ToggleButton IsVisible=True
-            // override; flat/normal mode hides it) — then restore. The toggle going
-            // IsVisible=false in flat mode must relocate focus to the wired RestoreFocusTarget
-            // (WindowsPackLink), not strand it.
-            ToggleButton headerToggle = helpDisclosure.GetVisualDescendants().OfType<ToggleButton>().Single();
-            headerToggle.Focus();
+            // The staged-focus guard's actual point: focus something inside the Help region and
+            // restore. This view's Help body is deliberately NOT focusable (its links are the
+            // keyboard route), so the link itself is the element to hold focus across the
+            // transition — it must not be stranded when the mode changes.
+            windowsLink.Focus();
             Dispatcher.UIThread.RunJobs();
-            Assert.True(headerToggle.IsFocused);
+            Assert.True(windowsLink.IsFocused);
 
             // Restore to normal, then re-enter compact: durability is compact-SESSION scoped only.
             // Out of compact and comfortably clear of the restore hysteresis, DERIVED rather
@@ -932,14 +896,15 @@ public class ReconstructorCompactTests
             window.Height += restoreDelta;
             Dispatcher.UIThread.RunJobs();
             Assert.DoesNotContain("compactHeight", root.Classes);
-            Assert.True(helpDisclosure.IsExpanded); // flat mode: force-expanded
+            // No body-focusability assertion here: unlike the other views, this one's Help body is
+            // never a Tab stop (its links are the keyboard route), so the link itself is what must
+            // survive the transition.
             Assert.True(windowsLink.IsFocused,
-                "restoring from a focused compact-only header toggle must relocate focus to the wired RestoreFocusTarget (WindowsPackLink), not strand it");
+                "restoring must not strand focus — it belongs on the wired RestoreFocusTarget (WindowsPackLink)");
 
             window.Height -= restoreDelta;
             Dispatcher.UIThread.RunJobs();
             Assert.Contains("compactHeight", root.Classes);
-            Assert.False(helpDisclosure.IsExpanded, "re-entering compact must reset Help to collapsed, not resume the prior session's open state");
         }
         finally { window.Close(); }
     }
@@ -961,7 +926,7 @@ public class ReconstructorCompactTests
     /// </para>
     /// </summary>
     [AvaloniaFact]
-    public void FailedRestore_FromTheFocusedHeaderToggle_EndsCompactWithFocusOnTheHeaderToggle()
+    public void FailedRestore_FromAFocusedHelpLink_EndsCompactWithoutStrandingFocus()
     {
         ReconstructorView view = BuildWorstCase();
         var vm = (ReconstructorViewModel)view.DataContext!;
@@ -971,11 +936,10 @@ public class ReconstructorCompactTests
             Assert.Contains("compactHeight", root.Classes);
             double staleThreshold = CompactHeightBehavior.GetEffectiveThreshold(root);
 
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            ToggleButton headerToggle = helpDisclosure.GetVisualDescendants().OfType<ToggleButton>().Single();
-            headerToggle.Focus();
+            Button windowsLink = root.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "WindowsPackLink");
+            windowsLink.Focus();
             Dispatcher.UIThread.RunJobs();
-            Assert.True(headerToggle.IsFocused, "test precondition: the compact-only header toggle must genuinely take focus");
+            Assert.True(windowsLink.IsFocused, "test precondition: the focus start point must genuinely take focus");
 
             // Grow the warning row — chrome, so it raises the floor rather than being absorbed by a
             // scrolling band — while COMPACT, where the expanded floor cannot be observed at all.
@@ -1002,9 +966,10 @@ public class ReconstructorCompactTests
             Assert.True(landed is not null,
                 "a failed restore left focus cleared: the trail was [" +
                 string.Join(", ", focusTrail.Select(c => c is null ? "<none>" : CompactViewRig.Describe(c))) + "]");
-            Assert.True(ReferenceEquals(landed, headerToggle),
-                $"focus should have settled on the compact direction's target (the header toggle), not " +
-                $"{CompactViewRig.Describe(landed!)}");
+            // Not asserted against a specific control: this view's compact direction target (the
+            // Help body) is deliberately non-focusable, so the fallback chain settles on whichever
+            // descendant is usable. What the failed-restore path must guarantee is that focus is
+            // somewhere real, which the non-null assertion above and the stability check below pin.
 
             // No dead window: once the two transitions have settled, focus stays put rather than
             // being cleared and left cleared by whichever of them ran last.
@@ -1046,8 +1011,6 @@ public class ReconstructorCompactTests
             (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
             try
             {
-                Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-                helpDisclosure.IsExpanded = true;
                 Dispatcher.UIThread.RunJobs();
 
                 Button windowsLink = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "WindowsPackLink");
@@ -1072,15 +1035,11 @@ public class ReconstructorCompactTests
         (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
-            Expander helpDisclosure = root.GetVisualDescendants().OfType<Expander>().Single(e => e.Name == "HelpDisclosure");
-            helpDisclosure.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(CompactHeightBehavior.GetHelpOpen(root));
 
             int tabControlRow = Grid.GetRow(window.GetVisualDescendants().OfType<TabControl>().Single(t => t.ItemCount == 6));
             Assert.Equal(60, root.RowDefinitions[tabControlRow].MinHeight);
 
-            ScrollViewer body = helpDisclosure.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            ScrollViewer body = root.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "HelpBody");
             Assert.Equal(38, body.MaxHeight);
 
             Button lastLink = window.GetVisualDescendants().OfType<Button>().Last(b => b.Classes.Contains("link"));
@@ -1639,7 +1598,6 @@ public class ReconstructorCompactTests
     /// </summary>
     private static readonly IReadOnlyList<string> CompactModeTabOrderFixture =
     [
-        "ToggleButton name=\"Help & links\" id=\"\"",
         "Button name=\"Export Config\" id=\"\"",
         "Button name=\"Import Config\" id=\"\"",
         "Button name=\"Import from SRR\" id=\"\"",

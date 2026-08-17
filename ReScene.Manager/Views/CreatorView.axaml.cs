@@ -71,20 +71,20 @@ public partial class CreatorView : UserControl
         // would rather be compact.
         var root = (Grid)Content!;
         Grid configGrid = this.FindControl<Grid>("ConfigGrid")!;
-        Expander helpDisclosure = this.FindControl<Expander>("HelpDisclosure")!;
+        ScrollViewer helpBody = this.FindControl<ScrollViewer>("HelpBody")!;
         TextBox outputTextBox = this.FindControl<TextBox>("OutputTextBox")!;
         Behaviors.CompactHeightBehavior.SetEnabled(root, true);
         Behaviors.CompactHeightBehavior.SetRowSizes(root,
             [new Behaviors.CompactRowSize(RowIndex: 1, NormalHeight: double.NaN,
-                CompactMinHeight: 110, HelpOpenMinHeight: 80, Mode: Behaviors.CompactRowMode.AutoToStar,
+                CompactMinHeight: 80, Mode: Behaviors.CompactRowMode.AutoToStar,
                 ExpandedMinHeight: 500)]);
         // DESCENDANT row: the Stored Files grid row lives on ConfigGrid, not root — a fixed-pixel
         // row (150 normal) so the splitter drags exactly as today, restoring to a user's dragged
         // height (not just back to 150) across a compact round-trip via PixelRestore's own capture.
         Behaviors.CompactHeightBehavior.SetRowSizes(configGrid,
             [new Behaviors.CompactRowSize(RowIndex: 3, NormalHeight: 150,
-                CompactMinHeight: 80, HelpOpenMinHeight: 80, Mode: Behaviors.CompactRowMode.PixelRestore)]);
-        Behaviors.CompactHeightBehavior.SetHelpExpander(root, helpDisclosure);
+                CompactMinHeight: 80, Mode: Behaviors.CompactRowMode.PixelRestore)]);
+        Behaviors.CompactHeightBehavior.SetHelpBody(root, helpBody);
         Behaviors.CompactHeightBehavior.SetHelpBodyMaxHeight(root, 40);
 
         // RestoreFocusTarget is OutputTextBox, NOT InputTextBox. It was originally chosen to keep

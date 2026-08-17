@@ -1,7 +1,6 @@
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -451,7 +450,7 @@ public class CompactHeightBehaviorTests
         const double AuthoredMinimum = 50;
         CompactRowSize[] rows =
         [
-            new(RowIndex: 1, NormalHeight: double.NaN, CompactMinHeight: 30, HelpOpenMinHeight: 20,
+            new(RowIndex: 1, NormalHeight: double.NaN, CompactMinHeight: 20,
                 Mode: CompactRowMode.AutoToStar, ExpandedMinHeight: AuthoredMinimum),
         ];
 
@@ -499,11 +498,11 @@ public class CompactHeightBehaviorTests
     /// in a donation minimum just because <c>HelpOpen</c> happens to read true.
     /// </summary>
     [AvaloniaFact]
-    public void HelpOpenDonationMinimums_NeverEnterTheExpandedFloor()
+    public void CompactMinimums_NeverEnterTheExpandedFloor()
     {
         CompactRowSize[] rows =
         [
-            new(RowIndex: 1, NormalHeight: double.NaN, CompactMinHeight: 30, HelpOpenMinHeight: 20,
+            new(RowIndex: 1, NormalHeight: double.NaN, CompactMinHeight: 20,
                 Mode: CompactRowMode.AutoToStar, ExpandedMinHeight: 50),
         ];
 
@@ -512,7 +511,8 @@ public class CompactHeightBehaviorTests
         {
             double expanded = CompactHeightBehavior.GetEffectiveThreshold(root);
 
-            CompactHeightBehavior.SetHelpOpen(root, true);
+            // The compact minimum (20) is far below the expanded minimum (50) this row declares.
+            // If the floor ever read the compact value, the threshold would drop.
             Dispatcher.UIThread.RunJobs();
 
             Assert.DoesNotContain("compactHeight", root.Classes);   // still expanded
@@ -725,7 +725,6 @@ public class CompactHeightBehaviorTests
         root.Children.Add(new Border { [Grid.RowProperty] = 2 });
 
         CompactHeightBehavior.SetEnabled(root, true);
-        CompactHeightBehavior.SetHelpExpander(root, expander);
 
         var window = new Window { Width = 700, Height = 900, Content = root };
         window.Show();
@@ -774,7 +773,7 @@ public class CompactHeightBehaviorTests
     [AvaloniaFact]
     public void RowSizes_ApplyOnCompact_RestorePreservingSplitterDrag()
     {
-        CompactRowSize[] rows = [new(RowIndex: 1, NormalHeight: 150, CompactMinHeight: 80, HelpOpenMinHeight: 60, Mode: CompactRowMode.PixelRestore)];
+        CompactRowSize[] rows = [new(RowIndex: 1, NormalHeight: 150, CompactMinHeight: 60, Mode: CompactRowMode.PixelRestore)];
         (Window w, Grid root) = Host(Threshold + 50, rows);
         try
         {
@@ -797,7 +796,7 @@ public class CompactHeightBehaviorTests
     [AvaloniaFact]
     public void AutoToStar_SwapsRowHeightKind_PerMode()
     {
-        CompactRowSize[] rows = [new(1, double.NaN, 110, 80, CompactRowMode.AutoToStar)];
+        CompactRowSize[] rows = [new(1, double.NaN, 80, CompactRowMode.AutoToStar)];
         (Window w, Grid root) = Host(Threshold + 50, rows);
         try
         {
@@ -826,7 +825,7 @@ public class CompactHeightBehaviorTests
             var inner = new Grid { RowDefinitions = new RowDefinitions("150,Auto"), [Grid.RowProperty] = 2 };
             inner.Children.Add(new Border());
             CompactHeightBehavior.SetRowSizes(inner,
-                [new CompactRowSize(0, 150, 80, 80, CompactRowMode.PixelRestore)]);
+                [new CompactRowSize(0, 150, 80, CompactRowMode.PixelRestore)]);
             root.Children.Add(inner);
             Dispatcher.UIThread.RunJobs();
 
@@ -841,111 +840,27 @@ public class CompactHeightBehaviorTests
         finally { w.Close(); }
     }
 
+    /// <summary>
+    /// The compact minimum applies for as long as the control is compact, with no second state to
+    /// swap into. It used to be one of a PAIR — a larger value while Help was closed, a smaller
+    /// donated one while it was open — and the behavior chose between them. Help is always showing
+    /// now, so the donated value is simply the compact minimum.
+    /// </summary>
     [AvaloniaFact]
-    public void HelpOpen_WhileCompact_AppliesDonationMinimums()
+    public void CompactMinimum_AppliesForAsLongAsTheControlIsCompact()
     {
-        CompactRowSize[] rows = [new(1, 150, 80, 60, CompactRowMode.MinOnly)];
+        CompactRowSize[] rows = [new(1, 150, 60, CompactRowMode.MinOnly)];
         (Window w, Grid root) = Host(Threshold - 1, rows);
         try
         {
-            Assert.Equal(80, root.RowDefinitions[1].MinHeight);
-            CompactHeightBehavior.SetHelpOpen(root, true);
-            Dispatcher.UIThread.RunJobs();
             Assert.Equal(60, root.RowDefinitions[1].MinHeight);
-            CompactHeightBehavior.SetHelpOpen(root, false);
+
+            // Restore: the row goes back to its authored minimum, not to a second compact value.
+            root.GetVisualRoot();
+            ((Window)root.GetVisualRoot()!).Height = Threshold + 200;
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(80, root.RowDefinitions[1].MinHeight);
-        }
-        finally { w.Close(); }
-    }
-
-    /// <summary>
-    /// The HelpExpander per-mode/donation contract, exercised as its own
-    /// round-trip (compact entry resets to collapsed, user-opened HelpOpen tracks it, restore
-    /// re-flattens and turns donation off, re-entering compact resets again — durability is
-    /// compact-session scoped, not permanent). This test attaches the
-    /// expander AFTER the control has already been through its first Evaluate() (Host() shows
-    /// the window before SetHelpExpander runs) — a gap the existing coverage never exercised,
-    /// since all of it attaches the expander BEFORE first attachment. Fixed by
-    /// OnHelpExpanderChanged additionally synchronizing a just-attached expander to the CURRENT
-    /// mode (see CompactHeightBehavior.cs) — a narrow,
-    /// additive fix; no existing test's behavior changed.
-    /// </summary>
-    [AvaloniaFact]
-    public void HelpExpander_FlatWhenExpandedMode_ResetOnCompactEntry_TogglesHelpOpen()
-    {
-        (Window w, Grid root) = Host(Threshold + 50);
-        try
-        {
-            var expander = new Expander { [Grid.RowProperty] = 0 };
-            root.Children.Add(expander);
-            CompactHeightBehavior.SetHelpExpander(root, expander);
-            Dispatcher.UIThread.RunJobs();
-
-            // Expanded (normal) mode: behavior pins the flat state.
-            Assert.True(expander.IsExpanded);
-
-            w.Height = Threshold - 1;                    // enter compact
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(expander.IsExpanded);           // condition 5: starts collapsed
-            Assert.False(CompactHeightBehavior.GetHelpOpen(root));
-
-            expander.IsExpanded = true;                  // user opens Help
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(CompactHeightBehavior.GetHelpOpen(root));
-
-            w.Height = Threshold + 12;                   // restore to normal
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(expander.IsExpanded);            // flat again
-            Assert.False(CompactHeightBehavior.GetHelpOpen(root)); // donation off at normal
-
-            w.Height = Threshold - 1;                    // re-enter compact
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(expander.IsExpanded);           // durability is compact-session scoped
-        }
-        finally { w.Close(); }
-    }
-
-    /// <summary>
-    /// The test above only exercises a late attach in
-    /// NORMAL mode with nothing focused. A late attach while the control is ALREADY compact and
-    /// established forces the just-attached expander's body collapsed (condition 5) exactly as a
-    /// real compact-entry transition would — and if something inside that about-to-collapse body
-    /// is currently focused, that focus must go through the SAME staged capture/recover
-    /// transaction <c>Evaluate</c> uses for real transitions, not a bare apply that
-    /// strands it. Here the expander/body/focused button all exist and are wired up BEFORE
-    /// SetHelpExpander is ever called (simulating a body that was independently expanded and
-    /// focused, then only later handed to the behavior) — the compact entry's own fallback
-    /// chain (entering-compact direction: the header toggle) must recover it.
-    /// </summary>
-    [AvaloniaFact]
-    public void HelpExpander_LateAttachWhileCompact_CollapsingFocusedBody_RelocatesFocus_NotStranded()
-    {
-        (Window w, Grid root) = Host(Threshold - 1); // already compact AND established (Host shows the window)
-        try
-        {
-            Assert.Contains("compactHeight", root.Classes);
-
-            var expander = new Expander { IsExpanded = true, [Grid.RowProperty] = 0 };
-            var bodyButton = new Button { Content = "body" };
-            expander.Content = bodyButton;
-            root.Children.Add(expander);
-            Dispatcher.UIThread.RunJobs(); // realize the expander's template + its expanded body
-
-            bodyButton.Focus();
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(bodyButton.IsFocused);
-
-            // Late attach: root is ALREADY compact/established, so this must force the body
-            // collapsed THROUGH the staged capture/recover transaction, not a bare apply that
-            // strands the currently-focused button.
-            CompactHeightBehavior.SetHelpExpander(root, expander);
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.False(expander.IsExpanded, "late attach while compact must still collapse per condition 5");
-            ToggleButton toggle = expander.GetVisualDescendants().OfType<ToggleButton>().First();
-            Assert.True(toggle.IsFocused,
-                "focus must be relocated to the header toggle (fallback chain, entering-compact direction), not stranded on the collapsed body");
+            Assert.DoesNotContain("compactHeight", root.Classes);
+            Assert.Equal(0, root.RowDefinitions[1].MinHeight);
         }
         finally { w.Close(); }
     }
@@ -956,27 +871,25 @@ public class CompactHeightBehaviorTests
         (Window w, Grid root) = Host(Threshold + 50);
         try
         {
-            // Direction-specific targets: compact target = the expander's
-            // realized header toggle; restore target = a named normal-mode control.
-            var expander = new Expander { [Grid.RowProperty] = 2 };
+            // Direction-specific targets: compact target = the Help body; restore target = a
+            // named normal-mode control.
+            var helpBody = new Button { Content = "helpBody", [Grid.RowProperty] = 2 };
             var collapsing = new Button { Content = "link", [Grid.RowProperty] = 0 };
             var restoreTarget = new Button { Content = "firstInput", [Grid.RowProperty] = 1 };
-            root.Children.Add(expander);
+            root.Children.Add(helpBody);
             root.Children.Add(collapsing);
             root.Children.Add(restoreTarget);
-            CompactHeightBehavior.SetHelpExpander(root, expander);
+            CompactHeightBehavior.SetHelpBody(root, helpBody);
             CompactHeightBehavior.SetRestoreFocusTarget(root, restoreTarget);
             Dispatcher.UIThread.RunJobs();
-            // The app-level styles hide row-0 content in compact AND the expander header
-            // at normal (flat mode); the unit test simulates BOTH with the class
-            // (without the header simulation the restore leg never
-            // strands focus and the assertion is vacuous):
-            var toggle = expander.GetVisualDescendants().OfType<ToggleButton>().First();
+            // The app-level styles hide row-0 content in compact AND drop the Help body's Tab stop
+            // at normal size; the unit test simulates BOTH with the class (without the second
+            // simulation the restore leg never strands focus and the assertion is vacuous):
             root.Classes.CollectionChanged += (_, _) =>
             {
                 bool compact = root.Classes.Contains("compactHeight");
                 collapsing.IsVisible = !compact;
-                toggle.IsVisible = compact;        // flat normal mode hides the header
+                helpBody.IsVisible = compact;      // flat mode has no Help Tab stop
             };
             Dispatcher.UIThread.RunJobs();
 
@@ -986,10 +899,10 @@ public class CompactHeightBehaviorTests
 
             w.Height = Threshold - 1;              // → compact; collapsing hides
             Dispatcher.UIThread.RunJobs();
-            Assert.True(toggle.IsFocused,
-                "focus must land on the HEADER TOGGLE (the Expander itself is not focusable)");
+            Assert.True(helpBody.IsFocused,
+                "focus must land on the compact direction target (the Help body)");
 
-            w.Height = Threshold + 12;             // → restore; the toggle hides (flat mode)
+            w.Height = Threshold + 12;             // → restore; the Help body's Tab stop goes (flat mode)
             Dispatcher.UIThread.RunJobs();
             Assert.True(restoreTarget.IsFocused,
                 "restore-direction stranding must land on the RestoreFocusTarget");
@@ -1143,39 +1056,6 @@ public class CompactHeightBehaviorTests
     }
 
     // ── Focus-recovery regression coverage ────────────────────────────────
-
-    /// <summary>
-    /// A fresh instance that starts (and stays) at normal height must still
-    /// synchronize its Help expander to the "flat mode, force-expanded" state on its very
-    /// first evaluation — even though that evaluation crosses no threshold (state.IsCompact's
-    /// false default already matches the computed mode, so nothing "transitions"). Before the
-    /// fix, Evaluate's early-return for "no mode change" fired before ApplyHelpExpanderDirection
-    /// ever ran, leaving a fresh Expander at its own IsExpanded=false default — hiding the
-    /// content in both modes (header hidden by normal-mode styles, body collapsed by default).
-    /// </summary>
-    [AvaloniaFact]
-    public void FreshNormalInstance_SynchronizesExpanderToFlatMode()
-    {
-        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,150,*") };
-        var expander = new Expander { [Grid.RowProperty] = 0 };
-        root.Children.Add(expander);
-        root.Children.Add(new Border { [Grid.RowProperty] = 1 });
-        root.Children.Add(new Border { [Grid.RowProperty] = 2 });
-        CompactHeightBehavior.SetThreshold(root, Threshold);
-        CompactHeightBehavior.SetHelpExpander(root, expander);
-
-        var window = new Window { Width = 700, Height = Threshold + 50, Content = root };
-        window.Show();
-        Dispatcher.UIThread.RunJobs();
-        try
-        {
-            Assert.DoesNotContain("compactHeight", root.Classes);   // confirms this never transitions
-            Assert.True(expander.IsExpanded,
-                "flat/normal mode must force the Help body expanded, even on a fresh instance that never crosses the threshold");
-            Assert.False(CompactHeightBehavior.GetHelpOpen(root), "HelpOpen only applies while compact");
-        }
-        finally { window.Close(); }
-    }
 
     /// <summary>
     /// The deferred (Loaded-priority) recovery job must reject itself once its
@@ -2202,8 +2082,9 @@ public class CompactHeightBehaviorTests
             Assert.True(bodyButton.IsFocused);
             Assert.False(root.Focusable, "setup precondition: the root starts with no Tab stop of its own");
 
-            // Posts the staged recovery synchronously...
-            CompactHeightBehavior.SetHelpExpander(root, expander);
+            // Posts the staged recovery synchronously — a mode transition does it, where the
+            // Help expander attach used to.
+            w.Height = Threshold - 1;
 
             // ...and the view goes away before the dispatcher ever gets to it (tab switch, close).
             w.Content = null;
