@@ -11,6 +11,14 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
 
 ### Changed
 
+- The default application name stamped into new SRRs now carries the **short** commit hash —
+  `ReScene Manager v1.0.0 (4f12c88)` rather than the full forty-character
+  `ReScene Manager v1.0.0 (4f12c881199b52a1e5594f5761cd8ee10f1e5788)`. The version shown in the
+  application itself is abbreviated the same way, through the same helper, so the two cannot
+  drift. Only a complete SHA-1 or SHA-256 hex string is abbreviated: SemVer build metadata is
+  free-form, and a `+build.42` or date-stamped `+20260817` suffix is left intact. A stored default
+  refreshes to the new form automatically; a custom app name is never touched.
+
 - Every project now builds under the full .NET analyzer regime
   (`AnalysisLevel=latest-All` + style enforcement), warning-free — previously only the library
   and the CLI did, leaving the application core and the Avalonia head unanalyzed. CI installs

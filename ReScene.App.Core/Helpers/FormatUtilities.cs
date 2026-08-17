@@ -62,8 +62,36 @@ public static class FormatUtilities
         return (speedText, etaText);
     }
 
+    /// <summary>Git's default abbreviated-hash length.</summary>
+    private const int ShortCommitLength = 7;
+
+    /// <summary>
+    /// Abbreviates SemVer build metadata to a short commit hash when the metadata IS a commit
+    /// hash, and returns it unchanged otherwise.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// SourceLink puts the FULL 40-character SHA after the <c>+</c> in
+    /// <see cref="AssemblyInformationalVersionAttribute"/>, which made the stamped app name read
+    /// <c>ReScene Manager v1.0.0 (4f12c881199b52a1e5594f5761cd8ee10f1e5788)</c> — accurate but
+    /// unreadable, and it is written into every SRR this app produces.
+    /// </para>
+    /// <para>
+    /// Deliberately narrow: build metadata is free-form in SemVer, so <c>+build.42</c> or a
+    /// date-stamped <c>+20260817</c> are equally legal and truncating those would corrupt them.
+    /// Only a complete SHA-1 (40) or SHA-256 (64) hex string is abbreviated. Note a purely numeric
+    /// build counter IS valid hex, which is why the length test is exact rather than a minimum.
+    /// Anything carrying a suffix such as <c>-dirty</c> fails the hex test and is left whole.
+    /// </para>
+    /// </remarks>
+    internal static string ShortenBuildMetadata(string metadata) =>
+        metadata.Length is 40 or 64 && metadata.All(char.IsAsciiHexDigit)
+            ? metadata[..ShortCommitLength]
+            : metadata;
+
     /// <summary>
     /// Gets the default application name string including version info from the entry assembly.
+    /// The commit hash is abbreviated — see <see cref="ShortenBuildMetadata"/>.
     /// </summary>
     public static string GetDefaultAppName()
     {
@@ -77,7 +105,7 @@ public static class FormatUtilities
 
         int plus = version.IndexOf('+', StringComparison.Ordinal);
         return plus >= 0
-            ? $"ReScene Manager v{version[..plus]} ({version[(plus + 1)..]})"
+            ? $"ReScene Manager v{version[..plus]} ({ShortenBuildMetadata(version[(plus + 1)..])})"
             : $"ReScene Manager v{version}";
     }
 

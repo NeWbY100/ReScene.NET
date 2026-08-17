@@ -166,9 +166,13 @@ public partial class MainWindowViewModel : ViewModelBase
             return "0.0.0";
         }
 
-        // InformationalVersion is "1.0.0+abcdef1" — extract hash after '+'
+        // InformationalVersion is "1.0.0+<sha>", where SourceLink writes the FULL 40-character
+        // hash — not the "1.0.0+abcdef1" this comment used to claim. Abbreviated through the same
+        // helper the stamped app name uses, so the two can't drift apart.
         int plus = version.IndexOf('+', StringComparison.Ordinal);
-        return plus >= 0 ? version[..plus] + " (" + version[(plus + 1)..] + ")" : version;
+        return plus >= 0
+            ? version[..plus] + " (" + FormatUtilities.ShortenBuildMetadata(version[(plus + 1)..]) + ")"
+            : version;
     }
 
     public MainWindowViewModel(ISRRCreationService srrService, ISRSCreationService srsService, ISRSReconstructionService srsReconService, ISampleRestorerService sampleRestorerService, IBruteForceService bruteForceService, IFileCompareService fileCompareService, IFileDialogService fileDialog, IRecentFilesService recentFiles, ITempDirectoryService tempDir, ISRREditingService srrEditingService, ISRRVerifyService srrVerifyService, IPropertyExportService propertyExportService, IAppSettingsService appSettingsService, IHexDiffComputer hexDiffComputer, IUiTimerFactory uiTimerFactory, IFilePreviewService filePreviewService, IImagePreviewService imagePreviewService, IUiDispatcher uiDispatcher)

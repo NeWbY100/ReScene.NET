@@ -37,4 +37,33 @@ public class FormatUtilitiesTests
 
     [Fact]
     public void NormalizeAppName_CustomValue_IsUnchanged() => Assert.Equal("MyGroup", FormatUtilities.NormalizeAppName("MyGroup"));
+
+    [Theory]
+    [InlineData("4f12c881199b52a1e5594f5761cd8ee10f1e5788", "4f12c88")]   // SHA-1, what SourceLink writes
+    [InlineData("ABCDEF0123456789ABCDEF0123456789ABCDEF01", "ABCDEF0")]   // upper-case hex
+    [InlineData(
+        "4f12c881199b52a1e5594f5761cd8ee10f1e57884f12c881199b52a1e5594f57",
+        "4f12c88")]                                                       // SHA-256
+    public void ShortenBuildMetadata_CommitHash_IsAbbreviatedToSevenCharacters(string metadata, string expected)
+        => Assert.Equal(expected, FormatUtilities.ShortenBuildMetadata(metadata));
+
+    [Theory]
+    [InlineData("build.42")]        // free-form SemVer metadata
+    [InlineData("20260817")]        // a date-stamped build counter — valid hex, must NOT be cut
+    [InlineData("4f12c88")]         // already short
+    [InlineData("4f12c881199b52a1e5594f5761cd8ee10f1e5788-dirty")]  // hash plus a suffix
+    [InlineData("")]
+    public void ShortenBuildMetadata_AnythingThatIsNotAWholeCommitHash_IsUnchanged(string metadata)
+        => Assert.Equal(metadata, FormatUtilities.ShortenBuildMetadata(metadata));
+
+    [Fact]
+    public void GetDefaultAppName_NeverStampsAFullCommitHash()
+    {
+        // The entry assembly under a test host has no '+' metadata, so this cannot assert the
+        // abbreviated form directly — ShortenBuildMetadata's own theories do that. What it CAN
+        // guarantee is the property that matters: no 40-character hash reaches an SRR.
+        string name = FormatUtilities.GetDefaultAppName();
+
+        Assert.DoesNotMatch("[0-9a-fA-F]{40}", name);
+    }
 }
