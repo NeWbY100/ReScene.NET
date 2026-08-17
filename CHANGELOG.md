@@ -57,6 +57,39 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
 
 ### Fixed
 
+- **Security:** a file name taken from parsed SRS metadata reached a write destination without
+  validation, at two sites. `Path.Combine(chosenFolder, name)` reads like a containment primitive
+  and is not one: given an absolute second argument it returns that argument unchanged, discarding
+  the chosen folder entirely, and it does not reject `..` segments. The bulk sample restore was the
+  sharper of the two — it computed a destination per entry with nothing shown to the user — while
+  the SRS reconstructor auto-filled the same value into a visible output field. Both now resolve
+  through a shared validator that refuses rooted and drive-qualified names on every platform,
+  verifies containment against the resolved filesystem path (so a junction already inside the
+  chosen folder cannot redirect the write outside it), and on Windows additionally refuses
+  alternate-data-stream names and reserved DOS device names. A refused name is reported as a
+  per-item failure rather than falling back to the raw value.
+- The Inspector could leak a memory-mapped file and keep a file locked after being closed.
+  `Dispose` did not advance the load generation, so a parse still running when the Inspector closed
+  passed its staleness check and constructed a fresh mapping on an already-disposed view-model —
+  which nothing could then release, because disposal had already run.
+- An SRR edit could pull the Inspector back to the file you had just navigated away from. Rename,
+  Move, Add and Remove all ended with an unconditional reload, and reloading is what marks a file
+  as the current one — so a slow rename that finished after you opened another file won that race
+  and replaced it. The reload now happens only while the edit's file is still the one requested.
+  Two related consequences went with it: an edit's success or error message was written *before*
+  that reload and immediately overwritten by its file summary, so neither was ever visible; and two
+  edits in quick succession on the same file made the slower one skip its reload entirely, leaving
+  the tree showing state from before its write landed.
+- A release folder synced by OneDrive scanned as empty. Files-On-Demand placeholders — and Windows
+  Server deduplicated files — carry the reparse-point attribute despite not being links and reading
+  back as ordinary content, so testing that attribute per file discarded every file in such a
+  folder. Link detection now tests the actual link target. The same test also now applies to files
+  at all: linked *directories* were skipped while linked *files* were followed, so a linked file's
+  target was read and stored into the SRR as though it were part of the release, from wherever the
+  link pointed.
+- The compact-height layout switched to its condensed mode while the expanded content still fitted.
+  Its content-floor measurement added each child's margin to a `DesiredSize` that already included
+  it, counting every margined child's margin twice and inflating the threshold.
 - Repeated in-process `create` invocations no longer accumulate `Console.CancelKeyPress`
   handlers holding disposed cancellation sources.
 
