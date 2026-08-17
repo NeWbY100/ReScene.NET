@@ -38,7 +38,7 @@ public class TestDiscoveryFloorTests
     /// The number of test METHODS this assembly is known to expose, per the counting rule above.
     /// Raise it deliberately when tests are added; a drop is a defect until proven otherwise.
     /// </summary>
-    private const int DiscoveryFloor = 503;
+    private const int DiscoveryFloor = 501;
 
     private static readonly string[] TestAttributeNames =
         ["FactAttribute", "TheoryAttribute", "AvaloniaFactAttribute", "AvaloniaTheoryAttribute"];

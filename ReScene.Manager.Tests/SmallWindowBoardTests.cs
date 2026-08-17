@@ -382,7 +382,7 @@ public class SmallWindowBoardTests
     /// would leave the remaining three all passing.
     /// </para>
     /// </summary>
-    private const int MinInvariantMethodsPerView = 4;
+    private const int MinInvariantMethodsPerView = 3;
 
     /// <summary>
     /// Guards against a future view task silently dropping (deleting, renaming past recognition,

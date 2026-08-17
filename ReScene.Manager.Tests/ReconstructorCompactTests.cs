@@ -466,12 +466,10 @@ public class ReconstructorCompactTests
         // "Start" is deliberately absent from this list: it is command-gated on the inert VM's
         // empty paths, so it is disabled and Tab correctly skips it. That is a property of the
         // fixture VM, not of the view, and is recorded in the fixtures' own doc comments too.
-        if (compact)
-        {
-            // No leading Help stop in compact: this view's Help body is deliberately not
-            // focusable (its links are the keyboard route).
-        }
-        else
+        // The Help links lead the walk in BOTH modes now. They used to be normal-mode only,
+        // because compact collapsed the Help body and an unrealized body has no tab stops; the
+        // compact walk started at the header toggle instead. Help is always showing, so the links
+        // are always realized and always first — and this view's body itself is never a stop.
         {
             order.InsertRange(0,
             [
@@ -776,9 +774,12 @@ public class ReconstructorCompactTests
         try
         {
             Assert.Contains("compactHeight", root.Classes);
-            Control headerToggle = root.GetVisualDescendants().OfType<ScrollViewer>()
-                .Single(sv => sv.Name == "HelpBody");
-            headerToggle.Focus();
+            // Anchored at the first compact stop. NOT the Help body: this view's body is
+            // deliberately never focusable (its links are the keyboard route), so focusing it is a
+            // no-op and the walk would start from nowhere.
+            Control firstStop = root.GetVisualDescendants().OfType<Button>()
+                .Single(b => b.Name == "WindowsPackLink");
+            firstStop.Focus();
             Dispatcher.UIThread.RunJobs();
 
             IReadOnlyList<string> order = CompactViewRig.SnapshotTabOrder(window, root);
@@ -1073,10 +1074,12 @@ public class ReconstructorCompactTests
             Assert.True(root.RowDefinitions[logRow].Height.Value >= 80 - 0.5,
                 $"log row clamped below its 80-DIP minimum: {root.RowDefinitions[logRow].Height.Value:F1}");
 
-            // Drive the TabControl row down to its 96-DIP compact floor (Up grows row 6 at row 4's expense).
+            // Drive the TabControl row down to its 60-DIP compact floor (Up grows row 6 at row 4's
+            // expense). 60 is the minimum this row always carried while Help was showing; the old
+            // 96 applied only when Help was collapsed, which can no longer happen.
             PressManyTimes(window, PhysicalKey.ArrowUp, 80);
-            Assert.True(root.RowDefinitions[tabControlRow].Height.Value >= 96 - 0.5,
-                $"TabControl row clamped below its 96-DIP minimum: {root.RowDefinitions[tabControlRow].Height.Value:F1}");
+            Assert.True(root.RowDefinitions[tabControlRow].Height.Value >= 60 - 0.5,
+                $"TabControl row clamped below its 60-DIP minimum: {root.RowDefinitions[tabControlRow].Height.Value:F1}");
         }
         finally { window.Close(); }
     }
@@ -1598,6 +1601,11 @@ public class ReconstructorCompactTests
     /// </summary>
     private static readonly IReadOnlyList<string> CompactModeTabOrderFixture =
     [
+        // The Help links lead in compact too now: the body no longer collapses, so they are
+        // realized and focusable in both modes.
+        "Button name=\"Extracted files for Windows (ready to use)\" id=\"WindowsPackLink\"",
+        "Button name=\"Extracted files for Linux (ready to use)\" id=\"\"",
+        "Button name=\"Original files from RAR FTP (Windows)\" id=\"\"",
         "Button name=\"Export Config\" id=\"\"",
         "Button name=\"Import Config\" id=\"\"",
         "Button name=\"Import from SRR\" id=\"\"",

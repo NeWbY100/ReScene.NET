@@ -987,7 +987,14 @@ internal static class CompactHeightBehavior
 
         // Capped whenever compact, with no Help-open condition: the body is always showing now,
         // so compact mode bounds its height rather than reclaiming it wholesale.
-        body.MaxHeight = state.IsCompact ? GetHelpBodyMaxHeight(control) : double.PositiveInfinity;
+        //
+        // NaN is the property's default and means "this caller declared no cap" — it is NOT a
+        // height. Assigning it raises ArgumentException from MaxHeight's own validation, which
+        // previously could not happen because the cap was only ever applied to a control that had
+        // gone through the Help expander wiring; attaching a body without also declaring a cap now
+        // reaches here directly.
+        double cap = GetHelpBodyMaxHeight(control);
+        body.MaxHeight = state.IsCompact && !double.IsNaN(cap) ? cap : double.PositiveInfinity;
     }
 
     // ── Staged focus ──────────────────────────────────────────────────

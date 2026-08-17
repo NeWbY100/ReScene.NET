@@ -715,9 +715,14 @@ public class CompactHeightBehaviorTests
         var root = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*") };
         root.RowDefinitions[2].MinHeight = DerivedStarFloor;
 
+        // Expanded explicitly: this stands in for any tall chrome the first layout reveals, and
+        // the behavior no longer forces any expander open (Help is a flat section now, so nothing
+        // drives Expander.IsExpanded). A collapsed body would realize nothing and the test would
+        // be asserting the floor accounts for content that was never measured.
         var expander = new Expander
         {
             [Grid.RowProperty] = 0,
+            IsExpanded = true,
             Content = new Border { Height = BodyHeight },
         };
         root.Children.Add(expander);
@@ -732,7 +737,6 @@ public class CompactHeightBehaviorTests
         try
         {
             Assert.DoesNotContain("compactHeight", root.Classes);   // never transitions
-            Assert.True(expander.IsExpanded, "flat mode must force the Help body open");
 
             double threshold = CompactHeightBehavior.GetEffectiveThreshold(root);
             Assert.True(threshold > BodyHeight + DerivedChromeHeight + DerivedStarFloor,
@@ -783,7 +787,7 @@ public class CompactHeightBehaviorTests
 
             w.Height = Threshold - 1;              // → compact
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(80, root.RowDefinitions[1].MinHeight);
+            Assert.Equal(60, root.RowDefinitions[1].MinHeight);
 
             w.Height = Threshold + 12;             // → restore
             Dispatcher.UIThread.RunJobs();
@@ -806,7 +810,7 @@ public class CompactHeightBehaviorTests
             w.Height = Threshold - 1;                          // → compact
             Dispatcher.UIThread.RunJobs();
             Assert.True(root.RowDefinitions[1].Height.IsStar);
-            Assert.Equal(110, root.RowDefinitions[1].MinHeight);
+            Assert.Equal(80, root.RowDefinitions[1].MinHeight);
 
             w.Height = Threshold + 12;                         // → restore
             Dispatcher.UIThread.RunJobs();
