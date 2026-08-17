@@ -331,9 +331,19 @@ public sealed class ReconstructorRelocationRunTests : TempDirTestBase
 
         await vm.RunArchiveSetsForTestAsync(CancellationToken.None);
 
+        // Compared against the RESOLVED roots, because that is what relocation produces:
+        // ResolveOutputChild routes the destination through ReconstructionPathGuard.ResolveReal,
+        // so a temp directory reached through a link comes back spelled as its target. On macOS
+        // that happens with nobody arranging it — Path.GetTempPath() returns /var/folders/…, and
+        // /var is a symlink to /private/var — so a raw prefix check failed there while passing on
+        // Windows and Linux. It also made the negative assertion below vacuous on macOS, since a
+        // /var/… needle can never appear in a /private/var/… destination.
         (_, string destination) = Assert.Single(mover.Moves);
-        Assert.StartsWith(redirected, destination, StringComparison.Ordinal);
-        Assert.DoesNotContain(Path.Combine(original, "output"), destination, StringComparison.Ordinal);
+        Assert.StartsWith(ReconstructionPathGuard.ResolveReal(redirected), destination, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            Path.Combine(ReconstructionPathGuard.ResolveReal(original), "output"),
+            destination,
+            StringComparison.Ordinal);
     }
 
     [Fact]
