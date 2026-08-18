@@ -4,7 +4,6 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -309,7 +308,7 @@ public class ReconstructorCompactTests
             // being hardcoded here, so "which control is first" is a claim the oracle makes and the
             // reverse walk's own boundary-landing assertion below then PROVES, instead of a
             // presumption baked into the test's setup.
-            List<Control> independentOrder = ResolveIndependentExpectedOrder(window, vm, compact);
+            List<Control> independentOrder = ResolveIndependentExpectedOrder(window, vm);
             Control sentinel = independentOrder[0];
 
             IReadOnlyList<string> forwardFixture = compact ? CompactModeTabOrderFixture : NormalModeTabOrderFixture;
@@ -426,14 +425,14 @@ public class ReconstructorCompactTests
     /// starts in the right place" stop being assumptions of the test's setup.
     /// </para>
     /// <para>
-    /// MODE DIFFERENCE, and it is real rather than cosmetic: in compact mode Help starts collapsed
-    /// (condition 5), so the three link buttons are <c>IsVisible=false</c> and genuinely absent
-    /// from the order, and the disclosure's own header toggle — visible ONLY in compact — leads
-    /// instead. In expanded/flat mode the body is force-expanded and the header toggle is hidden,
-    /// so the first link is the true first stop.
+    /// NO mode difference in the Help region, and that is the point of the change that removed it:
+    /// Help is a flat section in both modes, so its three link buttons are always realized and
+    /// always lead the order. It used to differ — compact collapsed the body, which made the links
+    /// <c>IsVisible=false</c> and put the header toggle first instead — which is exactly why this
+    /// method needed to know the mode at all.
     /// </para>
     /// </summary>
-    private static List<Control> ResolveIndependentExpectedOrder(Window window, ReconstructorViewModel vm, bool compact)
+    private static List<Control> ResolveIndependentExpectedOrder(Window window, ReconstructorViewModel vm)
     {
         Button ByCommand(System.Windows.Input.ICommand command) =>
             window.GetVisualDescendants().OfType<Button>().Single(b => ReferenceEquals(b.Command, command));
@@ -547,7 +546,7 @@ public class ReconstructorCompactTests
         (Window window, Grid root) = CompactViewRig.HostAt(view, ExpandedInner);
         try
         {
-            List<Control> independentOrder = ResolveIndependentExpectedOrder(window, vm, compact: false);
+            List<Control> independentOrder = ResolveIndependentExpectedOrder(window, vm);
             independentOrder[0].Focus();
             Dispatcher.UIThread.RunJobs();
 
@@ -652,7 +651,7 @@ public class ReconstructorCompactTests
         (Window window, Grid root) = CompactViewRig.HostAt(view, ExpandedInner);
         try
         {
-            List<Control> independentOrder = ResolveIndependentExpectedOrder(window, vm, compact: false);
+            List<Control> independentOrder = ResolveIndependentExpectedOrder(window, vm);
 
             // BREAK: swap the WinRAR and Release picker rows in the live tree. Whole rows, so the
             // sequence of DESCRIPTIONS a correct walk would produce is permuted rather than

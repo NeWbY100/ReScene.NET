@@ -6,7 +6,6 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using ReScene.Manager.Behaviors;
 
 namespace ReScene.Manager.Tests;
 
