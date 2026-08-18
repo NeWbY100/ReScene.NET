@@ -2,7 +2,7 @@
 
 All notable changes to ReScene Manager (formerly ReScene.NET) are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [2.4.0] — 2026-08-19
 
 ### Added
 
