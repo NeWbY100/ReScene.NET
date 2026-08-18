@@ -11,6 +11,15 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
 
 ### Changed
 
+- Help is now shown outright on every task view, with no dropdown to open first. It used to
+  sit inside a collapsible "Help" section that started closed, and the SRR Creator tab was the
+  only place that looked that way — so the same content behaved differently depending on which
+  tab you were on. Each view now renders its intro text and links directly, at every window
+  size. In a small window the help section scrolls inside its own height budget instead of
+  pushing the work area below its minimum, and it stays reachable from the keyboard (Tab, then
+  PageUp/PageDown or Home/End). Small windows also got a little roomier: the section header and
+  its chrome had been costing height whether help was open or closed, and they are gone.
+
 - The default application name stamped into new SRRs now carries the **short** commit hash —
   `ReScene Manager v1.0.0 (4f12c88)` rather than the full forty-character
   `ReScene Manager v1.0.0 (4f12c881199b52a1e5594f5761cd8ee10f1e5788)`. The version shown in the
