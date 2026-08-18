@@ -206,9 +206,10 @@ public class AccessibleNamingTests
     /// The platform fact the legend's treatment rests on, pinned so it is not taken on trust: a
     /// child marked <c>AccessibilityView="Raw"</c> is still returned by its parent peer's
     /// <c>GetChildren()</c>. Avalonia accepts the property and reads it back, which makes it look
-    /// like it works; it simply has no effect on the peer tree here. StylesTests'
-    /// <c>HelpDisclosure_ExposesCoherentAutomationPeers_InBothModes</c> records the same finding
-    /// from the other direction (why a custom peer, not Raw, was needed there).
+    /// like it works; it simply has no effect on the peer tree here. The Help disclosure's own peer
+    /// test recorded the same finding from the other direction — why a custom peer, not Raw, was
+    /// needed there. That control and its test went with the always-visible Help change, so this
+    /// test is now the only place the platform fact is pinned.
     /// <para>
     /// If a future Avalonia starts honouring it, this test fails — which is the right outcome: that
     /// is the moment to reconsider whether the decorative legend should be pruned instead of named.
