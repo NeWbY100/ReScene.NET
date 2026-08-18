@@ -180,7 +180,7 @@ public class ReconstructorCompactTests
         {
             Assert.Contains("compactHeight", root.Classes);
 
-            // One sum: donation rows applied (TabControl min -> 60) AND the body's own MaxHeight
+            // One sum: the compact minimum (TabControl min -> 60) AND the body's own MaxHeight
             // (38) both spend the same 307-DIP budget — never checked independently.
             double floor = CompactInvariantRig.MeasureFloor(root);
             Assert.True(floor <= CompactInvariantRig.CiBound,
@@ -844,20 +844,43 @@ public class ReconstructorCompactTests
         finally { window.Close(); }
     }
 
+    /// <summary>
+    /// The tip line is never the donor: pressure on a compact layout is absorbed by the work
+    /// band, and the pinned single-line tip keeps its height.
+    /// <para>
+    /// The pressure used to come from expanding Help. With Help always visible there is no such
+    /// toggle, and the first rewrite of this test simply deleted it — leaving the tip's height read
+    /// twice in a row and asserted equal to itself, which no production change could ever have
+    /// failed. The warning row supplies the pressure instead: it is the one remaining thing that
+    /// adds real demand to an already-compact layout. The work band is asserted to SHRINK first,
+    /// because that is what proves the pressure was genuine rather than swallowed by slack — the
+    /// tip holding its height means nothing if nothing was pushing on it.
+    /// </para>
+    /// </summary>
     [AvaloniaFact]
-    public void CompactTip_NeverDonates_IdenticalHeightHelpOpenAndClosed()
+    public void CompactTip_NeverDonates_KeepsItsHeightWhenTheWarningRowAppears()
     {
         ReconstructorViewModel vm = CreateVm();
+        vm.CustomPackerWarning = string.Empty;
         var view = new ReconstructorView { DataContext = vm };
         (Window window, Grid root) = CompactViewRig.HostAt(view, CompactInner);
         try
         {
+            Assert.Contains("compactHeight", root.Classes);
+
             TextBlock tip = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("tipLine"));
-            double heightClosed = tip.Bounds.Height;
+            TabControl work = window.GetVisualDescendants().OfType<TabControl>().Single(t => t.ItemCount == 6);
+            double tipBefore = tip.Bounds.Height;
+            double workBefore = work.Bounds.Height;
+            Assert.True(tipBefore > 0 && workBefore > 0, "test precondition: both bands must be laid out before the warning appears");
 
+            vm.CustomPackerWarning = "Custom packer detected.";
+            Dispatcher.UIThread.RunJobs();
 
-            double heightOpen = tip.Bounds.Height;
-            Assert.Equal(heightClosed, heightOpen, precision: 1);
+            Assert.True(work.Bounds.Height < workBefore,
+                $"test precondition: the warning row must actually squeeze the work band ({workBefore:F1} -> " +
+                $"{work.Bounds.Height:F1}) — if it does not, the tip is under no pressure and the assertion below is vacuous");
+            Assert.Equal(tipBefore, tip.Bounds.Height, precision: 1);
         }
         finally { window.Close(); }
     }
@@ -1028,7 +1051,7 @@ public class ReconstructorCompactTests
     }
 
     [AvaloniaFact]
-    public void HelpOpenDonation_TabRowMin60_BodyMaxHeight38_LastLinkKeyboardReachable()
+    public void CompactMinimums_TabRowMin60_BodyMaxHeight38_LastLinkKeyboardReachable()
     {
         ReconstructorViewModel vm = CreateVm();
         var view = new ReconstructorView { DataContext = vm };
@@ -1108,9 +1131,10 @@ public class ReconstructorCompactTests
     /// there rather than whichever resource key the test guessed.
     /// </para>
     /// <para>
-    /// Scope of the claim, stated exactly: three pixels are sampled, so this proves the focus
-    /// indication is distinguishable from the surfaces immediately adjacent along the splitter's
-    /// own centre line. It does not survey either neighbouring pane as a whole.
+    /// Scope of the claim, stated exactly: three lines the width of the splitter are sampled, so
+    /// this proves the focus indication is distinguishable from the surfaces immediately adjacent
+    /// along the splitter's own shared edges. It does not survey either neighbouring pane as a
+    /// whole, and it deliberately disregards text and antialiasing sitting on those surfaces.
     /// </para>
     /// </summary>
     [AvaloniaFact]
@@ -1132,8 +1156,8 @@ public class ReconstructorCompactTests
 
             (double contrastVsAbove, double contrastVsBelow) = MeasureSplitterFocusContrast(splitter, window);
 
-            Assert.True(contrastVsAbove >= 3.0, $"rendered focus pixel vs the pixel 3 DIPs above: {contrastVsAbove:F2}:1 (need >= 3:1)");
-            Assert.True(contrastVsBelow >= 3.0, $"rendered focus pixel vs the pixel 3 DIPs below: {contrastVsBelow:F2}:1 (need >= 3:1)");
+            Assert.True(contrastVsAbove >= 3.0, $"rendered focus band vs the worst surface 3 DIPs above: {contrastVsAbove:F2}:1 (need >= 3:1)");
+            Assert.True(contrastVsBelow >= 3.0, $"rendered focus band vs the worst surface 3 DIPs below: {contrastVsBelow:F2}:1 (need >= 3:1)");
         }
         finally { window.Close(); }
     }
@@ -1182,7 +1206,7 @@ public class ReconstructorCompactTests
 
             (double brokenAbove, double brokenBelow) = MeasureSplitterFocusContrast(splitter, window);
             Assert.True(brokenAbove < 3.0 && brokenBelow < 3.0,
-                $"the unpainted (Opacity=0) splitter should have FAILED the 3:1 bar — its rendered pixel no longer shows the focus " +
+                $"the unpainted (Opacity=0) splitter should have FAILED the 3:1 bar — its rendered band no longer shows the focus " +
                 $"colour at all — but measured {brokenAbove:F2}:1 above / {brokenBelow:F2}:1 below: this covering test no longer discriminates.");
 
             splitter.Opacity = 1;
@@ -1197,9 +1221,10 @@ public class ReconstructorCompactTests
     }
 
     /// <summary>
-    /// Samples the REAL RENDERED PIXEL at the splitter's own centre and at the points 3 DIPs
-    /// directly above and below it, and returns the WCAG contrast ratio of the first against each
-    /// of the other two. Local copy of <c>CreatorCompactTests</c>' helper of the same name, per the
+    /// Samples the REAL RENDERED PIXELS along the splitter's own centre line and along the lines
+    /// 3 DIPs directly above and below it, and returns the WCAG contrast ratio of the focus band
+    /// against the worst SURFACE on each neighbouring line (see <see cref="WorstSurfaceContrast"/>
+    /// for what counts as a surface). Local copy of <c>CreatorCompactTests</c>' helper of the same name, per the
     /// no-promotion rule: the two are the same shape but not the same contract — that one names its
     /// neighbours "the stored-files grid and the output section", this one the Paths/Options
     /// TabControl and the log, and each suite's own doc explains its own geometry. Nothing is
@@ -1214,33 +1239,89 @@ public class ReconstructorCompactTests
     {
         AssertFullyWithinWindow(splitter, window);
 
-        Point center = new(splitter.Bounds.Width / 2, splitter.Bounds.Height / 2);
-        Point? centerInWindow = splitter.TranslatePoint(center, window);
-        Assert.True(centerInWindow is not null, "test precondition: the splitter's own centre must translate into window coordinates");
-        Color focusColor = SamplePixelColor(window, centerInWindow.Value);
+        // ONE render serves every sample below. The superseded SamplePixelColor re-rendered the
+        // whole window per pixel, which is why the old form could only afford three of them.
+        var size = new PixelSize((int)Math.Ceiling(window.Bounds.Width), (int)Math.Ceiling(window.Bounds.Height));
+        byte[] frame = RenderToPixelBuffer(window, size);
 
-        Point? aboveInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, -3), window);
-        Point? belowInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, splitter.Bounds.Height + 3), window);
-        Assert.True(aboveInWindow is not null && belowInWindow is not null, "test precondition: both neighbouring points must translate into window coordinates");
+        Point? originInWindow = splitter.TranslatePoint(new Point(0, 0), window);
+        Assert.True(originInWindow is not null, "test precondition: the splitter's own origin must translate into window coordinates");
+        int left = (int)Math.Round(originInWindow.Value.X);
+        int top = (int)Math.Round(originInWindow.Value.Y);
+        int width = (int)Math.Round(splitter.Bounds.Width);
+        int height = (int)Math.Round(splitter.Bounds.Height);
+        Assert.True(width > 0 && height > 0, "test precondition: the splitter must have a positive rendered size");
 
-        Color abovePane = SamplePixelColor(window, aboveInWindow.Value);
-        Color belowPane = SamplePixelColor(window, belowInWindow.Value);
+        // The focus colour is the splitter's own centre line, taken as its dominant colour for the
+        // same reason as the neighbours: it must describe the whole band rather than one sample of
+        // it. On a painted splitter that line is uniform, so this is exact.
+        Color focusColor = TallyRow(frame, size, top + (height / 2), left, width)[0].Color;
 
-        return (ContrastRatio(focusColor, abovePane), ContrastRatio(focusColor, belowPane));
+        return (WorstSurfaceContrast(focusColor, frame, size, top - 3, left, width),
+                WorstSurfaceContrast(focusColor, frame, size, top + height + 3, left, width));
     }
 
-    /// <summary>Renders the whole window and reads back one pixel's RGBA — used to sample a
-    /// neighbouring pane's TRUE rendered colour rather than guessing which named resource applies.</summary>
-    private static Color SamplePixelColor(Window window, Point pointInWindow)
+    /// <summary>
+    /// The WCAG contrast of <paramref name="focus"/> against the worst SURFACE on the sampled
+    /// line — every colour covering at least a quarter of the splitter's own width.
+    /// <para>
+    /// That quarter-width floor is the point of this helper, and it is what replaced the original
+    /// single-pixel form. That form read one pixel 3 DIPs into the neighbouring pane and called it
+    /// "the pane", which was true only for as long as that pixel happened to land on background.
+    /// It stopped being true when always-visible Help re-proportioned this view and moved a line of
+    /// the TabControl's text under the sample point: the test then measured the focus ring against
+    /// the subpixel-antialiasing fringe of a glyph (#4f84aa, 1.12:1) while the pane behind it was
+    /// plain black at a comfortable 4.64:1.
+    /// </para>
+    /// <para>
+    /// Surveying the full shared edge and keeping only colours with real area measures what the
+    /// contract actually says — the ring against the surfaces it separates — and is strictly MORE
+    /// evidence than three pixels were, not less: text and antialiasing scatter across many
+    /// colours of a few pixels each and are correctly disregarded, while any genuinely adjacent
+    /// surface clears a quarter of the edge easily. A neighbour so densely patterned that no
+    /// colour reaches a quarter falls back to its most common colour, so the measurement always
+    /// names a real surface rather than degrading to "no data".
+    /// </para>
+    /// </summary>
+    private static double WorstSurfaceContrast(Color focus, byte[] frame, PixelSize size, int y, int x0, int width)
     {
-        var size = new PixelSize((int)Math.Ceiling(window.Bounds.Width), (int)Math.Ceiling(window.Bounds.Height));
-        byte[] buffer = RenderToPixelBuffer(window, size);
+        IReadOnlyList<(Color Color, int Count)> tally = TallyRow(frame, size, y, x0, width);
+        int surfaceFloor = Math.Max(1, width / 4);
 
-        int x = Math.Clamp((int)pointInWindow.X, 0, size.Width - 1);
-        int y = Math.Clamp((int)pointInWindow.Y, 0, size.Height - 1);
-        int offset = (y * size.Width * 4) + (x * 4);
-        // Avalonia's RenderTargetBitmap default pixel format is BGRA8888.
-        return Color.FromArgb(buffer[offset + 3], buffer[offset + 2], buffer[offset + 1], buffer[offset]);
+        double worst = double.PositiveInfinity;
+        foreach ((Color color, int count) in tally)
+        {
+            if (count >= surfaceFloor)
+            {
+                worst = Math.Min(worst, ContrastRatio(focus, color));
+            }
+        }
+
+        return double.IsPositiveInfinity(worst) ? ContrastRatio(focus, tally[0].Color) : worst;
+    }
+
+    /// <summary>
+    /// Every colour rendered on row <paramref name="y"/> from <paramref name="x0"/> across
+    /// <paramref name="width"/> pixels, most frequent first.
+    /// </summary>
+    private static IReadOnlyList<(Color Color, int Count)> TallyRow(byte[] frame, PixelSize size, int y, int x0, int width)
+    {
+        int row = Math.Clamp(y, 0, size.Height - 1);
+        var tally = new Dictionary<Color, int>();
+
+        for (int i = 0; i < width; i++)
+        {
+            int x = Math.Clamp(x0 + i, 0, size.Width - 1);
+            int offset = (row * size.Width * 4) + (x * 4);
+            // Avalonia's RenderTargetBitmap default pixel format is BGRA8888.
+            var color = Color.FromArgb(frame[offset + 3], frame[offset + 2], frame[offset + 1], frame[offset]);
+            tally[color] = tally.TryGetValue(color, out int seen) ? seen + 1 : 1;
+        }
+
+        Assert.NotEmpty(tally);
+        return tally.OrderByDescending(entry => entry.Value)
+                    .Select(entry => (entry.Key, entry.Value))
+                    .ToList();
     }
 
     /// <summary>

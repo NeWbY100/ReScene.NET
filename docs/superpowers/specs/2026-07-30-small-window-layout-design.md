@@ -137,6 +137,9 @@ The 307 bound is 319 minus the 12-DIP jitter allowance (a11y rev-3 advisory): fr
 DIPs at 125/150% and the warning row's 31–35 spread must fail in CI, not on a user's
 screen. Thresholds cannot drift unsafe, and compact feasibility is proven, not assumed.
 
+> **SUPERSEDED 2026-08-18 — Help is always visible, so items 2 and 3 of the invariant above are one check, and the donation rule below is gone — its donated minimums are simply the compact minimums.** See
+> [Amendment 2026-08-18](#amendment-2026-08-18--help-is-always-visible-the-disclosure-and-the-donation-rule-are-gone).
+
 **Donation rule:** while the Help body is expanded in compact mode, the primary work band
 donates height — its compact minimum drops further (Reconstructor TabControl 96 → 60;
 three-band config 110 → 80), behavior-applied together with the expander state. The body's
@@ -168,6 +171,9 @@ given its content volume.)
 > 307 bound are unchanged and still normative. See
 > [Amendment 2026-08-02](#amendment-2026-08-02--derived-thresholds) for what replaced them; the
 > table is retained because the amendment's authored minimums are back-derived from it.
+
+> **SUPERSEDED 2026-08-18 — the disclosure is removed; Help renders directly in both modes. Everything in this section is superseded EXCEPT the keyboard-scrolling contract, which survives unchanged.** See
+> [Amendment 2026-08-18](#amendment-2026-08-18--help-is-always-visible-the-disclosure-and-the-donation-rule-are-gone).
 
 ### 2. Chrome — the "Help" disclosure (always-present, single instance)
 
@@ -230,6 +236,9 @@ modes; under `.compactHeight` it is styled to a single line — APPROVED with co
   Tab and UIA. Toolbar and the conditional warning row are content — never collapsed.
 - Normal-mode order: identical to today (the hidden header contributes nothing).
   Criterion F snapshots BOTH modes (a11y rev-2 NEW-3).
+
+> **SUPERSEDED 2026-08-18 — the "while Help is open" tiers here and in §4 are now the unconditional compact minimums.** See
+> [Amendment 2026-08-18](#amendment-2026-08-18--help-is-always-visible-the-disclosure-and-the-donation-rule-are-gone).
 
 ### 3. Minimum relaxation and local-value audit
 
@@ -523,6 +532,55 @@ Two other recalibrations, both from measured 13px geometry rather than widened t
   the top, where the same rule gave 1.00 against a 16px row at 12px. The test now derives the
   expected offset from the measured slack, so it asserts CENTRING rather than a particular font
   size, and asserts the slack is large enough for centred and top-aligned to be distinguishable.
+
+## Amendment 2026-08-18 — Help is always visible; the disclosure and the donation rule are gone
+
+The `Expander` disclosure of §2 is removed. Every view now renders its Help content directly,
+in both modes, with no header, no toggle and no expand/collapse state. User decision ("no
+'help' dropdown to show the help, and instead, always just show the help"), taken because the
+SRR Creator tab was the only one whose help sat behind a control — the inconsistency that
+prompted this.
+
+**What it supersedes**
+
+- §1's **donation rule**, and with it the two-tier compact minimums. There is no Help-open
+  tier and no Help-closed tier: the donated value IS the compact minimum (Reconstructor
+  TabControl **60**, three-band config **80**). `CompactRowSize` collapsed its two minimum
+  fields into one and kept the donated number — the value each view had already been proven
+  to satisfy the 307 bound with, so the bound is preserved by construction rather than by
+  re-derivation.
+- §1's threshold invariant, items **2 and 3**, which measured a Help-closed floor and a
+  Help-open floor as separate checks. One state exists, so one check remains: the compact
+  floor, body budget included, against the 307 bound.
+- §2 entire, EXCEPT the keyboard-scrolling contract, which survives unchanged —
+  `ScrollViewer.helpBody` focusable in compact only, PageUp/PageDown plus the shared
+  `ScrollViewerHomeEndKeys` behavior for Home/End, `AutomationProperties.Name="Help content"`,
+  and the Reconstructor's body never focusable because its link buttons are the keyboard route
+  (it keeps its own `AutomationProperties.Name="Help & links"`). The compact order loses its
+  leading disclosure header, and the body is never `IsVisible=false`.
+- §3's "**60** while Help is open" and §4's "min 80 while Help is open" — both unconditional
+  compact minimums now.
+
+**Mechanism removed.** `HelpDisclosure` and its automation peer are deleted, as are the
+behavior's `HelpOpen` and `HelpExpander` attached properties and the recompute path that kept
+them in sync with expander state. One `HelpBody` attached property replaces all of it, carrying
+the compact `MaxHeight` cap and the compact focus target.
+
+**Measured compact floors** — inner width 676 at the 700×450 minimum, conditional rows forced
+visible, body budget included. These are the executable invariant's own numbers, not arithmetic:
+
+| View | Compact floor (≤ 307) | Was, Help open (2026-08-02b) |
+|---|---|---|
+| Reconstructor | **271** | 297 |
+| SRSReconstructor | **272** | 290 |
+| SRSCreator | **265** | 283 |
+| SampleRestorer | **257** | 275 |
+| Creator | **257** | not separately measured |
+
+Every view with a prior measurement got CHEAPER, which is the result to check rather than
+assume: the always-present body costs nothing new, because donation had already budgeted it,
+while the disclosure header and its chrome — paid for in both states — are gone. Headroom
+against the 307 bound is now 35–50 DIPs per view.
 
 ## Out of scope
 

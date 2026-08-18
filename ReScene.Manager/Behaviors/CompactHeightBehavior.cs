@@ -17,8 +17,8 @@ namespace ReScene.Manager.Behaviors;
 /// metrics need more room gets a switch point that reflects that instead of a constant calibrated
 /// somewhere else; <see cref="ThresholdProperty"/> survives as an optional MINIMUM. Applies
 /// per-view <see cref="CompactRowSize"/> values on the root AND on descendant grids
-/// carrying their own RowSizes attachment (collected at each apply), applies help-open
-/// donation, manages the Help expander's per-mode state, runs the staged
+/// carrying their own RowSizes attachment (collected at each apply), caps the always-visible
+/// Help body's height in compact mode, runs the staged
 /// focus algorithm across transitions, and keeps a still-focused element visible across
 /// CONTINUED resizing between transitions (see <see cref="RecheckFocusAfterResize"/>).
 /// </summary>

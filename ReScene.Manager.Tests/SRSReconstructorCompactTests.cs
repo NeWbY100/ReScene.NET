@@ -150,7 +150,7 @@ public class SRSReconstructorCompactTests
         {
             Assert.Contains("compactHeight", root.Classes);
 
-            // One sum: donation row applied (config row min -> 80) AND the body's own MaxHeight
+            // One sum: the compact minimum (config row min -> 80) AND the body's own MaxHeight
             // (40) both spend the same 307-DIP budget — never checked independently.
             double floor = CompactInvariantRig.MeasureFloor(root);
             Assert.True(floor <= CompactInvariantRig.CiBound,
@@ -582,7 +582,7 @@ public class SRSReconstructorCompactTests
     }
 
     [AvaloniaFact]
-    public void HelpOpenDonation_ConfigRowMin80_BodyMaxHeight40_OutputTextBoxKeyboardReachable()
+    public void CompactMinimums_ConfigRowMin80_BodyMaxHeight40_OutputTextBoxKeyboardReachable()
     {
         SRSReconstructorViewModel vm = CreateVm();
         var view = new SRSReconstructorView { DataContext = vm };
@@ -635,7 +635,7 @@ public class SRSReconstructorCompactTests
     /// <summary>
     /// All four built-ins exercised with genuine key input against a REAL, attached
     /// ScrollViewer — never a synthetic Offset-setter poke. This view's own
-    /// intro prose is short enough that it never genuinely overflows the 40-DIP donation cap at
+    /// intro prose is short enough that it never genuinely overflows the 40-DIP Help body cap at
     /// the app's own enforced minimum width, so — mirroring SRSCreatorCompactTests' own,
     /// identical finding — the body's Text is temporarily lengthened (synthetic content, this
     /// test only) so the four keys can be proven against REAL overflow; the scroller/keys are a

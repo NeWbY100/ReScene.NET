@@ -296,7 +296,7 @@ public class CreatorCompactTests
         {
             Assert.Contains("compactHeight", root.Classes);
 
-            // One sum: donation row applied (config row min -> 80) AND the body's own MaxHeight
+            // One sum: the compact minimum (config row min -> 80) AND the body's own MaxHeight
             // (40) both spend the same 307-DIP budget — never checked independently.
             double floor = CompactInvariantRig.MeasureFloor(root);
             Assert.True(floor <= CompactInvariantRig.CiBound,
@@ -996,7 +996,7 @@ public class CreatorCompactTests
     }
 
     [AvaloniaFact]
-    public void HelpOpenDonation_ConfigRowMin80_BodyMaxHeight40_AppNameKeyboardReachable_StoredFilesRowStaysAt80()
+    public void CompactMinimums_ConfigRowMin80_BodyMaxHeight40_AppNameKeyboardReachable_StoredFilesRowStaysAt80()
     {
         CreatorViewModel vm = CreateVm();
         var view = new CreatorView { DataContext = vm };
@@ -1020,9 +1020,9 @@ public class CreatorCompactTests
             TextBox appName = window.GetVisualDescendants().OfType<TextBox>().Single(t => t.Width == 400);
             CompactViewRig.AssertReachableByKeyboard(window, appName);
 
-            // The DESCENDANT row (ConfigGrid row 3, Stored Files) shares the SAME HelpOpenMinHeight
-            // (80) as its own CompactMinHeight — donation while Help is open does not further
-            // shrink the Stored Files grid beyond its already-compact floor.
+            // The DESCENDANT row (ConfigGrid row 3, Stored Files) declares that same 80 as its own
+            // CompactMinHeight, so the always-visible Help body never shrinks the Stored Files grid
+            // beyond its already-compact floor.
             Grid configGrid = window.GetVisualDescendants().OfType<Grid>().Single(g => g.Name == "ConfigGrid");
             Assert.Equal(80, configGrid.RowDefinitions[3].Height.Value);
             Assert.Equal(80, configGrid.RowDefinitions[3].MinHeight);
@@ -1067,7 +1067,7 @@ public class CreatorCompactTests
     /// <summary>
     /// All four built-ins exercised with genuine key input against a REAL, attached ScrollViewer —
     /// never a synthetic Offset-setter poke. This view's own intro prose is short enough that it
-    /// never genuinely overflows the 40-DIP donation cap at the app's own enforced minimum width,
+    /// never genuinely overflows the 40-DIP Help body cap at the app's own enforced minimum width,
     /// so — mirroring every other converted view's own identical finding — the body's Text is
     /// temporarily lengthened (synthetic content, this test only) so the four keys can be proven
     /// against REAL overflow.

@@ -155,7 +155,7 @@ public class SRSCreatorCompactTests
         {
             Assert.Contains("compactHeight", root.Classes);
 
-            // One sum: donation row applied (config row min -> 80) AND the body's own MaxHeight
+            // One sum: the compact minimum (config row min -> 80) AND the body's own MaxHeight
             // (40) both spend the same 307-DIP budget — never checked independently.
             double floor = CompactInvariantRig.MeasureFloor(root);
             Assert.True(floor <= CompactInvariantRig.CiBound,
@@ -640,7 +640,7 @@ public class SRSCreatorCompactTests
     }
 
     [AvaloniaFact]
-    public void HelpOpenDonation_ConfigRowMin80_BodyMaxHeight40_AppNameKeyboardReachable()
+    public void CompactMinimums_ConfigRowMin80_BodyMaxHeight40_AppNameKeyboardReachable()
     {
         SRSCreatorViewModel vm = CreateVm();
         var view = new SRSCreatorView { DataContext = vm };
@@ -697,7 +697,7 @@ public class SRSCreatorCompactTests
     /// <para>
     /// MEASURED: this view's actual intro prose (172 characters) renders at ~35 DIPs at the
     /// app's own enforced minimum width (<c>MainWindow.MinWidth="700"</c>, confirmed in
-    /// MainWindow.axaml) — under the 40-DIP HelpBodyMaxHeight donation cap, so it never
+    /// MainWindow.axaml) — under the 40-DIP HelpBodyMaxHeight cap, so it never
     /// genuinely overflows and there is nothing for the real production text to page through at
     /// any window size the app allows. The body's own Text is therefore temporarily lengthened
     /// (synthetic content, this test only) so the four keys can be proven against REAL overflow;

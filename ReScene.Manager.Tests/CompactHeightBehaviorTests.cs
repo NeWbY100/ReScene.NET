@@ -12,7 +12,7 @@ namespace ReScene.Manager.Tests;
 /// <summary>
 /// Contract tests for <see cref="CompactHeightBehavior"/>: threshold semantics
 /// with restore-only hysteresis, ignored zero bounds, RowSizes application with
-/// splitter-capture, help-open donation, class preservation, and staged focus.
+/// splitter-capture, compact minimums, class preservation, and staged focus.
 /// </summary>
 public class CompactHeightBehaviorTests
 {
@@ -492,10 +492,10 @@ public class CompactHeightBehaviorTests
     }
 
     /// <summary>
-    /// Help donation is a COMPACT-mode mechanism and must not reach the expanded floor. Expanded
-    /// mode renders the Help body flat and unconstrained — its largest state, already measured as
-    /// chrome — so there is no donated budget to account for, and the floor must not quietly swap
-    /// in a donation minimum just because <c>HelpOpen</c> happens to read true.
+    /// Compact minimums must not reach the expanded floor. Expanded mode renders the Help body
+    /// flat and unconstrained — its largest state, already measured as chrome — so the floor is
+    /// built from each row's <c>ExpandedMinHeight</c> and must never quietly substitute the
+    /// smaller compact minimum.
     /// </summary>
     [AvaloniaFact]
     public void CompactMinimums_NeverEnterTheExpandedFloor()
