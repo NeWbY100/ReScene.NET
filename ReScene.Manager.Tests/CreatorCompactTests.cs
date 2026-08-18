@@ -2368,8 +2368,7 @@ public class CreatorCompactTests
     /// <summary>
     /// Extracted so both the default-theme and the complete-HC-fixture tests (expanded AND
     /// compact variants of each) share the exact same sampling/math, never duplicated by hand.
-    /// </summary>
-    /// <summary>
+    /// <para>
     /// Previously read <c>splitter.Background</c>'s own LOGICAL
     /// brush color directly — the exact same defect class as the "Transparent.Color is
     /// meaningless" bug documented below, just reachable a different way: MEASURED (a throwaway diagnostic) that
@@ -2381,27 +2380,127 @@ public class CreatorCompactTests
     /// undetected. Fixed to (a) an IN-BOUNDS check (<see cref="AssertFullyWithinWindow"/>, this
     /// file's own established clip-aware visibility helper — catches scrolled-away/clipped cases
     /// the opacity case does NOT, so both checks are needed, not either alone) and (b) sampling the
-    /// REAL RENDERED PIXEL at the splitter's own center (the same technique already used for both
-    /// neighboring panes) instead of trusting the logical property. Proven to genuinely
+    /// REAL RENDERED PIXELS along the splitter's own center line (the same technique already used
+    /// for both neighboring panes) instead of trusting the logical property. Proven to genuinely
     /// discriminate by <see cref="Splitter_FocusVisual_ContrastMeasurement_UnpaintedSplitter_FailsTheCheck"/>.
+    /// </para>
+    /// <para>
+    /// What each neighboring reading MEANS is <see cref="WorstSurfaceContrast"/>'s business: the
+    /// worst surface along the shared edge, not one pixel of it.
+    /// </para>
     /// </summary>
     private static (double ContrastVsAbove, double ContrastVsBelow) MeasureSplitterFocusContrast(GridSplitter splitter, Window window)
     {
         AssertFullyWithinWindow(splitter, window);
 
-        Point center = new(splitter.Bounds.Width / 2, splitter.Bounds.Height / 2);
-        Point? centerInWindow = splitter.TranslatePoint(center, window);
-        Assert.True(centerInWindow is not null, "test precondition: the splitter's own center must translate into window coordinates");
-        Color focusColor = SamplePixelColor(window, centerInWindow.Value);
+        (byte[] frame, PixelSize size, int left, int top, int width, int height) = CaptureSplitterBand(splitter, window);
 
-        Point? aboveInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, -3), window);
-        Point? belowInWindow = splitter.TranslatePoint(new Point(splitter.Bounds.Width / 2, splitter.Bounds.Height + 3), window);
-        Assert.True(aboveInWindow is not null && belowInWindow is not null, "test precondition: both neighboring points must translate into window coordinates");
+        Color focusColor = TallyRow(frame, size, top + (height / 2), left, width)[0].Color;
 
-        Color abovePane = SamplePixelColor(window, aboveInWindow.Value);
-        Color belowPane = SamplePixelColor(window, belowInWindow.Value);
+        return (WorstSurfaceContrast(focusColor, frame, size, top - 3, left, width),
+                WorstSurfaceContrast(focusColor, frame, size, top + height + 3, left, width));
+    }
 
-        return (ContrastRatio(focusColor, abovePane), ContrastRatio(focusColor, belowPane));
+    /// <summary>
+    /// The color of the splitter's own band, taken as the dominant color along its center line.
+    /// <para>
+    /// The HC test's unfocused baseline needs this rather than one pixel for a reason particular to
+    /// the REST state: an unfocused splitter's Background is literally <c>Transparent</c>, so the
+    /// pixels along its center line are whatever the pane BEHIND it renders — including any text
+    /// that happens to sit there. One pixel of that is a lottery; the dominant color is the
+    /// surface. On a focused (painted) splitter the line is uniform, so this is exact.
+    /// </para>
+    /// </summary>
+    private static Color SampleSplitterBandColor(GridSplitter splitter, Window window)
+    {
+        (byte[] frame, PixelSize size, int left, int top, int width, int height) = CaptureSplitterBand(splitter, window);
+        return TallyRow(frame, size, top + (height / 2), left, width)[0].Color;
+    }
+
+    /// <summary>
+    /// Renders the window ONCE and returns the frame together with the splitter's rendered
+    /// rectangle in window pixels. One render serves every sample taken from it — the superseded
+    /// per-pixel sampler re-rendered the whole window for each reading, which is why the old form
+    /// could only afford three of them.
+    /// </summary>
+    private static (byte[] Frame, PixelSize Size, int Left, int Top, int Width, int Height) CaptureSplitterBand(GridSplitter splitter, Window window)
+    {
+        var size = new PixelSize((int)Math.Ceiling(window.Bounds.Width), (int)Math.Ceiling(window.Bounds.Height));
+        byte[] frame = RenderToPixelBuffer(window, size);
+
+        Point? originInWindow = splitter.TranslatePoint(new Point(0, 0), window);
+        Assert.True(originInWindow is not null, "test precondition: the splitter's own origin must translate into window coordinates");
+
+        int width = (int)Math.Round(splitter.Bounds.Width);
+        int height = (int)Math.Round(splitter.Bounds.Height);
+        Assert.True(width > 0 && height > 0, "test precondition: the splitter must have a positive rendered size");
+
+        return (frame, size, (int)Math.Round(originInWindow.Value.X), (int)Math.Round(originInWindow.Value.Y), width, height);
+    }
+
+    /// <summary>
+    /// The WCAG contrast of <paramref name="focus"/> against the worst SURFACE on the sampled
+    /// line — every color covering at least a quarter of the splitter's own width.
+    /// <para>
+    /// That quarter-width floor is the point of this helper, and it is what replaced the original
+    /// single-pixel form. That form read one pixel 3 DIPs into the neighboring pane and called it
+    /// "the pane", which held only for as long as that pixel happened to land on background. The
+    /// Reconstructor suite's identical helper proved how that fails: a layout change slid a line of
+    /// text under its sample point, and the check measured the focus ring against the
+    /// subpixel-antialiasing fringe of a glyph (1.12:1) while the pane behind it sat at a
+    /// comfortable 4.64:1. Nothing had regressed except the measurement. This suite is ported
+    /// ahead of the same thing happening to it — its neighbors here are the stored-files grid and
+    /// the output section, both of which are mostly text.
+    /// </para>
+    /// <para>
+    /// Surveying the full shared edge and keeping only colors with real area measures what the
+    /// contract actually says — the indicator against the surfaces it separates — and is strictly
+    /// MORE evidence than three pixels were, not less: text and antialiasing scatter across many
+    /// colors of a few pixels each and are correctly disregarded, while any genuinely adjacent
+    /// surface clears a quarter of the edge easily. A neighbor so densely patterned that no color
+    /// reaches a quarter falls back to its most common color, so the measurement always names a
+    /// real surface rather than degrading to "no data".
+    /// </para>
+    /// </summary>
+    private static double WorstSurfaceContrast(Color focus, byte[] frame, PixelSize size, int y, int x0, int width)
+    {
+        IReadOnlyList<(Color Color, int Count)> tally = TallyRow(frame, size, y, x0, width);
+        int surfaceFloor = Math.Max(1, width / 4);
+
+        double worst = double.PositiveInfinity;
+        foreach ((Color color, int count) in tally)
+        {
+            if (count >= surfaceFloor)
+            {
+                worst = Math.Min(worst, ContrastRatio(focus, color));
+            }
+        }
+
+        return double.IsPositiveInfinity(worst) ? ContrastRatio(focus, tally[0].Color) : worst;
+    }
+
+    /// <summary>
+    /// Every color rendered on row <paramref name="y"/> from <paramref name="x0"/> across
+    /// <paramref name="width"/> pixels, most frequent first.
+    /// </summary>
+    private static IReadOnlyList<(Color Color, int Count)> TallyRow(byte[] frame, PixelSize size, int y, int x0, int width)
+    {
+        int row = Math.Clamp(y, 0, size.Height - 1);
+        var tally = new Dictionary<Color, int>();
+
+        for (int i = 0; i < width; i++)
+        {
+            int x = Math.Clamp(x0 + i, 0, size.Width - 1);
+            int offset = (row * size.Width * 4) + (x * 4);
+            // Avalonia's RenderTargetBitmap default pixel format is BGRA8888.
+            var color = Color.FromArgb(frame[offset + 3], frame[offset + 2], frame[offset + 1], frame[offset]);
+            tally[color] = tally.TryGetValue(color, out int seen) ? seen + 1 : 1;
+        }
+
+        Assert.NotEmpty(tally);
+        return tally.OrderByDescending(entry => entry.Value)
+                    .Select(entry => (entry.Key, entry.Value))
+                    .ToList();
     }
 
     /// <summary>
@@ -2666,7 +2765,6 @@ public class CreatorCompactTests
         try
         {
             GridSplitter splitter = window.GetVisualDescendants().OfType<GridSplitter>().Single();
-            Point splitterCenter = new(splitter.Bounds.Width / 2, splitter.Bounds.Height / 2);
 
             using (new HighContrastFixtureScope())
             {
@@ -2677,14 +2775,14 @@ public class CreatorCompactTests
                 // its zero alpha (MEASURED: Avalonia's Transparent carries WHITE channels at alpha
                 // 0), which is not what a user actually SEES — nothing ever renders that value,
                 // since alpha-zero paints nothing at all and the pane behind shows through instead.
-                // Sampling the real rendered pixel (the same technique already used for the
-                // neighboring panes) captures what is ACTUALLY visible when unfocused, under the
-                // SAME HC theme, for a genuine apples-to-apples comparison.
-                Point? centerInWindow = splitter.TranslatePoint(splitterCenter, window);
-                Assert.True(centerInWindow is not null);
+                // Sampling the real render (the same technique already used for the neighboring
+                // panes) captures what is ACTUALLY visible when unfocused, under the SAME HC theme,
+                // for a genuine apples-to-apples comparison. Taken as the band's DOMINANT color:
+                // because the rest state paints nothing at all, these pixels are the pane behind
+                // the splitter, and one pixel of a pane can just as easily be a glyph as a surface.
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 Dispatcher.UIThread.RunJobs();
-                Color unfocusedColor = SamplePixelColor(window, centerInWindow.Value);
+                Color unfocusedColor = SampleSplitterBandColor(splitter, window);
 
                 splitter.Focus();
                 Dispatcher.UIThread.RunJobs();
@@ -2974,36 +3072,6 @@ public class CreatorCompactTests
             }
         }
         finally { window.Close(); }
-    }
-
-    /// <summary>Renders the whole window and reads back one pixel's RGBA — used to sample a
-    /// neighboring pane's TRUE rendered color rather than guessing which named resource applies.</summary>
-    private static Color SamplePixelColor(Window window, Point pointInWindow)
-    {
-        var size = new PixelSize((int)Math.Ceiling(window.Bounds.Width), (int)Math.Ceiling(window.Bounds.Height));
-        using var bitmap = new RenderTargetBitmap(size, new Vector(96, 96));
-        bitmap.Render(window);
-
-        byte[] buffer = new byte[size.Width * size.Height * 4];
-        var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-        try
-        {
-            bitmap.CopyPixels(new PixelRect(0, 0, size.Width, size.Height), handle.AddrOfPinnedObject(), buffer.Length, size.Width * 4);
-        }
-        finally
-        {
-            handle.Free();
-        }
-
-        int x = Math.Clamp((int)pointInWindow.X, 0, size.Width - 1);
-        int y = Math.Clamp((int)pointInWindow.Y, 0, size.Height - 1);
-        int offset = (y * size.Width * 4) + (x * 4);
-        // Avalonia's RenderTargetBitmap default pixel format is BGRA8888.
-        byte b = buffer[offset];
-        byte g = buffer[offset + 1];
-        byte r = buffer[offset + 2];
-        byte a = buffer[offset + 3];
-        return Color.FromArgb(a, r, g, b);
     }
 
     /// <summary>WCAG 2.x relative luminance + contrast ratio, computed from rendered brush colors — never a hardcoded number. Mirrors ReconstructorCompactTests' own identical helper.</summary>
