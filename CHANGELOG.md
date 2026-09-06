@@ -35,6 +35,22 @@ All notable changes to ReScene Manager (formerly ReScene.NET) are documented her
   test app builders now call `.UseHarfBuzz()`, because v12 decoupled text shaping from the
   rendering backend and an explicit `.UseSkia()` no longer brings a shaper with it.
 
+- Every other package is on its latest release: `Microsoft.NET.Test.Sdk` 17.14.1 → 18.9.0,
+  `xunit.runner.visualstudio` 3.1.4 → 4.0.0 (which still runs v2 and v3 suites alike),
+  `coverlet.collector` 6.0.4 → 10.0.1, `Microsoft.Extensions.TimeProvider.Testing` 10.7.0 → 10.9.0,
+  and in the library `System.IO.Hashing` 9.0.4 → 10.0.11 and `CliWrap` 3.10.0 → 3.10.5.
+  `CommunityToolkit.Mvvm` (8.4.2), `Crc32.NET` (1.2.0), `DiscUtils.*` (0.16.13) and the xUnit v2
+  packages were already current.
+
+- `xunit.v3` is held at **3.2.2** rather than 4.0.0, deliberately. 4.0.0 switches to Microsoft
+  Testing Platform v2, whose MSBuild targets refuse the VSTest path outright on the .NET 10 SDK —
+  and the refusal is silent in the worst way: `dotnet test` still exits 0 while running none of the
+  two headless suites' 1,402 tests. Moving up is a test-infrastructure migration rather than a
+  version bump: every suite in the repo would have to convert (the CLI and the library are still
+  xUnit v2, which has no MTP support at all), along with both CI legs, since a single solution-wide
+  run cannot drive VSTest and MTP projects together. The pin carries that reasoning in the csproj
+  so the next person to try it checks the reported test count, not just the exit code.
+
 ## [2.4.0] — 2026-08-19
 
 ### Added

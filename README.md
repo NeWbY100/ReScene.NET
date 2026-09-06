@@ -75,8 +75,8 @@ ReScene.Manager/
 | [Avalonia.Controls.DataGrid](https://www.nuget.org/packages/Avalonia.Controls.DataGrid) | 12.1.2 | ReScene.Manager |
 | [CommunityToolkit.Mvvm](https://www.nuget.org/packages/CommunityToolkit.Mvvm) | 8.4.2 | ReScene.App.Core |
 | [Crc32.NET](https://www.nuget.org/packages/Crc32.NET) | 1.2.0 | ReScene |
-| [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) | 9.0.4 | ReScene |
-| [CliWrap](https://www.nuget.org/packages/CliWrap) | 3.10.0 | ReScene |
+| [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) | 10.0.11 | ReScene |
+| [CliWrap](https://www.nuget.org/packages/CliWrap) | 3.10.5 | ReScene |
 | [DiscUtils.Iso9660](https://www.nuget.org/packages/DiscUtils.Iso9660) / [.Udf](https://www.nuget.org/packages/DiscUtils.Udf) | 0.16.13 | ReScene |
 | [ReScene.Lib](https://github.com/NeWbY100/ReScene.Lib) | submodule | — |
 

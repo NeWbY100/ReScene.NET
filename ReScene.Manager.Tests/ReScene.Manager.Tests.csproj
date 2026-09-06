@@ -26,13 +26,20 @@
     <PackageReference Include="Avalonia.Markup.Xaml.Loader" Version="12.1.2" />
     <PackageReference Include="Avalonia.Headless.XUnit" Version="12.1.2" />
     <PackageReference Include="Avalonia.Skia" Version="12.1.2" />
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <!-- xunit.v3, not v2: Avalonia.Headless.XUnit 12.x depends on xunit.v3.extensibility.core
          [3.2.2,) - with v2 xunit the restore graph carries both frameworks and duplicate Xunit
-         types. 3.2.2 matches that floor (4.0.0 exists; moving is a deliberate, separate step). -->
+         types.
+         HELD AT 3.2.2 DELIBERATELY. 4.0.0 switches to Microsoft.Testing.Platform v2, whose MSBuild
+         targets refuse the VSTest path outright on the .NET 10 SDK ("Testing with VSTest target is
+         no longer supported"). The failure is silent in the worst way: dotnet test still exits 0
+         while running none of this assembly's tests. Moving up means converting every suite in the
+         repo - the CLI and the ReScene.Lib submodule are still xunit v2, which has no MTP support
+         at all - and both CI legs, because one solution-wide run cannot drive VSTest and MTP
+         projects together. Verify the reported test count, not just the exit code, if you retry. -->
     <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
