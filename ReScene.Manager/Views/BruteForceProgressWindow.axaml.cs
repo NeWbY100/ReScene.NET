@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;

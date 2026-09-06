@@ -85,7 +85,7 @@
         <!-- Editable: type or paste a path and press Enter to load (no dialog needed). -->
         <TextBox x:Name="LoadedFilePathTextBox"
                  Text="{Binding LoadedFilePath}"
-                 Watermark="Type a path and press Enter, or Browse"
+                 PlaceholderText="Type a path and press Enter, or Browse"
                  TabIndex="0"
                  FontSize="{DynamicResource FontSizeBody}">
           <TextBox.KeyBindings>

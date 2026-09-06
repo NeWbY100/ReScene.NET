@@ -78,7 +78,7 @@
         <!-- Editable: type or paste a path and press Enter to load (no dialog needed). -->
         <TextBox x:Name="LeftFilePathTextBox"
                  Text="{Binding LeftFilePath}"
-                 Watermark="Type a path and press Enter, or Browse"
+                 PlaceholderText="Type a path and press Enter, or Browse"
                  TabIndex="0"
                  FontSize="{DynamicResource FontSizeBody}">
           <TextBox.KeyBindings>
@@ -121,7 +121,7 @@
         <!-- Editable: type or paste a path and press Enter to load (no dialog needed). -->
         <TextBox x:Name="RightFilePathTextBox"
                  Text="{Binding RightFilePath}"
-                 Watermark="Type a path and press Enter, or Browse"
+                 PlaceholderText="Type a path and press Enter, or Browse"
                  TabIndex="0"
                  FontSize="{DynamicResource FontSizeBody}">
           <TextBox.KeyBindings>

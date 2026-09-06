@@ -22,7 +22,7 @@ internal static class ImageTestData
         }
 
         using var buffer = new MemoryStream();
-        target.Save(buffer);
+        target.Save(buffer, PngBitmapEncoderOptions.Default);
         return buffer.ToArray();
     }
 

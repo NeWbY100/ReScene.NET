@@ -16,14 +16,16 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.18" />
-    <!-- The DataGrid package's 11.3 line tops out at 11.3.13 (no 11.3.18 published);
-         11.3.13 depends on Avalonia >= 11.3.13 and composes cleanly with the 11.3.18 core. -->
-    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.13" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.18" Condition="'$(Configuration)'=='Debug'" />
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <!-- No Avalonia.Diagnostics reference: that package has no 12.x release. DevTools moved out
+         of the framework into the standalone AvaloniaUI Developer Tools app, bridged by the
+         AvaloniaUI.DiagnosticsSupport package plus an AttachDeveloperTools() call. Nothing here
+         ever called AttachDevTools(), so the reference is dropped rather than replaced - the
+         agent bridge below covers the same inspection need for local Debug builds. -->
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="app.ico" />

@@ -860,8 +860,7 @@ public class CompactHeightBehaviorTests
             Assert.Equal(60, root.RowDefinitions[1].MinHeight);
 
             // Restore: the row goes back to its authored minimum, not to a second compact value.
-            root.GetVisualRoot();
-            ((Window)root.GetVisualRoot()!).Height = Threshold + 200;
+            ((Window)TopLevel.GetTopLevel(root)!).Height = Threshold + 200;
             Dispatcher.UIThread.RunJobs();
             Assert.DoesNotContain("compactHeight", root.Classes);
             Assert.Equal(0, root.RowDefinitions[1].MinHeight);
@@ -1796,7 +1795,7 @@ public class CompactHeightBehaviorTests
             // Attached after the setup Focus() (which raises a request of its own). Fires
             // synchronously inside captured.BringIntoView(), before the scroller recovers it.
             captured.AddHandler(Control.RequestBringIntoViewEvent,
-                (_, _) => TopLevel.GetTopLevel(root)!.FocusManager!.ClearFocus());
+                (_, _) => TopLevel.GetTopLevel(root)!.FocusManager!.Focus(null));
 
             w.Height = Threshold + 40;             // -> restore; runs the staged recovery
             Dispatcher.UIThread.RunJobs();
@@ -2562,7 +2561,7 @@ public class CompactHeightBehaviorTests
             Action pass = InvokeCreateResizeRecheckCallback(root, captured, state);
 
             // The user clears focus (clicked the desktop, closed a popup, tabbed to another window).
-            TopLevel.GetTopLevel(root)!.FocusManager!.ClearFocus();
+            TopLevel.GetTopLevel(root)!.FocusManager!.Focus(null);
             Dispatcher.UIThread.RunJobs();
             Assert.Null(w.FocusManager?.GetFocusedElement());
 
@@ -2724,7 +2723,7 @@ public class CompactHeightBehaviorTests
         Assert.True(control.Bounds is { Width: > 0, Height: > 0 },
             $"[{context}] {control.GetType().Name} has a non-positive size ({control.Bounds.Width:F1}x{control.Bounds.Height:F1}).");
 
-        Visual visualRoot = control.GetVisualRoot() as Visual
+        Visual visualRoot = TopLevel.GetTopLevel(control)
             ?? throw new InvalidOperationException($"[{context}] the control is not attached to a visual root.");
         Rect controlInRoot = TransformRect(control, new Rect(control.Bounds.Size), visualRoot)
             ?? throw new InvalidOperationException($"[{context}] the control could not be translated into root coordinates.");

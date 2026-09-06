@@ -23,6 +23,10 @@ public sealed class TestAppBuilder
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UseSkia()
+            // Avalonia 12 decoupled text shaping from the rendering backend: an explicit .UseSkia()
+            // no longer brings a shaper with it, and without one every glyph run measures as
+            // fallback boxes. UsePlatformDetect() (production) still wires HarfBuzz itself.
+            .UseHarfBuzz()
             // Match production (Program.BuildAvaloniaApp): UIFontFamily's fallback chain references
             // the embedded Inter collection (fonts:Inter#Inter); without registering it, font
             // resolution on machines lacking Segoe UI (Linux CI) would skip to $Default or fail.

@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- xunit v3 runs its tests from a self-contained executable (in-process runner); dotnet test
+         still drives it through the VSTest adapter. -->
+    <OutputType>Exe</OutputType>
+    <!-- xUnit1051 (pass TestContext.Current.CancellationToken) is advisory: it makes cancelling a
+         stuck run more responsive, at the cost of threading a token through every call in every
+         test. Not worth the noise here. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-All</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -14,13 +22,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Markup.Xaml.Loader" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Skia" Version="11.3.18" />
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Markup.Xaml.Loader" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Skia" Version="12.1.2" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
+    <!-- xunit.v3, not v2: Avalonia.Headless.XUnit 12.x depends on xunit.v3.extensibility.core
+         [3.2.2,) - with v2 xunit the restore graph carries both frameworks and duplicate Xunit
+         types. 3.2.2 matches that floor (4.0.0 exists; moving is a deliberate, separate step). -->
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 

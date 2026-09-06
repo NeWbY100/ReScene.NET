@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using ReScene.Manager.Behaviors;
 
 namespace ReScene.Manager.Tests;
@@ -199,7 +200,7 @@ public class LogListCopyTests
         Assert.True(CopyAll(list).IsEnabled);
 
         // The gesture shown next to Copy Line is the platform's, not a hardcoded Ctrl+C.
-        KeyGesture expected = window.PlatformSettings!.HotkeyConfiguration.Copy[0];
+        KeyGesture expected = window.GetPlatformSettings()!.HotkeyConfiguration.Copy[0];
         Assert.Equal(expected, CopyLine(list).InputGesture);
     }
 

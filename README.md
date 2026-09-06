@@ -71,8 +71,8 @@ ReScene.Manager/
 
 | Package | Version | Project |
 |---|---|---|
-| [Avalonia](https://www.nuget.org/packages/Avalonia) (+ Desktop, Fluent, Inter) | 11.3.18 | ReScene.Manager |
-| [Avalonia.Controls.DataGrid](https://www.nuget.org/packages/Avalonia.Controls.DataGrid) | 11.3.13 | ReScene.Manager |
+| [Avalonia](https://www.nuget.org/packages/Avalonia) (+ Desktop, Fluent, Inter) | 12.1.2 | ReScene.Manager |
+| [Avalonia.Controls.DataGrid](https://www.nuget.org/packages/Avalonia.Controls.DataGrid) | 12.1.2 | ReScene.Manager |
 | [CommunityToolkit.Mvvm](https://www.nuget.org/packages/CommunityToolkit.Mvvm) | 8.4.2 | ReScene.App.Core |
 | [Crc32.NET](https://www.nuget.org/packages/Crc32.NET) | 1.2.0 | ReScene |
 | [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) | 9.0.4 | ReScene |

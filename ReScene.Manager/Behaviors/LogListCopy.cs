@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.VisualTree;
 
 namespace ReScene.Manager.Behaviors;
@@ -202,8 +203,11 @@ public static class LogListCopy
         return listBox.ItemFromContainer(container)?.ToString();
     }
 
+    // Resolved off the visual's root rather than TopLevel.PlatformSettings: Avalonia 12 dropped
+    // that property from TopLevel's public surface, and no longer guarantees a TopLevel sits at the
+    // visual root at all. GetPlatformSettings() answers from whatever root is actually there.
     private static IReadOnlyList<KeyGesture> CopyGestures(ListBox listBox) =>
-        TopLevel.GetTopLevel(listBox)?.PlatformSettings?.HotkeyConfiguration.Copy ?? [];
+        listBox.GetPlatformSettings()?.HotkeyConfiguration.Copy ?? [];
 
     private static void CopyAllLines(ListBox listBox)
     {

@@ -1202,10 +1202,7 @@ internal static class CompactHeightBehavior
             return ClipVisibility.Obscured;
         }
 
-        if (element.GetVisualRoot() is not Visual root)
-        {
-            return ClipVisibility.Obscured;
-        }
+        Visual root = VisualRootOf(element);
 
         if (TransformRect(element, new Rect(element.Bounds.Size), root) is not { } elementInRoot)
         {
@@ -1249,6 +1246,27 @@ internal static class CompactHeightBehavior
         const double Slack = 0.5;
         return inner.X >= outer.X - Slack && inner.Y >= outer.Y - Slack &&
                inner.Right <= outer.Right + Slack && inner.Bottom <= outer.Bottom + Slack;
+    }
+
+    /// <summary>
+    /// The topmost visual above <paramref name="visual"/> — the common coordinate space every rect
+    /// in <see cref="GetClipVisibility"/> is transformed into.
+    /// </summary>
+    /// <remarks>
+    /// Avalonia 12 removed the <c>GetVisualRoot()</c> extension and made <c>Visual.VisualRoot</c>
+    /// protected, so the walk is spelled out. The caller has already established the element is
+    /// attached to a visual tree, which is why this can return a root unconditionally where the
+    /// old <c>VisualRoot</c> was nullable.
+    /// </remarks>
+    private static Visual VisualRootOf(Visual visual)
+    {
+        Visual root = visual;
+        while (root.GetVisualParent() is { } parent)
+        {
+            root = parent;
+        }
+
+        return root;
     }
 
     private static Rect? TransformRect(Visual from, Rect localRect, Visual to)

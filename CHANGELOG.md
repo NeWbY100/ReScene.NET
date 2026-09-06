@@ -2,6 +2,39 @@
 
 All notable changes to ReScene Manager (formerly ReScene.NET) are documented here. Releases follow [SemVer](https://semver.org/) and this file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- The application moved from **Avalonia 11.3.18 to 12.1.2**. The whole UI stack now sits on one
+  version again: `Avalonia.Controls.DataGrid` had been held back at 11.3.13 because the 11.3 line
+  never published a matching patch, and 12.1.2 exists for every package the app uses. Nothing in
+  the app's own behaviour changes — all 522 headless UI tests and 880 application-core tests pass
+  unchanged, in the same numbers as before the upgrade.
+
+- **DevTools is no longer referenced.** `Avalonia.Diagnostics` has no 12.x release: Avalonia moved
+  DevTools out of the framework and into a standalone *AvaloniaUI Developer Tools* application,
+  reached through the separate `AvaloniaUI.DiagnosticsSupport` package and an
+  `AttachDeveloperTools()` call. The Debug-only reference is dropped rather than replaced, because
+  nothing here ever called `AttachDevTools()` — the package was inert, and the avalonia-agent-mcp
+  bridge already covers live inspection of local Debug builds.
+
+- **The two headless-Avalonia test suites moved to xUnit v3** (`ReScene.Manager.Tests`,
+  `ReScene.App.Core.Tests`). This is forced, not elective: `Avalonia.Headless.XUnit` 12.x depends on
+  `xunit.v3.extensibility.core`, and keeping xunit v2 alongside it puts both frameworks — and two
+  sets of `Xunit` types — into the same restore graph. Pinned to 3.2.2, the floor Avalonia asks for.
+  The CLI and library suites use no Avalonia and stay on xUnit v2; the two versions coexist across
+  projects without issue. No test was gained, lost, or silently skipped in the conversion.
+
+- Avalonia 12 API changes absorbed, all behaviour-preserving: the `GetVisualRoot()` extension and
+  the public `TopLevel.PlatformSettings` property are gone (replaced by an explicit visual-ancestor
+  walk and `GetPlatformSettings()`, neither of which assumes a `TopLevel` sits at the visual root —
+  something v12 no longer guarantees); `SetTextAsync` moved off `IClipboard` onto an extension;
+  `IFocusManager.ClearFocus()` became `Focus(null)`; `TextBox.Watermark` is now `PlaceholderText`;
+  `Bitmap.Save`'s quality-integer overload is obsolete in favour of encoder options; and the two
+  test app builders now call `.UseHarfBuzz()`, because v12 decoupled text shaping from the
+  rendering backend and an explicit `.UseSkia()` no longer brings a shaper with it.
+
 ## [2.4.0] — 2026-08-19
 
 ### Added
